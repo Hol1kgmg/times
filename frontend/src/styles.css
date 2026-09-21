@@ -1,0 +1,55 @@
+@custom-media --mobile (max-width: 767px);
+
+:root {
+  --color-bg: #fff;
+  --color-surface: #fff;
+  --color-border: #ddd;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #444;
+  --color-text-muted: #666;
+  --color-text-faint: #999;
+  --color-skeleton-base: #eee;
+  --color-skeleton-highlight: #f5f5f5;
+  --color-shadow: rgb(0 0 0 / 0.12);
+  --color-shadow-soft: rgb(0 0 0 / 0.2);
+  --z-header: 20;
+  --z-sidebar-overlay: 25;
+  --z-sidebar: 30;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121212;
+    --color-surface: #1e1e1e;
+    --color-border: #333;
+    --color-text: #e6e6e6;
+    --color-text-secondary: #ccc;
+    --color-text-muted: #999;
+    --color-text-faint: #777;
+    --color-skeleton-base: #2a2a2a;
+    --color-skeleton-highlight: #333;
+    --color-shadow: rgb(0 0 0 / 0.4);
+    --color-shadow-soft: rgb(0 0 0 / 0.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Klee One", cursive, sans-serif;
+}
+
+.text-kyokasho {
+  font-family: "Klee One", cursive, sans-serif;
+}
