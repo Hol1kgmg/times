@@ -1,5 +1,17 @@
 version: 2
 updates:
+  # ルート package.json の packageManager (pnpm 本体のバージョン) が対象。
+  # corepack が親ディレクトリまで遡って読むため、定義はここ 1 箇所に置く。
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 2
+
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:

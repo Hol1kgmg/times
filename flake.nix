@@ -32,7 +32,14 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         bundle = agentLib.mkBundle { inherit pkgs selection; };
+
+        # CI の setup-node にも同じバージョンを渡すため、ここを唯一の定義箇所にする
+        nodejs = pkgs.nodejs_24;
       in {
+        # GitHub Actions が `nix eval --raw .#node.version` で参照する。
+        # flake.lock の nixpkgs 更新に CI の Node.js バージョンを自動追従させるため。
+        packages.node = nodejs;
+
         # skills.nix の宣言が解決できてバンドルが組めるかの確認（nix flake check）
         checks.skills = bundle;
 
@@ -57,6 +64,7 @@
 
         devShells.default = pkgs.mkShell {
           packages = [
+            nodejs
             pkgs.just
             pkgs.gitleaks
             pkgs.lefthook
@@ -67,6 +75,12 @@
 
           shellHook = ''
             lefthook install >/dev/null
+
+            # corepack (pnpm) の shim をプロジェクトローカルに隔離する
+            corepack_dir="$PWD/.direnv/state/corepack-bin"
+            mkdir -p "$corepack_dir"
+            corepack enable --install-directory "$corepack_dir"
+            export PATH="$corepack_dir:$PATH"
           '' + agentLib.mkShellHook {
             inherit pkgs bundle;
             targets = localTargets;

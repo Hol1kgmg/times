@@ -1,0 +1,21 @@
+{
+  "extends": ["markuplint:recommended"],
+  "parser": {
+    ".tsx": "@markuplint/jsx-parser"
+  },
+  "specs": {
+    ".tsx": "@markuplint/react-spec"
+  },
+  "rules": {
+    "case-sensitive-attr-name": false,
+    "security/no-event-handler-attr": false
+  },
+  "overrides": {
+    "src/routes/__root.tsx": {
+      "rules": {
+        "permitted-contents": false,
+        "required-element": false
+      }
+    }
+  }
+}

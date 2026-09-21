@@ -1,4 +1,27 @@
 pre-commit:
+  parallel: true
   commands:
     gitleaks:
       run: gitleaks protect --staged --verbose
+    lint-code:
+      root: "frontend/"
+      glob: "src/**/*.{ts,tsx}"
+      run: pnpm oxlint --fix {staged_files}
+      stage_fixed: true
+    format-code:
+      root: "frontend/"
+      glob: "src/**/*.{ts,tsx,js,jsx}"
+      run: pnpm oxfmt {staged_files}
+      stage_fixed: true
+    lint-markup:
+      root: "frontend/"
+      glob: "src/**/*.tsx"
+      run: pnpm markuplint {staged_files} --fix --problem-only
+      stage_fixed: true
+    typecheck:
+      root: "frontend/"
+      # routeTree.gen.ts は gitignore 対象。parallel 実行なので自前で生成してから型検査する
+      run: pnpm generate-routes && pnpm typecheck
+    test:
+      root: "frontend/"
+      run: pnpm test

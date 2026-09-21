@@ -1,0 +1,13 @@
+name = "times"
+main = "dist/server/server.js"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+keep_names = false
+
+[assets]
+directory = "dist/client"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+head_sampling_rate = 1

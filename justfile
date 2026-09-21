@@ -45,6 +45,74 @@ scan:
 scan-staged:
     gitleaks protect --staged --verbose
 
+# Install frontend dependencies
+install:
+    pnpm -C frontend install
+
+# Uninstall frontend dependencies
+uninstall *args:
+    pnpm -C frontend uninstall {{args}}
+
+# Add frontend dependencies
+add *args:
+    pnpm -C frontend add {{args}}
+
+# Update frontend dependencies (`update` is reserved for nix locks)
+upgrade *args:
+    pnpm -C frontend update {{args}}
+
+# Start the development server
+dev *args:
+    pnpm -C frontend dev {{args}}
+
+# Start the development server bound to 0.0.0.0
+dev-host *args:
+    pnpm -C frontend dev:host {{args}}
+
+# Build for production
+build:
+    pnpm -C frontend build
+
+# Preview the production build
+preview:
+    pnpm -C frontend preview
+
+# Generate TanStack Router route tree
+generate-routes:
+    pnpm -C frontend generate-routes
+
+# Run unit tests
+test *args:
+    pnpm -C frontend test {{args}}
+
+# Run E2E tests
+test-e2e *args:
+    pnpm -C frontend test:e2e {{args}}
+
+# Run E2E tests with UI
+test-e2e-ui *args:
+    pnpm -C frontend test:e2e:ui {{args}}
+
+# Run linter
+lint:
+    pnpm -C frontend lint
+
+# Run markup linter
+lint-markup:
+    pnpm -C frontend lint:markup
+
+# Format code
+format:
+    pnpm -C frontend format
+
+# Run TypeScript type check
+typecheck:
+    pnpm -C frontend typecheck
+
+# Deploy to Cloudflare Workers
+deploy:
+    pnpm -C frontend deploy
+
 # Serve markdown at http://localhost:8080
 docs *ARGS:
     markserv . -p 8080 -a 0.0.0.0 --browser=false {{ARGS}}
