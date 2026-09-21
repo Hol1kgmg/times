@@ -1,8 +1,53 @@
 version: 2
 updates:
-  # .github/workflows/ 配下の全 workflow が対象。SHA pin と横の # vN コメントを更新する。
-  # flake.lock と registry/sources.lock.json は update-locks.yaml が見る
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: "npm"
+    directory: "/frontend"
     schedule:
-      interval: monthly
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 2
+    groups:
+      # markuplint 本体とパーサは同一モノレポで、メジャー間で AST 契約が変わる。
+      # 片方だけ更新されると壊れるため、更新種別を問わず 1 PR にまとめる。
+      # npm-minor-patch より上に置くこと(先にマッチしたグループが優先される)。
+      markuplint:
+        patterns:
+          - "markuplint"
+          - "@markuplint/*"
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # .github/workflows/ 配下の全 workflow が対象。SHA pin と横の # vN コメントを更新する。
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 2
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # flake.lock が対象。update-locks.yaml は upstream(claude-temp)専用でここでは動かない。
+  - package-ecosystem: "nix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
