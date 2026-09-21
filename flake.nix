@@ -3,9 +3,10 @@
     nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
     flake-utils.url = "github:numtide/flake-utils";
     agent-skills.url = "github:Kyure-A/agent-skills-nix";
+    nur-packages.url = "github:Hol1kgmg/nur-packages";
   };
 
-  outputs = { nixpkgs, flake-utils, agent-skills, ... }:
+  outputs = { nixpkgs, flake-utils, agent-skills, nur-packages, ... }:
     let
       agentLib = agent-skills.lib.agent-skills;
 
@@ -13,6 +14,9 @@
       sources = agentLib.sourcesFromLock {
         manifestsDir = ./registry/sources;
         lockFile = ./registry/sources.lock.json;
+      } // {
+        # 独自スキル。rev 固定が不要なため lock には載せない。
+        local = { path = ./skills; };
       };
       catalog = agentLib.discoverCatalog sources;
       selection = agentLib.selectSkills {
@@ -58,6 +62,7 @@
             pkgs.lefthook
             pkgs.gh
             pkgs.gh-dash
+            nur-packages.packages.${system}.markserv
           ];
 
           shellHook = ''

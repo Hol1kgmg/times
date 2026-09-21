@@ -14,4 +14,6 @@
   # gist
   "cognitive-rhythm-writing"
   "japanese-tech-writing"
+
+  # ./skills（独自）
 ]

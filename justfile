@@ -40,3 +40,7 @@ scan:
 # Scan staged changes for secrets
 scan-staged:
     gitleaks protect --staged --verbose
+
+# Serve markdown at http://localhost:8080
+docs *ARGS:
+    markserv . -p 8080 -a 0.0.0.0 --browser=false {{ARGS}}
