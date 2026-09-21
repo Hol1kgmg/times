@@ -57,6 +57,10 @@ uninstall *args:
 add *args:
     pnpm -C frontend add {{args}}
 
+# Add frontend dependencies
+remove *args:
+    pnpm -C frontend remove {{args}}
+
 # Update frontend dependencies (`update` is reserved for nix locks)
 upgrade *args:
     pnpm -C frontend update {{args}}
