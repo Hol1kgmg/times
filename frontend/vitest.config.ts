@@ -12,7 +12,7 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
-    // TODO: 最初のテストを追加した時点でこの行を削除する。
+    // 最初のテストを追加した時点でこの行を削除する。
     // 有効なままだとテストが 0 件でも `vitest run` が成功し、CI の test job が
     // 何も検証していない状態になる。
     passWithNoTests: true,

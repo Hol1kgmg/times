@@ -2,15 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { listItems } from "#/server/items";
 
-// 検索パラメータを検証 (?q=...)、loader でサーバー関数を呼ぶ。SSR は既定の true。
-export const Route = createFileRoute("/")({
-  validateSearch: z.object({ q: z.string().default("") }),
-  loaderDeps: ({ search }) => ({ q: search.q }),
-  loader: ({ deps }) => listItems({ data: deps }),
-  component: Home,
-});
-
-function Home() {
+const Home = () => {
   const items = Route.useLoaderData();
   const { q } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -33,4 +25,12 @@ function Home() {
       </ul>
     </main>
   );
-}
+};
+
+// 検索パラメータを検証 (?q=...)、loader でサーバー関数を呼ぶ。SSR は既定の true。
+export const Route = createFileRoute("/")({
+  validateSearch: z.object({ q: z.string().default("") }),
+  loaderDeps: ({ search }) => ({ q: search.q }),
+  loader: ({ deps }) => listItems({ data: deps }),
+  component: Home,
+});
