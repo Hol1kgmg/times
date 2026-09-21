@@ -1,0 +1,136 @@
+{
+  "manifests": {
+    "anthropic": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "owner": "anthropics",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "skills",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "skills"
+    },
+    "cognitive-rhythm-writing": {
+      "filter": {
+        "maxDepth": 0,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "forge": "auto",
+        "preReleases": false,
+        "releasePrefix": null,
+        "submodules": false,
+        "type": "git",
+        "url": "https://gist.github.com/k16shikano/eb2929f13ed19c97188393d297be8432.git",
+        "versionUpperBound": null
+      },
+      "subdir": "."
+    },
+    "japanese-tech-writing": {
+      "filter": {
+        "maxDepth": 0,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "forge": "auto",
+        "preReleases": false,
+        "releasePrefix": null,
+        "submodules": false,
+        "type": "git",
+        "url": "https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d.git",
+        "versionUpperBound": null
+      },
+      "subdir": "."
+    },
+    "vercel": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "owner": "vercel",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "ai",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "skills"
+    }
+  },
+  "npins": {
+    "pins": {
+      "anthropic": {
+        "branch": "main",
+        "hash": "sha256-tI4bTTBfI1ylltklGyiyA7pLoKXEWtrT6lrmwrpLbCw=",
+        "repository": {
+          "owner": "anthropics",
+          "repo": "skills",
+          "type": "GitHub"
+        },
+        "revision": "34040c9c568585f6929bedeaad110ad08f079624",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/anthropics/skills/archive/34040c9c568585f6929bedeaad110ad08f079624.tar.gz"
+      },
+      "cognitive-rhythm-writing": {
+        "branch": "main",
+        "hash": "sha256-Zo3iVnTvVG6IfU9vBf4Zv/bEcKmNKnI2IY1D0uvzkNM=",
+        "repository": {
+          "type": "Git",
+          "url": "https://gist.github.com/k16shikano/eb2929f13ed19c97188393d297be8432.git"
+        },
+        "revision": "a3b1e26beced71d582e13314fb6f5b179b023c76",
+        "submodules": false,
+        "type": "Git",
+        "url": null
+      },
+      "japanese-tech-writing": {
+        "branch": "main",
+        "hash": "sha256-jo1DvsAVIAKzurutp+T66kctgaFEe+sVbY9bf7wlCLM=",
+        "repository": {
+          "type": "Git",
+          "url": "https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d.git"
+        },
+        "revision": "8f2d57610a73efc97d743c9b0b0ecb1002e09fa4",
+        "submodules": false,
+        "type": "Git",
+        "url": null
+      },
+      "vercel": {
+        "branch": "main",
+        "hash": "sha256-Q/bR/kK6Peee/tIbHvvS7WWmNbmnIcwPRZEnwsADQ8k=",
+        "repository": {
+          "owner": "vercel",
+          "repo": "ai",
+          "type": "GitHub"
+        },
+        "revision": "20dd00abba618d5a516e0fee40ccd3e18a2bd1fb",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/vercel/ai/archive/20dd00abba618d5a516e0fee40ccd3e18a2bd1fb.tar.gz"
+      }
+    },
+    "version": 8
+  },
+  "schemaVersion": 1
+}

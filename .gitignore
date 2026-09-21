@@ -1,0 +1,3 @@
+.direnv/
+.agents/skills/
+.claude/settings.local.json
