@@ -1,0 +1,21 @@
+### create → 201 Item
+# @name createItem
+POST {{host}}/items
+Content-Type: application/json
+
+{"title": "test"}
+
+### list → 200 Item[]（直前の create が含まれる）
+GET {{host}}/items
+
+### create (empty title) → 400 {"message": ...}
+POST {{host}}/items
+Content-Type: application/json
+
+{"title": ""}
+
+### create (not json) → 400
+POST {{host}}/items
+Content-Type: application/json
+
+not json

@@ -7,5 +7,10 @@
   },
   "files.readonlyInclude": {
     "**/routeTree.gen.ts": true
+  },
+  "rest-client.environmentVariables": {
+    "$shared": {
+      "host": "http://localhost:8080"
+    }
   }
 }
