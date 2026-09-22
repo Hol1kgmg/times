@@ -1,7 +1,7 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-4);
   width: 256px;
   height: 100%;
   background-color: var(--color-surface);
@@ -9,10 +9,9 @@
 }
 
 .title {
-  padding: 24px 24px 0;
+  composes: t-date from global;
+  padding: var(--space-4) var(--space-4) 0;
   color: var(--color-text);
-  font-size: 18px;
-  font-weight: 600;
   text-decoration: none;
 }
 
@@ -22,13 +21,13 @@
 }
 
 .link {
-  padding: 12px 24px;
+  composes: t-title from global;
+  padding: var(--space-2) var(--space-4);
   color: var(--color-text);
-  font-size: 16px;
   text-decoration: none;
 }
 
 .link:hover,
 .link[data-status="active"] {
-  background-color: var(--color-skeleton-base);
+  background-color: var(--color-fill-subtle);
 }
