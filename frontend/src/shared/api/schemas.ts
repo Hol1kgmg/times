@@ -6,14 +6,14 @@ import type { components } from "./openapi.gen";
 
 type Schemas = components["schemas"];
 
-export const itemId = z.string().uuid().brand<"ItemId">();
-export const digestId = z.string().uuid().brand<"DigestId">();
-export const articleId = z.string().uuid().brand<"ArticleId">();
+export const itemId = z.uuid().brand<"ItemId">();
+export const digestId = z.uuid().brand<"DigestId">();
+export const articleId = z.uuid().brand<"ArticleId">();
 
 export const item = z.object({
   id: itemId,
   title: z.string(),
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
 }) satisfies z.ZodType<Schemas["Item"]>;
 
 export const category = z.enum([
@@ -30,13 +30,13 @@ export const article = z.object({
   id: articleId,
   category,
   title: z.string(),
-  url: z.string().url(),
+  url: z.url(),
   description: z.string().optional(),
 }) satisfies z.ZodType<Schemas["Article"]>;
 
 export const digest = z.object({
   id: digestId,
-  entryDate: z.string().date(),
+  entryDate: z.iso.date(),
   items: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
 
