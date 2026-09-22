@@ -1,2 +1,0 @@
-### healthz → 200 {"status":"ok"}
-GET {{host}}/healthz

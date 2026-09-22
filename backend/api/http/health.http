@@ -1,0 +1,2 @@
+### health → 200 {"status":"ok"}
+GET {{host}}/health

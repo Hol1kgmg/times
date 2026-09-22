@@ -3,9 +3,9 @@ info:
   title: times API
   version: 0.1.0
 paths:
-  /healthz:
+  /health:
     get:
-      operationId: healthz
+      operationId: health
       responses:
         "200":
           description: OK

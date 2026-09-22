@@ -23,8 +23,8 @@ func New(pool *pgxpool.Pool) *Server {
 	return &Server{q: db.New(pool)}
 }
 
-func (s *Server) Healthz(context.Context, api.HealthzRequestObject) (api.HealthzResponseObject, error) {
-	return api.Healthz200JSONResponse{Status: "ok"}, nil
+func (s *Server) Health(context.Context, api.HealthRequestObject) (api.HealthResponseObject, error) {
+	return api.Health200JSONResponse{Status: "ok"}, nil
 }
 
 func (s *Server) ListItems(ctx context.Context, _ api.ListItemsRequestObject) (api.ListItemsResponseObject, error) {

@@ -77,8 +77,8 @@ type CreateItemJSONRequestBody = NewItem
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (GET /healthz)
-	Healthz(c *gin.Context)
+	// (GET /health)
+	Health(c *gin.Context)
 
 	// (GET /items)
 	ListItems(c *gin.Context)
@@ -99,8 +99,8 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(c *gin.Context)
 
-// Healthz operation middleware
-func (siw *ServerInterfaceWrapper) Healthz(c *gin.Context) {
+// Health operation middleware
+func (siw *ServerInterfaceWrapper) Health(c *gin.Context) {
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -109,7 +109,7 @@ func (siw *ServerInterfaceWrapper) Healthz(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.Healthz(c)
+	siw.Handler.Health(c)
 }
 
 // ListItems operation middleware
@@ -190,7 +190,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
-	router.GET(options.BaseURL+"/healthz", wrapper.Healthz)
+	router.GET(options.BaseURL+"/health", wrapper.Health)
 	router.GET(options.BaseURL+"/items", wrapper.ListItems)
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
 	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
@@ -198,18 +198,18 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
 
-type HealthzRequestObject struct {
+type HealthRequestObject struct {
 }
 
-type HealthzResponseObject interface {
-	VisitHealthzResponse(w http.ResponseWriter) error
+type HealthResponseObject interface {
+	VisitHealthResponse(w http.ResponseWriter) error
 }
 
-type Healthz200JSONResponse struct {
+type Health200JSONResponse struct {
 	Status string `json:"status"`
 }
 
-func (response Healthz200JSONResponse) VisitHealthzResponse(w http.ResponseWriter) error {
+func (response Health200JSONResponse) VisitHealthResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -337,8 +337,8 @@ func (response GetItem404ApplicationProblemPlusJSONResponse) VisitGetItemRespons
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
-	// (GET /healthz)
-	Healthz(ctx context.Context, request HealthzRequestObject) (HealthzResponseObject, error)
+	// (GET /health)
+	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
 
 	// (GET /items)
 	ListItems(ctx context.Context, request ListItemsRequestObject) (ListItemsResponseObject, error)
@@ -407,23 +407,23 @@ type strictHandler struct {
 	options     StrictGinServerOptions
 }
 
-// Healthz operation middleware
-func (sh *strictHandler) Healthz(ctx *gin.Context) {
-	var request HealthzRequestObject
+// Health operation middleware
+func (sh *strictHandler) Health(ctx *gin.Context) {
+	var request HealthRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Healthz(ctx, request.(HealthzRequestObject))
+		return sh.ssi.Health(ctx, request.(HealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Healthz")
+		handler = middleware(handler, "Health")
 	}
 
 	response, err := handler(ctx, request)
 
 	if err != nil {
 		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(HealthzResponseObject); ok {
-		if err := validResponse.VisitHealthzResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(HealthResponseObject); ok {
+		if err := validResponse.VisitHealthResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -517,18 +517,18 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"vFVNbys1FP0r0YUdbib9WM2uRQIiqlKxrbpw4pvEZcae2ncKJRqpmUioEiyQkJBgiYoom1aiW/6NFfgb",
-	"T/Ykaab56Ht91csmnrn2Pfece65nCF2dZlqhIgvxEAzaTCuL4eGAi6/xPEdL/qmrFaEKS55liexyklpF",
-	"mdGdBNNPzqxWPma7A0y5X31ssAcxfBQ9QkRV1EbH1SkoioKBQNs1MvPpIPaojRmsj06P+IxtwtT/Z0Zn",
-	"aEhWZXYNckKxH0rraZNyghgEJ9wimSIwoMsMIQZLRqo+FAykqO3NcylWbSNJCfqdTyIFA4PnuTQoID6B",
-	"6nDYyxaqOZ1n1J0z7JLPeITfriYxh0r5d4eo+jSAeKfVYpBKNXveZs8UUiVZhTvTewlXIHGZrODIwBKn",
-	"3C6EpCLso9mkzAx6+KSprrx147/d+N//b+8m13+6q9KV9/5NeePKP9z4wY2v3ejejX5x5U9u9Nfk+ofJ",
-	"Pz+70W+u/NFdlf+NHyZ3v09ufnWj+wbv6JziTsLVN8AAVZ567vW3M1va6IInUgSrbvW4TFDUokrTVk/n",
-	"Siyotk5cH33s81SdZbH9Oal6eqGr4H1oG/vHbWBwgcZWorSa282W10xnqHgmIYbdZqu5CwwyToMgfTRA",
-	"ntDge7/uY7C4b18g1BYQwxfTOKvP7k6rtWFol4e17oql1q/RZKMIdQd89aV/WzCIJGFq1/I5lJbaYcer",
-	"MpqDzhebrqcwo3MzAzeGXy6Pfcj09twZZNquYPxpuDECZAWAlg60uHwntpvYzC6dos6ATI7Fksjbrwb7",
-	"iFlXo+IrvL57VU9XZZmXFS18hhYdFA2lKNba6HOkqaIZNzxFQmMhPhmC9CX48QIGiqfhXhPwVBe2wPGZ",
-	"z0Rx+p5GfYmG3lEvkM8f2fuQH/MjTY3Pwv1ahN+bAAAA//8=",
+	"vFXNbhMxEH6VaOCGm01/TntrkYCIqlRcqx6ceJK47Npb21uoopWajYQqwQEJCQmOqIhyaSV65W2swGsg",
+	"e5t0t/kplIpcsvbY8833zY/70JZxIgUKoyHsg0KdSKHRLzYoe477KWrjVm0pDAr/SZMk4m1quBRBomQr",
+	"wvjBnpbC2XS7hzF1X/cVdiCEe8EVRFBYdbBd3IIsywgw1G3FE+cOQodaG8M66+UV57FpMHb/iZIJKsOL",
+	"MNsKqUG27kPrSBVTAyEwanDJ8BiBgDlMEELQRnHRhYwAZ5WzacrZrGOGmwjdyWuWjIDC/ZQrZBDuQHHZ",
+	"nyWlaHYnHmVrD9vGedzCl7NJTKBi+moTRdf0IFxpNAjEXIzXy+SGQAons3DHek/hMjSURzM4EtCGmlSX",
+	"TFwY7KJapMwYun8tqTY/tcNvdvjj1+nZ6PiLPcptfu528hObf7bDCzs8toNzO3hv87d28HV0/Hr0/Z0d",
+	"fLT5G3uU/xxejM4+jU4+2MF5jbZkasJWRMULIIAijR336u64LHVwQCPOfKkudSiPkFWsQpqljkwFK6k2",
+	"T1xnvcrzpTrTYrt7XHRkKavg6lDX1rebQOAAlS5EadSX6w2nmUxQ0IRDCKv1Rn0VCCTU9Lz0QQ9p5JLf",
+	"hy76CnfZ83yaDEJ4UphJtXNXGo0FLTvdqtWamEr8HEUWSlDN/7OnbjcjEHCDsZ5LZ5Nr0/Qn7pTRBHTy",
+	"sWg4+Q6dlDJQpejhdNN7T3/OnUAi9QzGD/288JAFAGqzIdnhX7FdxGY8crIqA6NSzKZEXr4z2CvMqhoF",
+	"X+b0XStyOsvLJKyg9AiVKyjoc5bNLaPHaC4VTaiiMRpUGsKdPnAXgmsuICBo7Kcag+u6kBLHGx6JbPcf",
+	"C/U2GrqKuoV87sra/3zKt6SpPfLTNfO/3wEAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

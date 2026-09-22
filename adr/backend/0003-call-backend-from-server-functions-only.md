@@ -63,7 +63,7 @@ frontend は既に `.server.ts` + `createServerOnlyFn` でサーバー専用境�
 
 - [x] `backend/cmd/server/main.go` に CORS middleware が無い
 - [x] `openapi.yaml` の paths に version prefix が無い
-- [ ] frontend 接続時: `grep -r "8080\|BACKEND_URL" frontend/src --include='*.tsx' --include='*.ts' | grep -v '\.server\.ts'` が何も返さない
+- [x] frontend 接続時: `grep -r "8080\|BACKEND_URL" frontend/src --include='*.tsx' --include='*.ts' | grep -v '\.server\.ts'` が何も返さない
 
 ## Alternatives Considered
 

@@ -42,7 +42,7 @@ func TestRouter(t *testing.T) {
 		want               int
 		wantType           api.ProblemType
 	}{
-		{"GET", "/healthz", "", http.StatusOK, ""},
+		{"GET", "/health", "", http.StatusOK, ""},
 		{"POST", "/items", `{"title":""}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/items", `{}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/items", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
