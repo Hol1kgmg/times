@@ -22,6 +22,39 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for Category.
+const (
+	CategoryAI       Category = "AI系"
+	CategoryHotTopic Category = "ホットトピック"
+	CategoryIT       Category = "IT系"
+	CategoryOther    Category = "その他"
+	CategorySecurity Category = "セキュリティ"
+	CategoryTools    Category = "面白そうなツール・サービス"
+	CategoryUI       Category = "UI系"
+)
+
+// Valid indicates whether the value is a known member of the Category enum.
+func (e Category) Valid() bool {
+	switch e {
+	case CategoryAI:
+		return true
+	case CategoryHotTopic:
+		return true
+	case CategoryIT:
+		return true
+	case CategoryOther:
+		return true
+	case CategorySecurity:
+		return true
+	case CategoryTools:
+		return true
+	case CategoryUI:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemType.
 const (
 	AboutBlank               ProblemType = "about:blank"
@@ -41,6 +74,27 @@ func (e ProblemType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Article defines model for Article.
+type Article struct {
+	Category Category `json:"category"`
+
+	// Description ページの説明文。取得できた記事だけ持つ
+	Description *string            `json:"description,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Title       string             `json:"title"`
+	Url         string             `json:"url"`
+}
+
+// Category defines model for Category.
+type Category string
+
+// Digest defines model for Digest.
+type Digest struct {
+	EntryDate openapi_types.Date `json:"entryDate"`
+	Id        openapi_types.UUID `json:"id"`
+	Items     []Article          `json:"items"`
 }
 
 // Item defines model for Item.
@@ -77,6 +131,9 @@ type CreateItemJSONRequestBody = NewItem
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (GET /digests/latest)
+	GetLatestDigest(c *gin.Context)
+
 	// (GET /health)
 	Health(c *gin.Context)
 
@@ -98,6 +155,19 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// GetLatestDigest operation middleware
+func (siw *ServerInterfaceWrapper) GetLatestDigest(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetLatestDigest(c)
+}
 
 // Health operation middleware
 func (siw *ServerInterfaceWrapper) Health(c *gin.Context) {
@@ -194,9 +264,45 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/items", wrapper.ListItems)
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
 	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
+	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
 }
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
+
+type GetLatestDigestRequestObject struct {
+}
+
+type GetLatestDigestResponseObject interface {
+	VisitGetLatestDigestResponse(w http.ResponseWriter) error
+}
+
+type GetLatestDigest200JSONResponse Digest
+
+func (response GetLatestDigest200JSONResponse) VisitGetLatestDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLatestDigest404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetLatestDigest404ApplicationProblemPlusJSONResponse) VisitGetLatestDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type HealthRequestObject struct {
 }
@@ -337,6 +443,9 @@ func (response GetItem404ApplicationProblemPlusJSONResponse) VisitGetItemRespons
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
+	// (GET /digests/latest)
+	GetLatestDigest(ctx context.Context, request GetLatestDigestRequestObject) (GetLatestDigestResponseObject, error)
+
 	// (GET /health)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
 
@@ -405,6 +514,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictGinServerOptions
+}
+
+// GetLatestDigest operation middleware
+func (sh *strictHandler) GetLatestDigest(ctx *gin.Context) {
+	var request GetLatestDigestRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLatestDigest(ctx, request.(GetLatestDigestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLatestDigest")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetLatestDigestResponseObject); ok {
+		if err := validResponse.VisitGetLatestDigestResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // Health operation middleware
@@ -517,18 +650,24 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"OqN8/1+hy54uiv4OAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

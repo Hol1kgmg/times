@@ -10,6 +10,22 @@ import (
 	"github.com/google/uuid"
 )
 
+type Article struct {
+	ID          uuid.UUID
+	DigestID    uuid.UUID
+	Position    int32
+	Category    string
+	Title       string
+	Url         string
+	Description *string
+}
+
+type Digest struct {
+	ID        uuid.UUID
+	EntryDate time.Time
+	CreatedAt time.Time
+}
+
 type Item struct {
 	ID        uuid.UUID
 	Title     string

@@ -11,6 +11,7 @@ import (
 	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 type Server struct {
@@ -57,6 +58,29 @@ func (s *Server) CreateItem(ctx context.Context, req api.CreateItemRequestObject
 		return nil, err
 	}
 	return api.CreateItem201JSONResponse(toItem(row)), nil
+}
+
+func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestRequestObject) (api.GetLatestDigestResponseObject, error) {
+	d, err := s.q.GetLatestDigest(ctx)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.NotFound("no digest registered")
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.q.ListArticlesByDigest(ctx, d.ID)
+	if err != nil {
+		return nil, err
+	}
+	return api.GetLatestDigest200JSONResponse(toDigest(d, rows)), nil
+}
+
+func toDigest(d db.Digest, rows []db.Article) api.Digest {
+	items := make([]api.Article, len(rows))
+	for i, r := range rows {
+		items[i] = api.Article{Id: r.ID, Category: api.Category(r.Category), Title: r.Title, Url: r.Url, Description: r.Description}
+	}
+	return api.Digest{Id: d.ID, EntryDate: openapi_types.Date{Time: d.EntryDate}, Items: items}
 }
 
 func toItem(r db.Item) api.Item {

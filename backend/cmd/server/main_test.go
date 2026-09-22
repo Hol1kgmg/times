@@ -28,6 +28,10 @@ func (s stub) GetItem(context.Context, api.GetItemRequestObject) (api.GetItemRes
 	return nil, s.getItem
 }
 
+func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject) (api.GetLatestDigestResponseObject, error) {
+	return nil, s.getItem
+}
+
 // DB なしで到達できる経路だけ確認する: ルーティング、リクエスト検証、エラー変換の配線
 func TestRouter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -49,6 +53,7 @@ func TestRouter(t *testing.T) {
 		{"GET", "/items/not-a-uuid", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/items", `{"title":"` + strings.Repeat("a", maxBodyBytes) + `"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", id, "", http.StatusNotFound, api.ProblemsnotFound},
+		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound},
 	}
 	for _, tt := range tests {
 		w := do(r, tt.method, tt.path, tt.body)

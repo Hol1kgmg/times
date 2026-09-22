@@ -1,0 +1,2 @@
+### latest → 200 Digest（登録済みなら）/ 404 Problem type=/problems/not-found（未登録）
+GET {{host}}/digests/latest

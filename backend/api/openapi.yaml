@@ -76,6 +76,22 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digests/latest:
+    get:
+      operationId: getLatestDigest
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Digest"
+        "404":
+          description: Not Found (Digest が 1 件もない)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 components:
   responses:
     BadRequest:
@@ -105,6 +121,51 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+    # 1 日付分の記事のまとまり。items は登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
+    Digest:
+      type: object
+      required: [id, entryDate, items]
+      properties:
+        id:
+          type: string
+          format: uuid
+        entryDate:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Article"
+    Article:
+      type: object
+      required: [id, category, title, url]
+      properties:
+        id:
+          type: string
+          format: uuid
+        category:
+          $ref: "#/components/schemas/Category"
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
+          description: ページの説明文。取得できた記事だけ持つ
+    # 固定 7 カテゴリ。表示順もこの順 (specs/001 FR-007)
+    Category:
+      type: string
+      enum:
+        - セキュリティ
+        - ホットトピック
+        - IT系
+        - UI系
+        - AI系
+        - 面白そうなツール・サービス
+        - その他
+      # 日本語値からは Go の定数名が作れないので明示する
+      x-enum-varnames: [CategorySecurity, CategoryHotTopic, CategoryIT, CategoryUI, CategoryAI, CategoryTools, CategoryOther]
     # RFC 9457 Problem Details。全エラー応答はこの形 (adr/backend/0002)
     Problem:
       type: object
