@@ -1,0 +1,38 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+    paths: [backend/**, .github/workflows/backend-ci.yml, flake.lock, flake.nix]
+  pull_request:
+    paths: [backend/**, .github/workflows/backend-ci.yml, flake.lock, flake.nix]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # gen: 生成物(internal/api, internal/db)がコミット済みのものと一致するか
+        task: [be-gen, be-lint, be-test]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      # go / sqlc / oapi-codegen のバージョンは flake.lock が単一の真実
+      - uses: DeterminateSystems/nix-installer-action@786fff0690178f1234e4e1fe9b536e94f5433196 # v20
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('backend/go.sum') }}
+          restore-keys: go-${{ runner.os }}-
+      - run: nix develop --command just ${{ matrix.task }}
+      - if: matrix.task == 'be-gen'
+        run: git diff --exit-code -- backend

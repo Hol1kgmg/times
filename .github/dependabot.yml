@@ -55,6 +55,36 @@ updates:
           - "minor"
           - "patch"
 
+  - package-ecosystem: "gomod"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 2
+    groups:
+      gomod-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # compose.yaml と backend/Dockerfile のイメージタグが対象
+  - package-ecosystem: "docker"
+    directories:
+      - "/"
+      - "/backend"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 2
+
   # flake.lock が対象。update-locks.yaml は upstream(claude-temp)専用でここでは動かない。
   - package-ecosystem: "nix"
     directory: "/"

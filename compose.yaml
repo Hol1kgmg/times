@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: times
+      POSTGRES_PASSWORD: times
+      POSTGRES_DB: times
+    ports:
+      - "5432:5432"
+    volumes:
+      # postgres 18 からデータディレクトリが /var/lib/postgresql 直下になった
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U times -d times"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # one-shot。`just migrate <args>` で任意のサブコマンドも叩ける
+  migrate:
+    image: migrate/migrate:v4.18.3
+    volumes:
+      # `just migrate-new` がここにファイルを作るので書き込み可
+      - ./backend/db/migrations:/migrations
+    command: ["-path", "/migrations", "-database", "postgres://times:times@db:5432/times?sslmode=disable", "up"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://times:times@db:5432/times?sslmode=disable
+      GIN_MODE: release
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

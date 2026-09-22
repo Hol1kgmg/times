@@ -1,11 +1,13 @@
 .direnv/
-.agents/skills/
+**/.agents/skills/
 coverage/
 .claude/settings.local.json
 
 .env
 .env.local
 .env*.local
+
+backend/bin/
 
 .DS_Store
 *.log

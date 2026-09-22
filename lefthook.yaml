@@ -20,3 +20,11 @@ pre-commit:
     test:
       root: "frontend/"
       run: pnpm test
+    be-lint:
+      root: "backend/"
+      glob: "**/*.go"
+      run: test -z "$(gofmt -l {staged_files})" && go vet ./...
+    be-test:
+      root: "backend/"
+      glob: "**/*.{go,sql,yaml,mod,sum}"
+      run: go test ./...

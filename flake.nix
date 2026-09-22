@@ -71,6 +71,12 @@
             pkgs.gh
             pkgs.gh-dash
             nur-packages.packages.${system}.markserv
+            # backend。golang-migrate は Nix 版 CLI が macOS で起動時に panic するため
+            # compose の migrate/migrate イメージで実行する（just migrate）
+            pkgs.go
+            pkgs.gopls
+            pkgs.sqlc
+            pkgs.oapi-codegen
           ];
 
           shellHook = ''

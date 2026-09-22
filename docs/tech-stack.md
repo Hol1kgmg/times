@@ -1,3 +1,39 @@
+# backend 技術スタック
+
+正確なバージョンは [backend/go.mod](../backend/go.mod)、ツールは flake.lock、イメージは [compose.yaml](../compose.yaml)。
+
+| 分類 | ツール | 備考 |
+|---|---|---|
+| 言語 | Go | flake.nix が定義元。CI も Nix devShell で同じバージョンを使う |
+| HTTP | Gin | |
+| API 定義 | OpenAPI 3.0 + oapi-codegen (strict server) | [backend/api/openapi.yaml](../backend/api/openapi.yaml) が正。`internal/api/gen.go` は生成物だがコミットする。リクエスト検証は gin-middleware が spec から行う |
+| DB | PostgreSQL 18 | compose の `db` サービス |
+| DB アクセス | sqlc + pgx/v5 | `db/queries/*.sql` から `internal/db/` を生成。uuid / timestamptz は Go 標準型に override |
+| マイグレーション | golang-migrate | `db/migrations/NNNNNN_<name>.{up,down}.sql`。CLI は compose の `migrate` サービス（Nix 版が macOS で動かないため） |
+| コンテナ | Docker Compose | db → migrate (one-shot) → api の順に起動 |
+
+## 構成
+
+```
+backend/
+  cmd/server/         main.go: Gin 起動、pgxpool 接続、strict handler 登録
+  internal/handler/   StrictServerInterface 実装。sqlc の Queries を直接呼ぶ（層分けなし）
+  internal/api/       oapi-codegen 生成物
+  internal/db/        sqlc 生成物
+  api/                openapi.yaml, oapi-codegen.yaml
+  db/migrations/      golang-migrate
+  db/queries/         sqlc
+```
+
+## 運用
+
+- `just db-up` で Postgres 起動 + マイグレーション、`just be-dev` でサーバー起動（localhost:8080）
+- `just be-up` で api も含めて compose 一式をビルド・起動
+- API や SQL を変えたら `just be-gen` で再生成してコミット。CI が差分なしを検証する
+- マイグレーション追加は `just db-migrate-new <name>`、適用は `just db-up`（up）または `just db-migrate <args>`
+- pre-commit ([lefthook.yaml](../lefthook.yaml)): gofmt / go vet / go test
+- CI ([backend-ci.yml](../.github/workflows/backend-ci.yml)): be-gen 差分 / be-lint / be-test
+
 # frontend 技術スタック
 
 正確なバージョンは [frontend/package.json](../frontend/package.json)。
@@ -21,7 +57,7 @@
 
 ## 運用
 
-- 操作はルートの [justfile](../justfile) 経由（`just dev` / `just test` / `just lint`）。npm 依存の更新は `just upgrade`
+- 操作はルートの [justfile](../justfile) 経由（`just fe-dev` / `just fe-test` / `just fe-lint`）。npm 依存の更新は `just fe-upgrade`
 - pre-commit ([lefthook.yaml](../lefthook.yaml)): gitleaks / lint / markuplint / typecheck / test
 - CI ([frontend-ci.yml](../.github/workflows/frontend-ci.yml)): typecheck / lint / test
 - pnpm は `allowBuilds` でビルドスクリプトを制限し、公開後 48 時間未満のパッケージを取り込まない ([pnpm-workspace.yaml](../frontend/pnpm-workspace.yaml))

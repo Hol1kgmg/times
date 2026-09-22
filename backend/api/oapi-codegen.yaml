@@ -1,0 +1,8 @@
+package: api
+output: internal/api/gen.go
+generate:
+  models: true
+  gin-server: true
+  strict-server: true
+  # リクエスト検証ミドルウェア（gin-middleware）が読む
+  embedded-spec: true

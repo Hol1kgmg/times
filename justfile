@@ -1,3 +1,5 @@
+# 命名規則: frontend のみ → fe-*、backend のみ → be-*、DB / マイグレーション → db-*、両方 / リポジトリ全体 → prefix なし
+
 # List recipes
 list:
     @just --list
@@ -45,78 +47,143 @@ scan:
 scan-staged:
     gitleaks protect --staged --verbose
 
-# Install frontend dependencies
-install:
-    pnpm -C frontend install
+# Run all tests
+test: fe-test be-test
 
-# Uninstall frontend dependencies
-uninstall *args:
-    pnpm -C frontend uninstall {{args}}
+# Run all linters
+lint: fe-lint be-lint
 
-# Add frontend dependencies
-add *args:
-    pnpm -C frontend add {{args}}
-
-# Add frontend dependencies
-remove *args:
-    pnpm -C frontend remove {{args}}
-
-# Update frontend dependencies (`update` is reserved for nix locks)
-upgrade *args:
-    pnpm -C frontend update {{args}}
-
-# Start the development server
-dev *args:
-    pnpm -C frontend dev {{args}}
-
-# Start the development server bound to 0.0.0.0
-dev-host *args:
-    pnpm -C frontend dev:host {{args}}
-
-# Build for production
-build:
-    pnpm -C frontend build
-
-# Preview the production build
-preview:
-    pnpm -C frontend preview
-
-# Generate TanStack Router route tree
-generate-routes:
-    pnpm -C frontend generate-routes
-
-# Run unit tests
-test *args:
-    pnpm -C frontend test {{args}}
-
-# Run E2E tests
-test-e2e *args:
-    pnpm -C frontend test:e2e {{args}}
-
-# Run E2E tests with UI
-test-e2e-ui *args:
-    pnpm -C frontend test:e2e:ui {{args}}
-
-# Run linter
-lint:
-    pnpm -C frontend lint
-
-# Run markup linter
-lint-markup:
-    pnpm -C frontend lint:markup
-
-# Format code
-format:
-    pnpm -C frontend format
-
-# Run TypeScript type check
-typecheck:
-    pnpm -C frontend typecheck
-
-# Deploy to Cloudflare Workers
-deploy:
-    pnpm -C frontend deploy
+# Format all code
+format: fe-format be-format
 
 # Serve markdown at http://localhost:8080
 docs *ARGS:
     markserv . -p 8080 -a 0.0.0.0 --browser=false {{ARGS}}
+
+# --- frontend ---
+
+# Install frontend dependencies
+fe-install:
+    pnpm -C frontend install
+
+# Uninstall frontend dependencies
+fe-uninstall *args:
+    pnpm -C frontend uninstall {{args}}
+
+# Add frontend dependencies
+fe-add *args:
+    pnpm -C frontend add {{args}}
+
+# Remove frontend dependencies
+fe-remove *args:
+    pnpm -C frontend remove {{args}}
+
+# Update frontend dependencies
+fe-upgrade *args:
+    pnpm -C frontend update {{args}}
+
+# Start the development server
+fe-dev *args:
+    pnpm -C frontend dev {{args}}
+
+# Start the development server bound to 0.0.0.0
+fe-dev-host *args:
+    pnpm -C frontend dev:host {{args}}
+
+# Build for production
+fe-build:
+    pnpm -C frontend build
+
+# Preview the production build
+fe-preview:
+    pnpm -C frontend preview
+
+# Generate TanStack Router route tree
+fe-generate-routes:
+    pnpm -C frontend generate-routes
+
+# Run unit tests
+fe-test *args:
+    pnpm -C frontend test {{args}}
+
+# Run E2E tests
+fe-test-e2e *args:
+    pnpm -C frontend test:e2e {{args}}
+
+# Run E2E tests with UI
+fe-test-e2e-ui *args:
+    pnpm -C frontend test:e2e:ui {{args}}
+
+# Run linter
+fe-lint:
+    pnpm -C frontend lint
+
+# Run markup linter
+fe-lint-markup:
+    pnpm -C frontend lint:markup
+
+# Format code
+fe-format:
+    pnpm -C frontend format
+
+# Run TypeScript type check
+fe-typecheck:
+    pnpm -C frontend typecheck
+
+# Deploy to Cloudflare Workers
+fe-deploy:
+    pnpm -C frontend deploy
+
+# --- backend ---
+
+# Start the API server (needs `just db-up`)
+be-dev *args:
+    cd backend && go run ./cmd/server {{args}}
+
+# Regenerate oapi-codegen and sqlc output
+be-gen:
+    cd backend && oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml && sqlc generate
+
+# Run backend tests
+be-test *args:
+    cd backend && go test ./... {{args}}
+
+# Run gofmt check and go vet
+be-lint:
+    cd backend && test -z "$(gofmt -l .)" && go vet ./...
+
+# Format backend code
+be-format:
+    cd backend && gofmt -w .
+
+# Tidy go.mod
+be-tidy:
+    cd backend && go mod tidy
+
+# Build and start db + migrate + api
+be-up:
+    docker compose up --build
+
+# --- db ---
+
+# Start Postgres and apply migrations
+db-up:
+    # --wait は one-shot の migrate が正常終了しても失敗扱いにするため、migrate は run で待つ
+    docker compose up -d --wait db
+    docker compose run --rm migrate
+
+# Stop containers (keeps data)
+db-down:
+    docker compose down
+
+# Stop containers and delete data
+db-reset:
+    docker compose down -v
+
+# Run golang-migrate (e.g. `just db-migrate down 1`, `just db-migrate version`)
+db-migrate *args:
+    docker compose run --rm migrate -path /migrations -database "postgres://times:times@db:5432/times?sslmode=disable" {{args}}
+
+# Create a migration pair: db/migrations/NNNNNN_<name>.{up,down}.sql
+db-migrate-new name:
+    docker compose run --rm migrate create -ext sql -dir /migrations -seq {{name}}
