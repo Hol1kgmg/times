@@ -8,10 +8,22 @@
   --color-text-secondary: #444;
   --color-text-muted: #666;
   --color-text-faint: #999;
+  --color-fill-subtle: #eee;
+  --color-fill-faint: #f7f7f7;
+  --color-status: #3fb950;
   --color-skeleton-base: #eee;
   --color-skeleton-highlight: #f5f5f5;
   --color-shadow: rgb(0 0 0 / 0.12);
   --color-shadow-soft: rgb(0 0 0 / 0.2);
+  --shadow-raised: 0 4px 6px var(--color-shadow);
+  --shadow-menu: 0 2px 4px var(--color-shadow);
+  --radius-card: 6px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
   --z-header: 20;
   --z-sidebar-overlay: 25;
   --z-sidebar: 30;
@@ -26,6 +38,8 @@
     --color-text-secondary: #ccc;
     --color-text-muted: #999;
     --color-text-faint: #777;
+    --color-fill-subtle: #2a2a2a;
+    --color-fill-faint: #1a1a1a;
     --color-skeleton-base: #2a2a2a;
     --color-skeleton-highlight: #333;
     --color-shadow: rgb(0 0 0 / 0.4);
@@ -52,4 +66,32 @@ body {
 
 .text-kyokasho {
   font-family: "Klee One", cursive, sans-serif;
+}
+
+/* タイポグラフィ: 用途別クラス。.agents/rules/frontend-ui-design.md 参照 */
+.t-date {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.t-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.t-title {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.t-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.t-meta {
+  font-size: 11px;
+  color: var(--color-text-faint);
 }
