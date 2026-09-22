@@ -8,13 +8,22 @@ Content-Type: application/json
 ### list → 200 Item[]（直前の create が含まれる）
 GET {{host}}/items
 
-### create (empty title) → 400 {"message": ...}
+### get → 200 Item（直前の create）
+GET {{host}}/items/{{createItem.response.body.id}}
+
+### get (missing) → 404 Problem type=/problems/not-found
+GET {{host}}/items/00000000-0000-4000-8000-000000000000
+
+### get (not uuid) → 400 Problem type=/problems/validation-failed
+GET {{host}}/items/not-a-uuid
+
+### create (empty title) → 400 Problem type=/problems/validation-failed
 POST {{host}}/items
 Content-Type: application/json
 
 {"title": ""}
 
-### create (not json) → 400
+### create (not json) → 400 Problem type=/problems/validation-failed
 POST {{host}}/items
 Content-Type: application/json
 

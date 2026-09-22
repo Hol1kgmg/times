@@ -18,12 +18,32 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// Error defines model for Error.
-type Error struct {
-	Message string `json:"message"`
+// Defines values for ProblemType.
+const (
+	AboutBlank               ProblemType = "about:blank"
+	Problemsconflict         ProblemType = "/problems/conflict"
+	ProblemsnotFound         ProblemType = "/problems/not-found"
+	ProblemsvalidationFailed ProblemType = "/problems/validation-failed"
+)
+
+// Valid indicates whether the value is a known member of the ProblemType enum.
+func (e ProblemType) Valid() bool {
+	switch e {
+	case AboutBlank:
+		return true
+	case Problemsconflict:
+		return true
+	case ProblemsnotFound:
+		return true
+	case ProblemsvalidationFailed:
+		return true
+	default:
+		return false
+	}
 }
 
 // Item defines model for Item.
@@ -37,6 +57,22 @@ type Item struct {
 type NewItem struct {
 	Title string `json:"title"`
 }
+
+// Problem defines model for Problem.
+type Problem struct {
+	Detail *string `json:"detail,omitempty"`
+	Status int     `json:"status"`
+	Title  string  `json:"title"`
+
+	// Type エラー種別。クライアントはこれで分岐する。想定外は about:blank
+	Type ProblemType `json:"type"`
+}
+
+// ProblemType エラー種別。クライアントはこれで分岐する。想定外は about:blank
+type ProblemType string
+
+// BadRequest defines model for BadRequest.
+type BadRequest = Problem
 
 // CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
 type CreateItemJSONRequestBody = NewItem
@@ -52,6 +88,9 @@ type ServerInterface interface {
 
 	// (POST /items)
 	CreateItem(c *gin.Context)
+
+	// (GET /items/{id})
+	GetItem(c *gin.Context, id openapi_types.UUID)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -102,6 +141,31 @@ func (siw *ServerInterfaceWrapper) CreateItem(c *gin.Context) {
 	siw.Handler.CreateItem(c)
 }
 
+// GetItem operation middleware
+func (siw *ServerInterfaceWrapper) GetItem(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetItem(c, id)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -132,7 +196,10 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/healthz", wrapper.Healthz)
 	router.GET(options.BaseURL+"/items", wrapper.ListItems)
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
+	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
 }
+
+type BadRequestApplicationProblemPlusJSONResponse Problem
 
 type HealthzRequestObject struct {
 }
@@ -200,16 +267,70 @@ func (response CreateItem201JSONResponse) VisitCreateItemResponse(w http.Respons
 	return err
 }
 
-type CreateItem400JSONResponse Error
+type CreateItem400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
 
-func (response CreateItem400JSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
+func (response CreateItem400ApplicationProblemPlusJSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetItemRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type GetItemResponseObject interface {
+	VisitGetItemResponse(w http.ResponseWriter) error
+}
+
+type GetItem200JSONResponse Item
+
+func (response GetItem200JSONResponse) VisitGetItemResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetItem400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetItem400ApplicationProblemPlusJSONResponse) VisitGetItemResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetItem404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetItem404ApplicationProblemPlusJSONResponse) VisitGetItemResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -225,6 +346,9 @@ type StrictServerInterface interface {
 
 	// (POST /items)
 	CreateItem(ctx context.Context, request CreateItemRequestObject) (CreateItemResponseObject, error)
+
+	// (GET /items/{id})
+	GetItem(ctx context.Context, request GetItemRequestObject) (GetItemResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx *gin.Context, request any) (any, error)
@@ -363,18 +487,49 @@ func (sh *strictHandler) CreateItem(ctx *gin.Context) {
 	}
 }
 
+// GetItem operation middleware
+func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
+	var request GetItemRequestObject
+
+	request.Id = id
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetItem(ctx, request.(GetItemRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetItem")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetItemResponseObject); ok {
+		if err := validResponse.VisitGetItemResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"rFTNbhMxEH6VauBospuWk28tQiKiAsQVcTDrSdZV/MPMLBAqvzuyN0kbsm2J6G3s/ezvZ8Z7C130KQYM",
-	"wqBvgbsevanlW6JIpUgUE5I4rNsemc0KSymbhKCBhVxYQc4KCL8PjtCC/rIHflU7YPx2g51AVrAQ9MdX",
-	"d4RG0F5KWSwjeSOgwRrBV+I8gvqbUYGzB9hhcHYKJk7W/yB5PFyx6p6aKQcf8Oe0iT2VN7+uMaykB33e",
-	"tgq8C7v1XD0hZLzkmLfgXFjGe0RQouGzy08LUPADiV0MoKGdzWdtERoTBpMcaLiYtbMLUJCM9FVq06NZ",
-	"S/+71CusqRcnRlwMCwsa3m2/F3GcYuDR4nnb1nbFIBjqMZPS2nX1YHPDRcBulI4DYjEy8NPN2OKmQ7DI",
-	"Hbkko9mP78tuVtA4Qc8P+rl2LIuK+E9He5qXhEvQ8KK5e0bN9g01dT7yXr4hMpuH1StIkSc0v6ljWO8a",
-	"80GWq2g3J+l9TOZukvNhA4QGzEcxzZ+N9o7zMI3Rry3BvT6xK4/RjX+zCb4rY88+j7HWIcr5TwAAAP//",
+	"vFVNb9NMEP4r0bzv7d3G6cfJt/aVgIiqVFyrHjb2JNli77q740KJLDWOhCrBAQkJCY6oiHJpJXrl36wC",
+	"fwOtnaRx81HRInLJ7s7uzDPPPDPuQaDiREmUZMDvgUaTKGmw2Gzx8CkepmjI7QIlCWWx5EkSiYCTUNJL",
+	"tGpFGP93YJR0NhN0MeZu9a/GNvjwj3cdwiutxtstX0GWZQxCNIEWiXMHvotaG4d11tET57FJGLv/RKsE",
+	"NYkSZqCRE4abBbS20jEn8CHkhCskYgQGdJwg+GBIC9mBjIEIK3fTVITzrpGgCN3NG5aMgcbDVGgMwd+D",
+	"8nFxl02h2Z94VK0DDMh53MHn85OYhIr5i22UHeqCv9ZoMIiFHO9X2S1ASifz4o75nokbInERzcmRgSFO",
+	"qZkyCUnYQb2MmXHo3o2i2vzcDr7awfef5xfD08/2JLf5pTvJz2z+yQ6u7ODU9i9t/53N39j+l+Hpq+G3",
+	"t7b/weav7Un+Y3A1vPg4PHtv+5c13lIp+a2Iy2fAAGUau9yrp2NZGu+IRyIspLrS5iLCsGKVilbaKpXV",
+	"00DJdiSC6RIuYtxZr4s/omy2Au6dkG01VWpw4jS1zd0mMDhCbUqmGvXVesMRqRKUPBHgw3q9UV8HBgmn",
+	"blEPr4s8ou5Lt+5goXtX0yLLZgg+PBrZWbWh1xqNJZ0828FVqczoYQEnS0moyuLJY3eaMfAEYWwW5rMt",
+	"DDWLG/fMaBJm2XAqOnQiZeBa8+PF6BkkyszB/H8xCApfJT9oaEuFx7+FdxnM8SzJqgUgnWI2Q9PqHwt7",
+	"HbPKRplv6IjbKKsyz8sEljf1dZnWgNcTYbZQCA+RRowmXPMYCbUBf68HwkFwDQIMJI+LcRXCTV7YVI63",
+	"TP9s/55SuwuHTlF3oM892fib3+gdRbUHxdjMit+vAAAA//8=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

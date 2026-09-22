@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createItem = `-- name: CreateItem :one
@@ -15,6 +17,17 @@ INSERT INTO items (title) VALUES ($1) RETURNING id, title, created_at
 
 func (q *Queries) CreateItem(ctx context.Context, title string) (Item, error) {
 	row := q.db.QueryRow(ctx, createItem, title)
+	var i Item
+	err := row.Scan(&i.ID, &i.Title, &i.CreatedAt)
+	return i, err
+}
+
+const getItem = `-- name: GetItem :one
+SELECT id, title, created_at FROM items WHERE id = $1
+`
+
+func (q *Queries) GetItem(ctx context.Context, id uuid.UUID) (Item, error) {
+	row := q.db.QueryRow(ctx, getItem, id)
 	var i Item
 	err := row.Scan(&i.ID, &i.Title, &i.CreatedAt)
 	return i, err

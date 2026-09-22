@@ -45,12 +45,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/Item"
         "400":
-          description: Bad Request
+          $ref: "#/components/responses/BadRequest"
+  /items/{id}:
+    get:
+      operationId: getItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/Item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 components:
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
   schemas:
     Item:
       type: object
@@ -72,9 +100,22 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-    Error:
+    # RFC 9457 Problem Details。全エラー応答はこの形 (adr/backend/0002)
+    Problem:
       type: object
-      required: [message]
+      required: [type, title, status]
       properties:
-        message:
+        type:
+          type: string
+          description: エラー種別。クライアントはこれで分岐する。想定外は about:blank
+          enum:
+            - about:blank
+            - /problems/validation-failed
+            - /problems/not-found
+            - /problems/conflict
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
           type: string

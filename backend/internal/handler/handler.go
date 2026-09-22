@@ -4,9 +4,12 @@ package handler
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
+	"github.com/Hol1kgmg/times/backend/internal/apperr"
 	"github.com/Hol1kgmg/times/backend/internal/db"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,6 +37,18 @@ func (s *Server) ListItems(ctx context.Context, _ api.ListItemsRequestObject) (a
 		out[i] = toItem(r)
 	}
 	return api.ListItems200JSONResponse(out), nil
+}
+
+func (s *Server) GetItem(ctx context.Context, req api.GetItemRequestObject) (api.GetItemResponseObject, error) {
+	row, err := s.q.GetItem(ctx, req.Id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// DB の意味を知っているのは handler。配線層で pgx を見ない (adr/backend/0002)
+		return nil, apperr.NotFound("item " + req.Id.String() + " does not exist")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return api.GetItem200JSONResponse(toItem(row)), nil
 }
 
 func (s *Server) CreateItem(ctx context.Context, req api.CreateItemRequestObject) (api.CreateItemResponseObject, error) {
