@@ -31,7 +31,7 @@
     "@tanstack/router-plugin": "1.168.40",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "zod": "^3.25.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@csstools/postcss-global-data": "^4.0.0",
