@@ -54,7 +54,6 @@ strict-server には想定内の失敗を型付きレスポンス（`CreateItem4
 type Error struct {
     Status int
     Type   string // "/problems/not-found" 等
-    Title  string
     Detail string
 }
 func (e *Error) Error() string
@@ -62,6 +61,8 @@ func (e *Error) Error() string
 func NotFound(detail string) error   // 404, /problems/not-found
 func Conflict(detail string) error   // 409, /problems/conflict
 ```
+
+- `Title` は持たない。`title` は status の reason phrase と決めているので、`writeProblem` が `http.StatusText(status)` で導出する
 
 - handler は `return nil, apperr.NotFound("item " + id + " does not exist")` のように返す
 - DB 由来のエラー（`pgx.ErrNoRows` 等）は **handler が** `apperr` に変換する。配線層は DB を知らない

@@ -5,6 +5,7 @@ package apperr
 
 import "net/http"
 
+// title は持たない。status の reason phrase を writeProblem が導出する。
 type Error struct {
 	Status int
 	Type   string
@@ -12,9 +13,6 @@ type Error struct {
 }
 
 func (e *Error) Error() string { return e.Type + ": " + e.Detail }
-
-// Title は type に対して固定。status の reason phrase をそのまま使う。
-func (e *Error) Title() string { return http.StatusText(e.Status) }
 
 // Types は type URI とその status の対応表。openapi.yaml の Problem.type enum と一致させる (テストで検証)。
 var Types = map[string]int{

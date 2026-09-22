@@ -18,6 +18,7 @@
 backend/
   cmd/server/         main.go: Gin 起動、pgxpool 接続、strict handler 登録
   internal/handler/   StrictServerInterface 実装。sqlc の Queries を直接呼ぶ（層分けなし）
+  internal/apperr/    handler が返す想定内エラー。cmd/server が RFC 9457 Problem Details に変換（adr/backend/0002）
   internal/api/       oapi-codegen 生成物
   internal/db/        sqlc 生成物
   api/                openapi.yaml, oapi-codegen.yaml
