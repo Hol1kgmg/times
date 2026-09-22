@@ -1,9 +1,9 @@
-import { createRootRoute, HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
-import appCss from "../styles.css?url";
 import kleeOne400Css from "@fontsource/klee-one/400.css?url";
 import kleeOne600Css from "@fontsource/klee-one/600.css?url";
-import rootLayoutStyles from "./__root.module.css";
+import { RootLayout } from "../layout/root-layout";
+import appCss from "../styles/global.css?url";
 
 // 全文書 SSR: <html> から描画する
 export const Route = createRootRoute({
@@ -25,18 +25,7 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body>
-        <div className={rootLayoutStyles.layout}>
-          <nav>
-            <Link to="/">Home</Link> |{" "}
-            <Link params={{ id: "1" }} to="/items/$id">
-              Item 1
-            </Link>{" "}
-            | <Link to="/client">Client only</Link>
-          </nav>
-          <main className={rootLayoutStyles.main}>
-            <Outlet />
-          </main>
-        </div>
+        <RootLayout />
         <Scripts />
       </body>
     </html>

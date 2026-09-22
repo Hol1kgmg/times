@@ -27,7 +27,7 @@ export default defineConfig({
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
         "src/**/index.{ts,tsx}",
-        "src/routeTree.gen.ts",
+        "src/app/routeTree.gen.ts",
         "src/**/*.d.ts",
       ],
     },

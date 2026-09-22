@@ -67,3 +67,4 @@ just update    # flake.lock / sources.lock.json を更新して検証する
 `just sync` はマージコミットで取り込みます。PR 経由にする場合も **Create a merge commit** を使ってください（squash / rebase は共通祖先を壊します）。
 
 - 設計判断の記録: [adr/](adr/)
+- frontend の技術スタック: [docs/tech-stack.md](docs/tech-stack.md)

@@ -15,4 +15,4 @@ playwright-report/
 test-results/
 
 # TanStack Router の生成物。dev/build と generate-routes で再生成する
-src/routeTree.gen.ts
+src/app/routeTree.gen.ts
