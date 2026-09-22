@@ -26,6 +26,15 @@ backend/
   db/queries/         sqlc
 ```
 
+## 決定事項（詳細は [adr/backend](../adr/backend/README.md)）
+
+- framework は `cmd/server/main.go` に閉じ込める（0001）。エラーは全て RFC 9457 Problem Details（0002）
+- backend を呼ぶのは frontend のサーバー関数だけ。CORS 無し、API バージョニング無し（0003）。認証とホスティング先は未決
+- 一覧応答は `{items: [...]}`。ページネーションは未実装、必要になったらカーソル方式（0004）
+- マイグレーションは手書きの命令型。Atlas の宣言型はテーブルが増えて全体把握が辛くなったら再検討（0005）
+- 環境変数は `DATABASE_URL` と `PORT` の2つ。ログは slog の JSON を stdout に出す。SIGTERM で graceful shutdown（10 秒）、`statement_timeout` 5 秒、リクエスト本文 1 MiB 上限
+- DB を触るテストは書かない。sqlc の生成時にクエリとスキーマの整合は検証される。必要になったら CI で compose の `db` を起動する
+
 ## 運用
 
 - `just db-up` で Postgres 起動 + マイグレーション、`just be-dev` でサーバー起動（localhost:8080）

@@ -25,7 +25,6 @@ import (
 // Defines values for ProblemType.
 const (
 	AboutBlank               ProblemType = "about:blank"
-	Problemsconflict         ProblemType = "/problems/conflict"
 	ProblemsnotFound         ProblemType = "/problems/not-found"
 	ProblemsvalidationFailed ProblemType = "/problems/validation-failed"
 )
@@ -34,8 +33,6 @@ const (
 func (e ProblemType) Valid() bool {
 	switch e {
 	case AboutBlank:
-		return true
-	case Problemsconflict:
 		return true
 	case ProblemsnotFound:
 		return true
@@ -231,7 +228,9 @@ type ListItemsResponseObject interface {
 	VisitListItemsResponse(w http.ResponseWriter) error
 }
 
-type ListItems200JSONResponse []Item
+type ListItems200JSONResponse struct {
+	Items []Item `json:"items"`
+}
 
 func (response ListItems200JSONResponse) VisitListItemsResponse(w http.ResponseWriter) error {
 
@@ -518,18 +517,18 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"vFVNb9NMEP4r0bzv7d3G6cfJt/aVgIiqVFyrHjb2JNli77q740KJLDWOhCrBAQkJCY6oiHJpJXrl36wC",
-	"fwOtnaRx81HRInLJ7s7uzDPPPDPuQaDiREmUZMDvgUaTKGmw2Gzx8CkepmjI7QIlCWWx5EkSiYCTUNJL",
-	"tGpFGP93YJR0NhN0MeZu9a/GNvjwj3cdwiutxtstX0GWZQxCNIEWiXMHvotaG4d11tET57FJGLv/RKsE",
-	"NYkSZqCRE4abBbS20jEn8CHkhCskYgQGdJwg+GBIC9mBjIEIK3fTVITzrpGgCN3NG5aMgcbDVGgMwd+D",
-	"8nFxl02h2Z94VK0DDMh53MHn85OYhIr5i22UHeqCv9ZoMIiFHO9X2S1ASifz4o75nokbInERzcmRgSFO",
-	"qZkyCUnYQb2MmXHo3o2i2vzcDr7awfef5xfD08/2JLf5pTvJz2z+yQ6u7ODU9i9t/53N39j+l+Hpq+G3",
-	"t7b/weav7Un+Y3A1vPg4PHtv+5c13lIp+a2Iy2fAAGUau9yrp2NZGu+IRyIspLrS5iLCsGKVilbaKpXV",
-	"00DJdiSC6RIuYtxZr4s/omy2Au6dkG01VWpw4jS1zd0mMDhCbUqmGvXVesMRqRKUPBHgw3q9UV8HBgmn",
-	"blEPr4s8ou5Lt+5goXtX0yLLZgg+PBrZWbWh1xqNJZ0828FVqczoYQEnS0moyuLJY3eaMfAEYWwW5rMt",
-	"DDWLG/fMaBJm2XAqOnQiZeBa8+PF6BkkyszB/H8xCApfJT9oaEuFx7+FdxnM8SzJqgUgnWI2Q9PqHwt7",
-	"HbPKRplv6IjbKKsyz8sEljf1dZnWgNcTYbZQCA+RRowmXPMYCbUBf68HwkFwDQIMJI+LcRXCTV7YVI63",
-	"TP9s/55SuwuHTlF3oM892fib3+gdRbUHxdjMit+vAAAA//8=",
+	"vFVNbys1FP0r0YUdbib9WM2uRQIiqlKxrbpw4pvEZcae2ncKJRqpmUioEiyQkJBgiYoom1aiW/6NFfgb",
+	"T/Ykaab56Ht91csmnrn2Pfece65nCF2dZlqhIgvxEAzaTCuL4eGAi6/xPEdL/qmrFaEKS55liexyklpF",
+	"mdGdBNNPzqxWPma7A0y5X31ssAcxfBQ9QkRV1EbH1SkoioKBQNs1MvPpIPaojRmsj06P+IxtwtT/Z0Zn",
+	"aEhWZXYNckKxH0rraZNyghgEJ9wimSIwoMsMIQZLRqo+FAykqO3NcylWbSNJCfqdTyIFA4PnuTQoID6B",
+	"6nDYyxaqOZ1n1J0z7JLPeITfriYxh0r5d4eo+jSAeKfVYpBKNXveZs8UUiVZhTvTewlXIHGZrODIwBKn",
+	"3C6EpCLso9mkzAx6+KSprrx147/d+N//b+8m13+6q9KV9/5NeePKP9z4wY2v3ejejX5x5U9u9Nfk+ofJ",
+	"Pz+70W+u/NFdlf+NHyZ3v09ufnWj+wbv6JziTsLVN8AAVZ567vW3M1va6IInUgSrbvW4TFDUokrTVk/n",
+	"Siyotk5cH33s81SdZbH9Oal6eqGr4H1oG/vHbWBwgcZWorSa282W10xnqHgmIYbdZqu5CwwyToMgfTRA",
+	"ntDge7/uY7C4b18g1BYQwxfTOKvP7k6rtWFol4e17oql1q/RZKMIdQd89aV/WzCIJGFq1/I5lJbaYcer",
+	"MpqDzhebrqcwo3MzAzeGXy6Pfcj09twZZNquYPxpuDECZAWAlg60uHwntpvYzC6dos6ATI7Fksjbrwb7",
+	"iFlXo+IrvL57VU9XZZmXFS18hhYdFA2lKNba6HOkqaIZNzxFQmMhPhmC9CX48QIGiqfhXhPwVBe2wPGZ",
+	"z0Rx+p5GfYmG3lEvkM8f2fuQH/MjTY3Pwv1ahN+bAAAA//8=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

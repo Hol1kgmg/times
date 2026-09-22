@@ -22,6 +22,9 @@ type stub struct {
 }
 
 func (s stub) GetItem(context.Context, api.GetItemRequestObject) (api.GetItemResponseObject, error) {
+	if s.getItem == nil {
+		panic("boom")
+	}
 	return nil, s.getItem
 }
 
@@ -44,6 +47,7 @@ func TestRouter(t *testing.T) {
 		{"POST", "/items", `{}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/items", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", "/items/not-a-uuid", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
+		{"POST", "/items", `{"title":"` + strings.Repeat("a", maxBodyBytes) + `"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", id, "", http.StatusNotFound, api.ProblemsnotFound},
 	}
 	for _, tt := range tests {
@@ -65,14 +69,16 @@ func TestRouter(t *testing.T) {
 	}
 }
 
-// 想定外の error は 500 にし、文言を漏らさない
+// 想定外の error と panic は 500 にし、文言を漏らさない
 func TestUnexpectedError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r, _ := newRouter(stub{Server: handler.New(nil), getItem: errors.New("boom")})
-	w := do(r, "GET", "/items/3f2a0c1e-0000-4000-8000-000000000000", "")
-	p := problem(t, w)
-	if w.Code != 500 || p.Type != api.AboutBlank || p.Detail != nil || strings.Contains(w.Body.String(), "boom") {
-		t.Errorf("got %d %s", w.Code, w.Body)
+	for name, err := range map[string]error{"error": errors.New("boom"), "panic": nil} {
+		r, _ := newRouter(stub{Server: handler.New(nil), getItem: err})
+		w := do(r, "GET", "/items/3f2a0c1e-0000-4000-8000-000000000000", "")
+		p := problem(t, w)
+		if w.Code != 500 || p.Type != api.AboutBlank || p.Detail != nil || strings.Contains(w.Body.String(), "boom") {
+			t.Errorf("%s: got %d %s", name, w.Code, w.Body)
+		}
 	}
 }
 

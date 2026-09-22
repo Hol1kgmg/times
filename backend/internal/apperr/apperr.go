@@ -18,7 +18,6 @@ func (e *Error) Error() string { return e.Type + ": " + e.Detail }
 var Types = map[string]int{
 	"/problems/validation-failed": http.StatusBadRequest,
 	"/problems/not-found":         http.StatusNotFound,
-	"/problems/conflict":          http.StatusConflict,
 }
 
 func newError(typ, detail string) error {
@@ -27,4 +26,3 @@ func newError(typ, detail string) error {
 
 func ValidationFailed(detail string) error { return newError("/problems/validation-failed", detail) }
 func NotFound(detail string) error         { return newError("/problems/not-found", detail) }
-func Conflict(detail string) error         { return newError("/problems/conflict", detail) }

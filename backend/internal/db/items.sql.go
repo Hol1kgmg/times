@@ -37,6 +37,7 @@ const listItems = `-- name: ListItems :many
 SELECT id, title, created_at FROM items ORDER BY created_at DESC, id
 `
 
+// ponytail: 無制限。件数が増えたらカーソル (created_at, id) で LIMIT する (adr/backend/0004)
 func (q *Queries) ListItems(ctx context.Context) ([]Item, error) {
 	rows, err := q.db.Query(ctx, listItems)
 	if err != nil {

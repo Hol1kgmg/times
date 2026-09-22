@@ -36,7 +36,7 @@ func (s *Server) ListItems(ctx context.Context, _ api.ListItemsRequestObject) (a
 	for i, r := range rows {
 		out[i] = toItem(r)
 	}
-	return api.ListItems200JSONResponse(out), nil
+	return api.ListItems200JSONResponse{Items: out}, nil
 }
 
 func (s *Server) GetItem(ctx context.Context, req api.GetItemRequestObject) (api.GetItemResponseObject, error) {

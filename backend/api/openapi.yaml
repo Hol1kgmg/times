@@ -26,9 +26,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Item"
+                # 配列を直接返さない。ページネーションを後から足せるよう object で包む (adr/backend/0004)
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Item"
     post:
       operationId: createItem
       requestBody:
@@ -112,7 +117,6 @@ components:
             - about:blank
             - /problems/validation-failed
             - /problems/not-found
-            - /problems/conflict
         title:
           type: string
         status:

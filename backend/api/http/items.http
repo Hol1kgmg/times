@@ -5,7 +5,7 @@ Content-Type: application/json
 
 {"title": "test"}
 
-### list → 200 Item[]（直前の create が含まれる）
+### list → 200 {items: Item[]}（直前の create が含まれる）
 GET {{host}}/items
 
 ### get → 200 Item（直前の create）
