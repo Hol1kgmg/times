@@ -38,6 +38,25 @@
       },
       "subdir": "."
     },
+    "feature-sliced": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "master",
+        "owner": "feature-sliced",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "skills",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "."
+    },
     "japanese-tech-writing": {
       "filter": {
         "maxDepth": 0,
@@ -104,6 +123,19 @@
         "type": "Git",
         "url": null
       },
+      "feature-sliced": {
+        "branch": "master",
+        "hash": "sha256-TmhtkWwDYvMgczDf1ViEzPNfHStDniYDpxZEKlo4kLY=",
+        "repository": {
+          "owner": "feature-sliced",
+          "repo": "skills",
+          "type": "GitHub"
+        },
+        "revision": "fd71da42a89e916f2ced63e5349fd865c87070a6",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/feature-sliced/skills/archive/fd71da42a89e916f2ced63e5349fd865c87070a6.tar.gz"
+      },
       "japanese-tech-writing": {
         "branch": "main",
         "hash": "sha256-jo1DvsAVIAKzurutp+T66kctgaFEe+sVbY9bf7wlCLM=",
@@ -118,16 +150,16 @@
       },
       "vercel": {
         "branch": "main",
-        "hash": "sha256-Q/bR/kK6Peee/tIbHvvS7WWmNbmnIcwPRZEnwsADQ8k=",
+        "hash": "sha256-NAsXme9nQ/+1noWTay00MvSz+Sd5mz7halrYnD0FhTc=",
         "repository": {
           "owner": "vercel",
           "repo": "ai",
           "type": "GitHub"
         },
-        "revision": "20dd00abba618d5a516e0fee40ccd3e18a2bd1fb",
+        "revision": "2b105fa30bccb3e3f24159d49a7b093244281227",
         "submodules": false,
         "type": "Git",
-        "url": "https://github.com/vercel/ai/archive/20dd00abba618d5a516e0fee40ccd3e18a2bd1fb.tar.gz"
+        "url": "https://github.com/vercel/ai/archive/2b105fa30bccb3e3f24159d49a7b093244281227.tar.gz"
       }
     },
     "version": 8

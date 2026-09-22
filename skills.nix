@@ -15,5 +15,8 @@
   "cognitive-rhythm-writing"
   "japanese-tech-writing"
 
+  # feature-sliced/skills
+  "feature-sliced-design"
+
   # ./skills（独自）
 ]
