@@ -7,7 +7,12 @@ const Client = () => {
   return (
     <main>
       <h1>Client only</h1>
-      <button type="button" onClick={() => setN(n + 1)}>
+      <button
+        type="button"
+        onClick={() => {
+          setN(n + 1);
+        }}
+      >
         count: {n}
       </button>
     </main>

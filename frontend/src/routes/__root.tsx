@@ -28,7 +28,7 @@ export const Route = createRootRoute({
         <div className={rootLayoutStyles.layout}>
           <nav>
             <Link to="/">Home</Link> |{" "}
-            <Link to="/items/$id" params={{ id: "1" }}>
+            <Link params={{ id: "1" }} to="/items/$id">
               Item 1
             </Link>{" "}
             | <Link to="/client">Client only</Link>

@@ -10,14 +10,16 @@ const Home = () => {
     <main>
       <h1>Items</h1>
       <input
-        value={q}
         placeholder="filter"
-        onChange={(e) => navigate({ search: { q: e.target.value }, replace: true })}
+        value={q}
+        onChange={(e) => {
+          void navigate({ search: { q: e.target.value }, replace: true });
+        }}
       />
       <ul>
         {items.map((i) => (
           <li key={i.id}>
-            <Link to="/items/$id" params={{ id: i.id }}>
+            <Link params={{ id: i.id }} to="/items/$id">
               {i.title}
             </Link>
           </li>
@@ -31,6 +33,6 @@ const Home = () => {
 export const Route = createFileRoute("/")({
   validateSearch: z.object({ q: z.string().default("") }),
   loaderDeps: ({ search }) => ({ q: search.q }),
-  loader: ({ deps }) => listItems({ data: deps }),
+  loader: async ({ deps }) => await listItems({ data: deps }),
   component: Home,
 });

@@ -6,7 +6,7 @@ pre-commit:
     lint-code:
       root: "frontend/"
       glob: "src/**/*.{ts,tsx,js,jsx}"
-      run: pnpm ultracite fix {staged_files}
+      run: pnpm ultracite fix --type-aware {staged_files}
       stage_fixed: true
     lint-markup:
       root: "frontend/"
