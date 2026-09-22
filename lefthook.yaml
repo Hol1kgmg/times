@@ -5,18 +5,19 @@ pre-commit:
       run: gitleaks protect --staged --verbose
     lint-code:
       root: "frontend/"
-      glob: "src/**/*.{ts,tsx,js,jsx}"
+      # glob は root 適用前のリポジトリルート相対パスにマッチする
+      glob: "frontend/src/**/*.{ts,tsx,js,jsx}"
       run: pnpm ultracite fix --type-aware {staged_files}
       stage_fixed: true
     lint-markup:
       root: "frontend/"
-      glob: "src/**/*.tsx"
+      glob: "frontend/src/**/*.tsx"
       run: pnpm markuplint {staged_files} --fix --problem-only
       stage_fixed: true
     typecheck:
       root: "frontend/"
-      # routeTree.gen.ts は gitignore 対象。parallel 実行なので自前で生成してから型検査する
-      run: pnpm generate-routes && pnpm typecheck
+      # routeTree.gen.ts と openapi.gen.ts は gitignore 対象。生成してから最新の型で検査する
+      run: pnpm generate-routes && pnpm generate-api && pnpm typecheck
     test:
       root: "frontend/"
       run: pnpm test

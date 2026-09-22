@@ -6,6 +6,8 @@ import vitest from "ultracite/oxlint/vitest";
 
 export default defineConfig({
   extends: [core, react, tanstack, vitest],
+  // 生成物 (openapi-typescript 等) は lint 対象外
+  ignorePatterns: ["**/*.gen.ts"],
   // ESLint プラグインを oxlint の JS plugin として読み込む。
   // 組み込み Rust 版 `react` と名前が衝突するため eslint-plugin-react は `react-js` で別名
   jsPlugins: [

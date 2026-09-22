@@ -1,10 +1,11 @@
 import { setTimeout } from "node:timers/promises";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { readItems } from "#/shared/api";
+import { itemId, readItems } from "#/shared/api";
 
+// route の params は素の文字列。境界で uuid 検証し、以降は ItemId として扱う
 export const getItem = createServerFn({ method: "GET" })
-  .validator(z.object({ id: z.string() }))
+  .validator(z.object({ id: itemId }))
   .handler(({ data }) => {
     const item = readItems().find((i) => i.id === data.id);
     if (!item) {

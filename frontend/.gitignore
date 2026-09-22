@@ -16,3 +16,5 @@ test-results/
 
 # TanStack Router の生成物。dev/build と generate-routes で再生成する
 src/app/routeTree.gen.ts
+# openapi-typescript の生成物。postinstall と lefthook の typecheck で再生成する
+src/shared/api/openapi.gen.ts

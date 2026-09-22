@@ -50,6 +50,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm --dir frontend install --frozen-lockfile --strict-peer-dependencies
-      # routeTree.gen.ts は gitignore 対象なので typecheck / test の前に生成する
+      # routeTree.gen.ts と openapi.gen.ts は gitignore 対象なので typecheck / test の前に生成する。
+      # openapi.gen.ts は postinstall でも生成されるが、install のキャッシュ状態に依存しないよう明示する
       - run: pnpm --dir frontend generate-routes
+      - run: pnpm --dir frontend generate-api
       - run: pnpm --dir frontend ${{ matrix.task }}

@@ -140,9 +140,10 @@ fe-deploy:
 be-dev *args:
     cd backend && go run ./cmd/server {{args}}
 
-# Regenerate oapi-codegen and sqlc output
+# Regenerate oapi-codegen, sqlc, and frontend API types (openapi-typescript)
 be-gen:
     cd backend && oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml && sqlc generate
+    pnpm -C frontend generate-api
 
 # Run backend tests
 be-test *args:
