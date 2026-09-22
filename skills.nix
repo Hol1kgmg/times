@@ -18,5 +18,5 @@
   # feature-sliced/skills
   "feature-sliced-design"
 
-  # ./skills（独自）
+  # ./skills（独自）は flake.nix で全件自動有効。ここに書かない。
 ]

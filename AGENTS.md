@@ -13,6 +13,7 @@ See [{DIRECTORY_STRUCTURE_FILE}.md](./{DIRECTORY_STRUCTURE_FILE}.md) for details
 - Setup and daily usage issues: See [{TROUBLESHOOTING_FILE}.md](./{TROUBLESHOOTING_FILE}.md)
 
 # Work Rules
+0. Feature development follows spec-kit: `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` (constitution: `.specify/memory/constitution.md`)
 1. Propose implementation plan
 2. Wait for approval
 3. Start implementation

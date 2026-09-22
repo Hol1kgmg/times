@@ -21,7 +21,9 @@
       catalog = agentLib.discoverCatalog sources;
       selection = agentLib.selectSkills {
         inherit catalog sources;
-        allowlist = import ./skills.nix;
+        # ./skills 配下は宣言不要で全件有効
+        allowlist = import ./skills.nix
+          ++ agentLib.allowlistFor { inherit catalog sources; enableAll = [ "local" ]; };
       };
 
       localTargets = {
@@ -71,6 +73,7 @@
             pkgs.gh
             pkgs.gh-dash
             nur-packages.packages.${system}.markserv
+            nur-packages.packages.${system}.spec-kit
             # backend。golang-migrate は Nix 版 CLI が macOS で起動時に panic するため
             # compose の migrate/migrate イメージで実行する（just migrate）
             pkgs.go
