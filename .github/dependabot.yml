@@ -85,7 +85,9 @@ updates:
     cooldown:
       default-days: 2
 
-  # flake.lock が対象。update-locks.yaml は upstream(claude-temp)専用でここでは動かない。
+  # flake.lock が対象。upstream(claude-temp) の update-locks.yaml は
+  # ここでは動かないうえ Dependabot の対象になるだけなので削除済み。
+  # just sync で降ってきたら再度削除する。
   - package-ecosystem: "nix"
     directory: "/"
     schedule:
