@@ -25,7 +25,7 @@ jobs:
         with:
           persist-credentials: false
       # go / sqlc / oapi-codegen のバージョンは flake.lock が単一の真実
-      - uses: DeterminateSystems/nix-installer-action@786fff0690178f1234e4e1fe9b536e94f5433196 # v20
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
