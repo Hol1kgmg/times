@@ -180,7 +180,8 @@ be-deploy:
 # Tail Cloud Run API logs
 be-logs *args:
     gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="times-api"' \
-        --project={{gcp_project}} --limit=50 --format="value(timestamp,textPayload,jsonPayload.msg)" {{args}}
+        --project={{gcp_project}} --limit=50 {{args}} \
+        --format="value(timestamp,jsonPayload.level,jsonPayload.msg,jsonPayload.method,jsonPayload.path,jsonPayload.status,jsonPayload.duration_ms,jsonPayload.err,textPayload)"
 
 # --- db ---
 
