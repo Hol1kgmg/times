@@ -42,7 +42,7 @@ backend/
 - `just be-up` で api も含めて compose 一式をビルド・起動
 - API や SQL を変えたら `just be-gen` で再生成してコミット。CI が差分なしを検証する
 - マイグレーション追加は `just db-migrate-new <name>`、適用は `just db-up`（up）または `just db-migrate <args>`
-- 本番デプロイは手動。`gcloud run jobs deploy times-migrate --source backend/db --execute-now --wait` でマイグレーション、`gcloud run deploy times-api --source backend` で API（フラグは adr/backend/0006）
+- 本番デプロイは手動。`just db-migrate-prod` でマイグレーション（Cloud Run Job）、`just be-deploy` で API、`just be-logs` でログ（adr/backend/0006）
 - pre-commit ([lefthook.yaml](../lefthook.yaml)): gofmt / go vet / go test
 - CI ([backend-ci.yml](../.github/workflows/backend-ci.yml)): be-gen 差分 / be-lint / be-test
 

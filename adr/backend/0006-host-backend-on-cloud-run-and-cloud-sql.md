@@ -47,11 +47,11 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 
 実施済み (2026-09-24)。
 
-- **Affected paths**: `backend/db/Dockerfile` (新規)、`backend/.gcloudignore` (新規)、`backend/.dockerignore` (`.agents/` `.direnv/` を追加)、`flake.nix` (`google-cloud-sdk` を devShell に追加)、`skills.nix` (google/skills の gcloud / cloud-run / cloud-sql スキル)
+- **Affected paths**: `justfile` (`be-deploy` / `be-logs` / `db-migrate-prod`)、`backend/db/Dockerfile` (新規)、`backend/.gcloudignore` (新規)、`backend/.dockerignore` (`.agents/` `.direnv/` を追加)、`flake.nix` (`google-cloud-sdk` を devShell に追加)、`skills.nix` (google/skills の gcloud / cloud-run / cloud-sql スキル)
 - **Dependencies**: なし (アプリ側の依存は変えない)
 - **Patterns to follow**:
   - GCP リソースの操作は devShell の `gcloud` で行い、`--project` と `--region` を明示する
-  - マイグレーション追加後は `gcloud run jobs execute times-migrate --wait` を先に流し、次に `gcloud run deploy times-api --source backend`
+  - デプロイは justfile 経由 (`just db-migrate-prod` → `just be-deploy`)。プロジェクト ID、リージョン、Cloud SQL 接続名は justfile の変数が正
   - 秘密情報 (DB パスワード、`DATABASE_URL`) は Secret Manager にだけ置く。リポジトリにも issue にも書かない
 - **Patterns to avoid**:
   - `DATABASE_URL` に Cloud SQL の Public IP を直書きする (コネクタ経由の Unix socket を使う)

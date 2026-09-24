@@ -1,5 +1,10 @@
 # 命名規則: frontend のみ → fe-*、backend のみ → be-*、DB / マイグレーション → db-*、両方 / リポジトリ全体 → prefix なし
 
+# GCP (adr/backend/0006)
+gcp_project := "project-34107f2d-36dc-49d8-a58"
+gcp_region := "asia-northeast1"
+gcp_sql := gcp_project + ":" + gcp_region + ":times-db"
+
 # List recipes
 list:
     @just --list
@@ -165,6 +170,18 @@ be-tidy:
 be-up:
     docker compose up --build
 
+# Deploy the API to Cloud Run (run `just db-migrate-prod` first if migrations changed)
+be-deploy:
+    gcloud run deploy times-api --source backend --project={{gcp_project}} --region={{gcp_region}} \
+        --set-cloudsql-instances={{gcp_sql}} --set-secrets=DATABASE_URL=database-url:latest \
+        --set-env-vars=GIN_MODE=release --min-instances=0 --max-instances=2 --memory=256Mi \
+        --allow-unauthenticated --quiet
+
+# Tail Cloud Run API logs
+be-logs *args:
+    gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="times-api"' \
+        --project={{gcp_project}} --limit=50 --format="value(timestamp,textPayload,jsonPayload.msg)" {{args}}
+
 # --- db ---
 
 # Start Postgres and apply migrations
@@ -192,3 +209,9 @@ db-migrate *args:
 # Create a migration pair: db/migrations/NNNNNN_<name>.{up,down}.sql
 db-migrate-new name:
     docker compose run --rm migrate create -ext sql -dir /migrations -seq {{name}}
+
+# Apply migrations to Cloud SQL via the Cloud Run Job (`up`; for `down 1` etc. pass comma-separated: `just db-migrate-prod down,1`)
+db-migrate-prod args="up":
+    gcloud run jobs deploy times-migrate --source backend/db --project={{gcp_project}} --region={{gcp_region}} \
+        --set-cloudsql-instances={{gcp_sql}} --set-secrets=DATABASE_URL=database-url:latest \
+        --max-retries=0 --task-timeout=5m --args={{args}} --execute-now --wait --quiet
