@@ -11,3 +11,4 @@
 | 0003 | [backend は frontend のサーバー関数からだけ呼び、ブラウザには公開しない](0003-call-backend-from-server-functions-only.md) | accepted |
 | 0004 | [一覧応答はトップレベル配列ではなく object で包む](0004-wrap-list-responses-in-object.md) | accepted |
 | 0005 | [マイグレーションは手書きの命令型のまま、宣言型スキーマ (Atlas) は採用しない](0005-keep-imperative-migrations.md) | accepted |
+| 0006 | [backend は GCP の Cloud Run + Cloud SQL で動かし、frontend は Cloudflare Workers に据え置く](0006-host-backend-on-cloud-run-and-cloud-sql.md) | accepted |

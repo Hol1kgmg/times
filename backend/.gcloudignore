@@ -1,0 +1,6 @@
+# gcloud run deploy --source のアップロード対象から外す
+# .agents/skills と .direnv は Nix store への参照で mtime が 1970 のため zip 化に失敗する
+.agents/
+.direnv/
+.gcloudignore
+*_test.go

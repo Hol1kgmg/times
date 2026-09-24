@@ -1,3 +1,6 @@
 Dockerfile
 .dockerignore
+.gcloudignore
+.agents/
+.direnv/
 *_test.go
