@@ -212,6 +212,7 @@ db-migrate-new name:
     docker compose run --rm migrate create -ext sql -dir /migrations -seq {{name}}
 
 # Apply migrations to Cloud SQL via the Cloud Run Job (`up`; for `down 1` etc. pass comma-separated: `just db-migrate-prod down,1`)
+# Timeout (5m) を超えて kill されると dirty になる。`just db-migrate-prod version` で確認し、`force,<直前の版>` で戻してから再実行
 db-migrate-prod args="up":
     gcloud run jobs deploy times-migrate --source backend/db --project={{gcp_project}} --region={{gcp_region}} \
         --set-cloudsql-instances={{gcp_sql}} --set-secrets=DATABASE_URL=database-url:latest \
