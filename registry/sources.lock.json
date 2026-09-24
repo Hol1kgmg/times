@@ -57,6 +57,25 @@
       },
       "subdir": "."
     },
+    "google": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "owner": "google",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "skills",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "skills/cloud"
+    },
     "japanese-tech-writing": {
       "filter": {
         "maxDepth": 0,
@@ -136,6 +155,19 @@
         "type": "Git",
         "url": "https://github.com/feature-sliced/skills/archive/fd71da42a89e916f2ced63e5349fd865c87070a6.tar.gz"
       },
+      "google": {
+        "branch": "main",
+        "hash": "sha256-wROv9nKH0+04ZFnDFeAm3qmgNk+Aya2fTj5z/aNNXy0=",
+        "repository": {
+          "owner": "google",
+          "repo": "skills",
+          "type": "GitHub"
+        },
+        "revision": "2a1e4549d591688f3a605771cf101d05d43f8ae8",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/google/skills/archive/2a1e4549d591688f3a605771cf101d05d43f8ae8.tar.gz"
+      },
       "japanese-tech-writing": {
         "branch": "main",
         "hash": "sha256-jo1DvsAVIAKzurutp+T66kctgaFEe+sVbY9bf7wlCLM=",
@@ -150,16 +182,16 @@
       },
       "vercel": {
         "branch": "main",
-        "hash": "sha256-NAsXme9nQ/+1noWTay00MvSz+Sd5mz7halrYnD0FhTc=",
+        "hash": "sha256-HtGw2ggANPffWBDbKyydEOmoCZ0UGPahe3xhOkQorNI=",
         "repository": {
           "owner": "vercel",
           "repo": "ai",
           "type": "GitHub"
         },
-        "revision": "2b105fa30bccb3e3f24159d49a7b093244281227",
+        "revision": "40231b6222a41f89987dd35fe63825598aef453b",
         "submodules": false,
         "type": "Git",
-        "url": "https://github.com/vercel/ai/archive/2b105fa30bccb3e3f24159d49a7b093244281227.tar.gz"
+        "url": "https://github.com/vercel/ai/archive/40231b6222a41f89987dd35fe63825598aef453b.tar.gz"
       }
     },
     "version": 8

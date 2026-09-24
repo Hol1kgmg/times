@@ -18,5 +18,11 @@
   # feature-sliced/skills
   "feature-sliced-design"
 
+  # google/skills (Cloud Run + Cloud SQL へのデプロイ用)
+  "gcloud"
+  "cloud-run-basics"
+  "cloud-sql-basics"
+  "google-cloud-recipe-auth"
+
   # ./skills（独自）は flake.nix で全件自動有効。ここに書かない。
 ]

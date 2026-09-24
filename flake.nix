@@ -80,6 +80,7 @@
             pkgs.gopls
             pkgs.sqlc
             pkgs.oapi-codegen
+            pkgs.google-cloud-sdk
           ];
 
           shellHook = ''
