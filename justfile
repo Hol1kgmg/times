@@ -171,9 +171,7 @@ be-up:
     docker compose up --build
 
 # Deploy the API to Cloud Run (run `just db-migrate-prod` first if migrations changed)
-# 初回のみ: Secret Manager に backend-token を作り、同じ値を Workers にも入れる
-#   openssl rand -hex 32 | gcloud secrets create backend-token --data-file=- --project={{gcp_project}}
-#   gcloud secrets versions access latest --secret=backend-token --project={{gcp_project}} | pnpm -C frontend exec wrangler secret put BACKEND_TOKEN
+# Requires Secret Manager `database-url` and `backend-token` (initial setup: TODO.md)
 be-deploy:
     gcloud run deploy times-api --source backend --project={{gcp_project}} --region={{gcp_region}} \
         --set-cloudsql-instances={{gcp_sql}} --set-secrets=DATABASE_URL=database-url:latest,BACKEND_TOKEN=backend-token:latest \
