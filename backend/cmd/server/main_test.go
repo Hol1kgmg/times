@@ -35,7 +35,7 @@ func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject)
 // DB なしで到達できる経路だけ確認する: ルーティング、リクエスト検証、エラー変換の配線
 func TestRouter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r, err := newRouter(stub{Server: handler.New(nil), getItem: apperr.NotFound("gone")})
+	r, err := newRouter(stub{Server: handler.New(nil), getItem: apperr.NotFound("gone")}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,11 +78,29 @@ func TestRouter(t *testing.T) {
 func TestUnexpectedError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for name, err := range map[string]error{"error": errors.New("boom"), "panic": nil} {
-		r, _ := newRouter(stub{Server: handler.New(nil), getItem: err})
+		r, _ := newRouter(stub{Server: handler.New(nil), getItem: err}, "")
 		w := do(r, "GET", "/items/3f2a0c1e-0000-4000-8000-000000000000", "")
 		p := problem(t, w)
 		if w.Code != 500 || p.Type != api.AboutBlank || p.Detail != nil || strings.Contains(w.Body.String(), "boom") {
 			t.Errorf("%s: got %d %s", name, w.Code, w.Body)
+		}
+	}
+}
+
+// token を渡すと X-Backend-Token が一致しない要求は 401 になる。/health も例外にしない
+func TestBackendToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r, _ := newRouter(stub{Server: handler.New(nil)}, "s3cret")
+	for header, want := range map[string]int{"": 401, "wrong": 401, "s3cret": 200} {
+		req := httptest.NewRequest("GET", "/health", nil)
+		req.Header.Set("X-Backend-Token", header)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != want {
+			t.Errorf("token %q: got %d, want %d (%s)", header, w.Code, want, w.Body)
+		}
+		if want == 401 && problem(t, w).Type != api.Problemsunauthorized {
+			t.Errorf("token %q: type %s", header, w.Body)
 		}
 	}
 }
