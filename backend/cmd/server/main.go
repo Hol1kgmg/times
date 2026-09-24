@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -48,7 +49,8 @@ func run() error {
 	}
 	defer pool.Close()
 
-	r, err := newRouter(handler.New(pool), os.Getenv("BACKEND_TOKEN"))
+	// Secret Manager 経由だと末尾に改行が付くことがある。ヘッダー側は trim 済みで届くので揃える
+	r, err := newRouter(handler.New(pool), strings.TrimSpace(os.Getenv("BACKEND_TOKEN")))
 	if err != nil {
 		return err
 	}
@@ -89,7 +91,9 @@ func newRouter(s api.StrictServerInterface, token string) (*gin.Engine, error) {
 		gin.CustomRecovery(func(c *gin.Context, v any) { writeProblem(c, fmt.Errorf("panic: %v", v)) }),
 		func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes) },
 	)
-	if token != "" {
+	if token == "" {
+		slog.Warn("BACKEND_TOKEN is empty; auth disabled")
+	} else {
 		// 呼び元は Workers のサーバー関数だけ (adr/backend/0003)。共有シークレットで他からの到達を断つ
 		r.Use(func(c *gin.Context) {
 			if subtle.ConstantTimeCompare([]byte(c.GetHeader("X-Backend-Token")), []byte(token)) != 1 {
