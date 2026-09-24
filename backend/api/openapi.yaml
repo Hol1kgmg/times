@@ -178,6 +178,7 @@ components:
             - about:blank
             - /problems/validation-failed
             - /problems/not-found
+            - /problems/unauthorized
         title:
           type: string
         status:

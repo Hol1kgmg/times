@@ -3,6 +3,7 @@ package main
 import (
 	"cmp"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -47,7 +48,7 @@ func run() error {
 	}
 	defer pool.Close()
 
-	r, err := newRouter(handler.New(pool))
+	r, err := newRouter(handler.New(pool), os.Getenv("BACKEND_TOKEN"))
 	if err != nil {
 		return err
 	}
@@ -71,8 +72,9 @@ func run() error {
 }
 
 // newRouter は framework に触る唯一の場所。handler は gin を知らない。
+// token が空なら到達制限なし (compose での開発用)。本番は be-deploy が Secret Manager から必ず注入する。
 // ADR: adr/backend/0001-adopt-gin-behind-oapi-codegen-strict-server.md
-func newRouter(s api.StrictServerInterface) (*gin.Engine, error) {
+func newRouter(s api.StrictServerInterface, token string) (*gin.Engine, error) {
 	spec, err := api.GetSwagger()
 	if err != nil {
 		return nil, err
@@ -87,6 +89,14 @@ func newRouter(s api.StrictServerInterface) (*gin.Engine, error) {
 		gin.CustomRecovery(func(c *gin.Context, v any) { writeProblem(c, fmt.Errorf("panic: %v", v)) }),
 		func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes) },
 	)
+	if token != "" {
+		// 呼び元は Workers のサーバー関数だけ (adr/backend/0003)。共有シークレットで他からの到達を断つ
+		r.Use(func(c *gin.Context) {
+			if subtle.ConstantTimeCompare([]byte(c.GetHeader("X-Backend-Token")), []byte(token)) != 1 {
+				writeProblem(c, apperr.Unauthorized("missing or invalid X-Backend-Token"))
+			}
+		})
+	}
 	r.Use(ginmiddleware.OapiRequestValidatorWithOptions(spec, &ginmiddleware.Options{
 		ErrorHandler: func(c *gin.Context, message string, _ int) {
 			writeProblem(c, apperr.ValidationFailed(message))

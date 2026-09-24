@@ -23,7 +23,8 @@ decision-makers: 'Hol1kgmg'
 
 - Cloud Run Service `times-api`: `backend/Dockerfile` をそのまま `gcloud run deploy --source backend` でビルド・デプロイ。min instances 0、`PORT` は Cloud Run が注入する
 - Cloud SQL `times-db`: PostgreSQL 18、db-f1-micro (共有コア)、SSD 10GB、日次バックアップ。Cloud Run からは Cloud SQL コネクタ (Unix socket `/cloudsql/<connection name>`) で接続する
-- 接続文字列は Secret Manager `database-url` に置き、`DATABASE_URL` として注入する。アプリの環境変数は引き続き `DATABASE_URL` と `PORT` の 2 つだけ
+- 接続文字列は Secret Manager `database-url` に置き、`DATABASE_URL` として注入する。アプリの環境変数は `DATABASE_URL`、`PORT`、`BACKEND_TOKEN` (下記) の 3 つだけ
+- 到達制限は共有シークレット方式 (0003)。Secret Manager `backend-token` を `BACKEND_TOKEN` として注入し、`X-Backend-Token` ヘッダが一致しない要求は全ルート 401。同じ値を Workers の secret `BACKEND_TOKEN` に入れ、`backendFetch` が付ける。ローカル (compose) は未設定で制限なし
 - マイグレーションは Cloud Run Job `times-migrate` で適用する。`backend/db/Dockerfile` が `migrate/migrate` イメージに `db/migrations/` を焼き、`DATABASE_URL` を読んで `up` する。compose の `migrate` サービスと同じ発想
 - ソースアップロードは `backend/.gcloudignore` で `.agents/` と `.direnv/` を除外する。どちらも Nix store への参照で mtime が 1970 のため、zip 化が失敗する
 
@@ -31,7 +32,6 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 
 **未決のまま残すもの**
 
-- backend への到達制限。Workers は GCP の外なので Cloud Run は未認証公開 (`--allow-unauthenticated`) にしている。0003 の通り共有シークレット方式で制限する。書き込み API が誰でも叩ける状態なので、frontend を繋ぐ前に入れる
 - CI からのデプロイ。今は手動の `gcloud run deploy`。固まったら GitHub Actions + Workload Identity Federation に載せる
 
 ## Consequences
@@ -52,7 +52,7 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 - **Patterns to follow**:
   - GCP リソースの操作は devShell の `gcloud` で行い、`--project` と `--region` を明示する
   - デプロイは justfile 経由 (`just db-migrate-prod` → `just be-deploy`)。プロジェクト ID、リージョン、Cloud SQL 接続名は justfile の変数が正
-  - 秘密情報 (DB パスワード、`DATABASE_URL`) は Secret Manager にだけ置く。リポジトリにも issue にも書かない
+  - 秘密情報 (DB パスワード、`DATABASE_URL`、`BACKEND_TOKEN`) は Secret Manager にだけ置く。リポジトリにも issue にも書かない
 - **Patterns to avoid**:
   - `DATABASE_URL` に Cloud SQL の Public IP を直書きする (コネクタ経由の Unix socket を使う)
   - Cloud Run の環境変数に秘密情報を平文で入れる (`--set-env-vars` ではなく `--set-secrets`)
@@ -62,6 +62,7 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 - [x] `curl https://<service url>/health` が 200
 - [x] `curl https://<service url>/items` が 200 `{"items":[]}` (Cloud SQL 接続と `create_items` マイグレーションの確認)
 - [x] `gcloud run jobs executions list --job=times-migrate` に成功した実行がある
+- [ ] 到達制限 (2026-09-24 実装): `curl https://<service url>/health` が 401 `application/problem+json`、`-H "X-Backend-Token: $(gcloud secrets versions access latest --secret=backend-token)"` 付きで 200
 
 ## Alternatives Considered
 
