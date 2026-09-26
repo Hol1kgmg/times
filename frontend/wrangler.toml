@@ -3,6 +3,8 @@ main = "dist/server/server.js"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 keep_names = false
+# 環境変数 (BACKEND_URL, BACKEND_TOKEN) はダッシュボードで管理する。deploy で消さない
+keep_vars = true
 
 [assets]
 directory = "dist/client"

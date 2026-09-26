@@ -62,7 +62,7 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 - [x] `curl https://<service url>/health` が 200
 - [x] `curl https://<service url>/items` が 200 `{"items":[]}` (Cloud SQL 接続と `create_items` マイグレーションの確認)
 - [x] `gcloud run jobs executions list --job=times-migrate` に成功した実行がある
-- [ ] 到達制限 (2026-09-24 実装): `curl https://<service url>/health` が 401 `application/problem+json`、`-H "X-Backend-Token: $(gcloud secrets versions access latest --secret=backend-token)"` 付きで 200
+- [x] 到達制限 (2026-09-24 実装、2026-09-25 確認): `curl https://<service url>/health` が 401 `application/problem+json`、`-H "X-Backend-Token: $(gcloud secrets versions access latest --secret=backend-token)"` 付きで 200
 
 ## Alternatives Considered
 
