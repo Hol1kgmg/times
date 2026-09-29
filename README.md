@@ -93,3 +93,5 @@ just update    # flake.lock / sources.lock.json を更新して検証する
 
 - 設計判断の記録: [adr/](adr/)
 - 技術スタック（backend / frontend）: [docs/tech-stack.md](docs/tech-stack.md)
+- 管理者ログインの運用（GitHub OAuth App、環境変数、失効）: [docs/admin-login.md](docs/admin-login.md)
+- 動作確認とテストの手引き（ポート、e2e の結果の見方、DB と API の確認）: [docs/testing.md](docs/testing.md)

@@ -75,5 +75,6 @@ frontend は既に `.server.ts` + `createServerOnlyFn` でサーバー専用境�
 - 関連: [HTTP framework に Gin を採用し、oapi-codegen strict-server の下に隠す](0001-adopt-gin-behind-oapi-codegen-strict-server.md)（CORS を足すとしたら `newRouter`）
 - 再検討条件: ブラウザ以外のクライアントが出たとき、または Workers のホップが計測上のボトルネックになったとき
 - 2026-09-24: 到達制限は共有シークレット方式で実装した (`X-Backend-Token`、`newRouter` の middleware)。詳細は [0006](0006-host-backend-on-cloud-run-and-cloud-sql.md)。ユーザー認証は引き続き未決
+- 2026-09-26: ユーザー認証は [0007](0007-issue-and-verify-sessions-in-backend.md) で決めた。「まず frontend のサーバー関数側で行う」という上記の見込みは採らず、本人確認と session の発行・照合は backend が行う。ブラウザが backend に直接到達しない点は変わらない
 - 2026-09-24: ホスティング先は [0006](0006-host-backend-on-cloud-run-and-cloud-sql.md) で Cloud Run + Cloud SQL に決めた
 - 2026-09-22: 「型は openapi.yaml から生成する」の具体化は [frontend/0001](../frontend/0001-generate-api-types-and-hand-write-branded-zod-schemas.md) に記録した

@@ -17,8 +17,12 @@ import (
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/apperr"
+	"github.com/Hol1kgmg/times/backend/internal/auth"
+	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/Hol1kgmg/times/backend/internal/handler"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	ginmiddleware "github.com/oapi-codegen/gin-middleware"
 )
@@ -49,8 +53,21 @@ func run() error {
 	}
 	defer pool.Close()
 
+	// 管理者ログイン (adr/backend/0007)。いずれか空なら POST /auth/sessions は常に 403 で、他の操作は影響を受けない
+	gh := auth.Client{
+		HTTP:         &http.Client{Timeout: 10 * time.Second},
+		BaseURL:      cmp.Or(os.Getenv("GITHUB_BASE_URL"), "https://github.com"),
+		APIURL:       cmp.Or(os.Getenv("GITHUB_API_URL"), "https://api.github.com"),
+		ClientID:     strings.TrimSpace(os.Getenv("GITHUB_CLIENT_ID")),
+		ClientSecret: strings.TrimSpace(os.Getenv("GITHUB_CLIENT_SECRET")),
+	}
+	adminLogin := strings.TrimSpace(os.Getenv("ADMIN_GITHUB_LOGIN"))
+	if gh.ClientID == "" || gh.ClientSecret == "" || adminLogin == "" {
+		slog.Warn("github login is not configured; POST /auth/sessions always 403")
+	}
+
 	// Secret Manager 経由だと末尾に改行が付くことがある。ヘッダー側は trim 済みで届くので揃える
-	r, err := newRouter(handler.New(pool), strings.TrimSpace(os.Getenv("BACKEND_TOKEN")))
+	r, err := newRouter(handler.New(pool, gh, adminLogin), strings.TrimSpace(os.Getenv("BACKEND_TOKEN")), db.New(pool).GetSessionByTokenHash)
 	if err != nil {
 		return err
 	}
@@ -73,10 +90,14 @@ func run() error {
 	return srv.Shutdown(shutdownCtx)
 }
 
+// sessionLookup は Bearer トークンの sha256 から有効な session を引く。見つからなければ pgx.ErrNoRows。
+type sessionLookup func(ctx context.Context, tokenHash []byte) (db.GetSessionByTokenHashRow, error)
+
 // newRouter は framework に触る唯一の場所。handler は gin を知らない。
-// token が空なら到達制限なし (compose での開発用)。本番は be-deploy が Secret Manager から必ず注入する。
+// token が空なら到達制限なし (compose での開発用)。本番は Secret Manager から必ず注入する (docs/deploy.md)。
+// lookup は openapi.yaml で security: [bearerAuth] を宣言した操作だけに使われる (adr/backend/0007)。
 // ADR: adr/backend/0001-adopt-gin-behind-oapi-codegen-strict-server.md
-func newRouter(s api.StrictServerInterface, token string) (*gin.Engine, error) {
+func newRouter(s api.StrictServerInterface, token string, lookup sessionLookup) (*gin.Engine, error) {
 	spec, err := api.GetSwagger()
 	if err != nil {
 		return nil, err
@@ -85,6 +106,8 @@ func newRouter(s api.StrictServerInterface, token string) (*gin.Engine, error) {
 	spec.Servers = nil
 
 	r := gin.New()
+	// handler は *gin.Context を context.Context として受け取る。request context の値 (auth.Principal) を引けるようにする
+	r.ContextWithFallback = true
 	r.Use(
 		accessLog,
 		// panic も Problem Details にする (adr/backend/0002)。writeProblem が 500 として slog に出す
@@ -103,8 +126,23 @@ func newRouter(s api.StrictServerInterface, token string) (*gin.Engine, error) {
 	}
 	r.Use(ginmiddleware.OapiRequestValidatorWithOptions(spec, &ginmiddleware.Options{
 		ErrorHandler: func(c *gin.Context, message string, _ int) {
+			// gin-middleware は error を文字列に潰して渡すので、認証失敗は AuthenticationFunc の中で書き終えている
+			if c.Writer.Written() {
+				return
+			}
 			writeProblem(c, apperr.ValidationFailed(message))
 		},
+		Options: openapi3filter.Options{AuthenticationFunc: func(ctx context.Context, in *openapi3filter.AuthenticationInput) error {
+			if in.SecuritySchemeName != "bearerAuth" {
+				return fmt.Errorf("unknown security scheme %q", in.SecuritySchemeName)
+			}
+			c := ginmiddleware.GetGinContext(ctx)
+			err := authenticateBearer(c, lookup)
+			if err != nil {
+				writeProblem(c, err)
+			}
+			return err
+		}},
 	}))
 	badRequest := func(c *gin.Context, err error) { writeProblem(c, apperr.ValidationFailed(err.Error())) }
 	strict := api.NewStrictHandlerWithOptions(s, nil, api.StrictGinServerOptions{
@@ -116,6 +154,27 @@ func newRouter(s api.StrictServerInterface, token string) (*gin.Engine, error) {
 		ErrorHandler: func(c *gin.Context, err error, _ int) { badRequest(c, err) }, // パスパラメータの形式違反
 	})
 	return r, nil
+}
+
+// authenticateBearer は Authorization: Bearer <token> を照合し、成功したら auth.Principal を request context に載せる。
+// 失敗はすべて 401 /problems/unauthorized。トークンの平文はログに出さない
+func authenticateBearer(c *gin.Context, lookup sessionLookup) error {
+	token, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer ")
+	if !ok || token == "" {
+		return apperr.Unauthorized("missing or invalid bearer token")
+	}
+	hash := auth.Hash(token)
+	row, err := lookup(c.Request.Context(), hash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return apperr.Unauthorized("missing or invalid bearer token")
+	}
+	if err != nil {
+		return err
+	}
+	c.Request = c.Request.WithContext(auth.WithPrincipal(c.Request.Context(), auth.Principal{
+		UserID: row.UserID, Login: row.Login, ExpiresAt: row.ExpiresAt, TokenHash: hash,
+	}))
+	return nil
 }
 
 // accessLog は gin.Logger の代わり。500 のログと同じ slog (JSON) に出す。

@@ -12,3 +12,4 @@
 | 0004 | [一覧応答はトップレベル配列ではなく object で包む](0004-wrap-list-responses-in-object.md) | accepted |
 | 0005 | [マイグレーションは手書きの命令型のまま、宣言型スキーマ (Atlas) は採用しない](0005-keep-imperative-migrations.md) | accepted |
 | 0006 | [backend は GCP の Cloud Run + Cloud SQL で動かし、frontend は Cloudflare Workers に据え置く](0006-host-backend-on-cloud-run-and-cloud-sql.md) | accepted |
+| 0007 | [ログイン状態は backend が発行・照合し、信頼の起点を backend に置く](0007-issue-and-verify-sessions-in-backend.md) | accepted |

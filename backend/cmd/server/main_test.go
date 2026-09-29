@@ -8,11 +8,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/apperr"
+	"github.com/Hol1kgmg/times/backend/internal/auth"
+	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/Hol1kgmg/times/backend/internal/handler"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 // stub は GetItem だけ差し替えて、handler が返した error の変換経路を確認する
@@ -32,10 +36,30 @@ func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject)
 	return nil, s.getItem
 }
 
+// DeleteCurrentSession は DB を触るので差し替える。Principal が載っていることだけ確認する
+func (s stub) DeleteCurrentSession(ctx context.Context, _ api.DeleteCurrentSessionRequestObject) (api.DeleteCurrentSessionResponseObject, error) {
+	if _, ok := auth.PrincipalFrom(ctx); !ok {
+		return nil, errors.New("no principal")
+	}
+	return api.DeleteCurrentSession204Response{}, nil
+}
+
+func newStub(getItem error) stub {
+	return stub{Server: handler.New(nil, auth.Client{}, ""), getItem: getItem}
+}
+
+// lookup が呼ばれたらテスト失敗にする。security の無い操作で照合しないことの確認用
+func noLookup(t *testing.T) sessionLookup {
+	return func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
+		t.Error("lookup must not be called")
+		return db.GetSessionByTokenHashRow{}, pgx.ErrNoRows
+	}
+}
+
 // DB なしで到達できる経路だけ確認する: ルーティング、リクエスト検証、エラー変換の配線
 func TestRouter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r, err := newRouter(stub{Server: handler.New(nil), getItem: apperr.NotFound("gone")}, "")
+	r, err := newRouter(newStub(apperr.NotFound("gone")), "", noLookup(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,6 +78,9 @@ func TestRouter(t *testing.T) {
 		{"POST", "/items", `{"title":"` + strings.Repeat("a", maxBodyBytes) + `"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", id, "", http.StatusNotFound, api.ProblemsnotFound},
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound},
+		{"POST", "/auth/sessions", `{"code":"","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
+		{"POST", "/auth/sessions", `{"code":"x"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
+		{"POST", "/auth/sessions", `{"code":"x","redirectUri":"https://app/cb"}`, http.StatusForbidden, api.Problemsforbidden}, // 未設定
 	}
 	for _, tt := range tests {
 		w := do(r, tt.method, tt.path, tt.body)
@@ -78,7 +105,7 @@ func TestRouter(t *testing.T) {
 func TestUnexpectedError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for name, err := range map[string]error{"error": errors.New("boom"), "panic": nil} {
-		r, _ := newRouter(stub{Server: handler.New(nil), getItem: err}, "")
+		r, _ := newRouter(newStub(err), "", noLookup(t))
 		w := do(r, "GET", "/items/3f2a0c1e-0000-4000-8000-000000000000", "")
 		p := problem(t, w)
 		if w.Code != 500 || p.Type != api.AboutBlank || p.Detail != nil || strings.Contains(w.Body.String(), "boom") {
@@ -90,7 +117,7 @@ func TestUnexpectedError(t *testing.T) {
 // token を渡すと X-Backend-Token が一致しない要求は 401 になる。/health も例外にしない
 func TestBackendToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r, _ := newRouter(stub{Server: handler.New(nil)}, "s3cret")
+	r, _ := newRouter(newStub(nil), "s3cret", noLookup(t))
 	for header, want := range map[string]int{"": 401, "wrong": 401, "s3cret": 200} {
 		req := httptest.NewRequest("GET", "/health", nil)
 		req.Header.Set("X-Backend-Token", header)
@@ -101,6 +128,58 @@ func TestBackendToken(t *testing.T) {
 		}
 		if want == 401 && problem(t, w).Type != api.Problemsunauthorized {
 			t.Errorf("token %q: type %s", header, w.Body)
+		}
+	}
+}
+
+// security: [bearerAuth] の操作は Authorization: Bearer を sha256 → lookup で照合し、失敗は 401。
+// security の無い /health では lookup が呼ばれない
+func TestBearerAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	expires := time.Now().Add(time.Hour).Truncate(time.Second)
+	var calls int
+	lookup := func(_ context.Context, hash []byte) (db.GetSessionByTokenHashRow, error) {
+		calls++
+		if string(hash) != string(auth.Hash("valid")) {
+			return db.GetSessionByTokenHashRow{}, pgx.ErrNoRows
+		}
+		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: expires}, nil
+	}
+	r, _ := newRouter(newStub(nil), "", lookup)
+
+	tests := []struct {
+		method, path, authz string
+		want                int
+		wantLookup          bool
+	}{
+		{"GET", "/auth/sessions/current", "", 401, false},
+		{"GET", "/auth/sessions/current", "Basic x", 401, false},
+		{"GET", "/auth/sessions/current", "Bearer garbage", 401, true},
+		{"GET", "/auth/sessions/current", "Bearer valid", 200, true},
+		{"DELETE", "/auth/sessions/current", "", 401, false},
+		{"DELETE", "/auth/sessions/current", "Bearer valid", 204, true},
+		{"GET", "/health", "Bearer valid", 200, false},
+	}
+	for _, tt := range tests {
+		calls = 0
+		req := httptest.NewRequest(tt.method, tt.path, nil)
+		if tt.authz != "" {
+			req.Header.Set("Authorization", tt.authz)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != tt.want || (calls > 0) != tt.wantLookup {
+			t.Errorf("%s %s %q: got %d (lookup %d), want %d (%s)", tt.method, tt.path, tt.authz, w.Code, calls, tt.want, w.Body)
+			continue
+		}
+		if tt.want == 401 && problem(t, w).Type != api.Problemsunauthorized {
+			t.Errorf("%s %s %q: %s", tt.method, tt.path, tt.authz, w.Body)
+		}
+		if tt.want == 200 && tt.path != "/health" {
+			var s api.Session
+			if err := json.Unmarshal(w.Body.Bytes(), &s); err != nil || s.User.Id != 1 || s.User.Login != "octocat" || !s.ExpiresAt.Equal(expires) {
+				t.Errorf("session body: %s (%v)", w.Body, err)
+			}
 		}
 	}
 }

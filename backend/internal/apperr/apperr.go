@@ -19,6 +19,8 @@ var Types = map[string]int{
 	"/problems/validation-failed": http.StatusBadRequest,
 	"/problems/not-found":         http.StatusNotFound,
 	"/problems/unauthorized":      http.StatusUnauthorized,
+	"/problems/forbidden":         http.StatusForbidden,
+	"/problems/upstream-failed":   http.StatusBadGateway,
 }
 
 func newError(typ, detail string) error {
@@ -28,3 +30,5 @@ func newError(typ, detail string) error {
 func ValidationFailed(detail string) error { return newError("/problems/validation-failed", detail) }
 func NotFound(detail string) error         { return newError("/problems/not-found", detail) }
 func Unauthorized(detail string) error     { return newError("/problems/unauthorized", detail) }
+func Forbidden(detail string) error        { return newError("/problems/forbidden", detail) }
+func UpstreamFailed(detail string) error   { return newError("/problems/upstream-failed", detail) }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/apperr"
+	"github.com/Hol1kgmg/times/backend/internal/auth"
 	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,13 +16,23 @@ import (
 )
 
 type Server struct {
-	q *db.Queries
+	q     *db.Queries
+	authq authQueries
+	gh    auth.Client
+	// adminLogin は許可する GitHub ユーザー名。大文字小文字を区別しない (specs/003 FR-011)
+	adminLogin string
+	// authConfigured が false なら POST /auth/sessions は常に 403 (specs/003 FR-012)
+	authConfigured bool
 }
 
 var _ api.StrictServerInterface = (*Server)(nil)
 
-func New(pool *pgxpool.Pool) *Server {
-	return &Server{q: db.New(pool)}
+func New(pool *pgxpool.Pool, gh auth.Client, adminLogin string) *Server {
+	q := db.New(pool)
+	return &Server{
+		q: q, authq: q, gh: gh, adminLogin: adminLogin,
+		authConfigured: gh.ClientID != "" && gh.ClientSecret != "" && adminLogin != "",
+	}
 }
 
 func (s *Server) Health(context.Context, api.HealthRequestObject) (api.HealthResponseObject, error) {

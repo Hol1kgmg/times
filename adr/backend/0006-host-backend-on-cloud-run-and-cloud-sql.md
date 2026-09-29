@@ -45,15 +45,17 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 
 ## Implementation Plan
 
-実施済み (2026-09-24)。
+実施済み (2026-09-24)。2026-09-30 に gcloud を justfile から外し、手順を `docs/deploy.md` へ移した。
 
-- **Affected paths**: `justfile` (`be-deploy` / `be-logs` / `db-migrate-prod`)、`backend/db/Dockerfile` (新規)、`backend/.gcloudignore` (新規)、`backend/.dockerignore` (`.agents/` `.direnv/` を追加)、`flake.nix` (`google-cloud-sdk` を devShell に追加)、`skills.nix` (google/skills の gcloud / cloud-run / cloud-sql スキル)
+- **Affected paths**: `docs/deploy.md` (デプロイ / マイグレーション / ログの gcloud コマンド)、`backend/db/Dockerfile` (新規)、`backend/.gcloudignore` (新規)、`backend/.dockerignore` (`.agents/` `.direnv/` を追加)、`flake.nix` (`google-cloud-sdk` を devShell に追加)、`skills.nix` (google/skills の gcloud / cloud-run / cloud-sql スキル)
 - **Dependencies**: なし (アプリ側の依存は変えない)
 - **Patterns to follow**:
   - GCP リソースの操作は devShell の `gcloud` で行い、`--project` と `--region` を明示する
-  - デプロイは justfile 経由 (`just db-migrate-prod` → `just be-deploy`)。プロジェクト ID、リージョン、Cloud SQL 接続名は justfile の変数が正
+  - デプロイは `docs/deploy.md` の gcloud コマンドを直接実行する (マイグレーション → API の順)。プロジェクト ID、リージョン、Cloud SQL 接続名は `docs/deploy.md` が正
   - 秘密情報 (DB パスワード、`DATABASE_URL`、`BACKEND_TOKEN`) は Secret Manager にだけ置く。リポジトリにも issue にも書かない
+  - 秘密でない本番値 (`GITHUB_CLIENT_ID` など) は Cloud Run のサービスに `--update-env-vars` で一度だけ設定する
 - **Patterns to avoid**:
+  - gcloud を justfile のレシピにする。本番値を追跡対象ファイルに書くことになり、空のままデプロイすると本番の値を消す
   - `DATABASE_URL` に Cloud SQL の Public IP を直書きする (コネクタ経由の Unix socket を使う)
   - Cloud Run の環境変数に秘密情報を平文で入れる (`--set-env-vars` ではなく `--set-secrets`)
 

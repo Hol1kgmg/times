@@ -1,0 +1,27 @@
+### createSession → 201 CreatedSession（code は実 GitHub か e2e モックから取る。未設定なら 403 /problems/forbidden）
+# @name createSession
+POST {{host}}/auth/sessions
+Content-Type: application/json
+
+{"code": "admin", "redirectUri": "http://localhost:3000/auth/github/callback"}
+
+### current → 200 Session（直前の createSession の token）
+GET {{host}}/auth/sessions/current
+Authorization: Bearer {{createSession.response.body.token}}
+
+### current (no token) → 401 Problem type=/problems/unauthorized
+GET {{host}}/auth/sessions/current
+
+### current (garbage) → 401 Problem type=/problems/unauthorized
+GET {{host}}/auth/sessions/current
+Authorization: Bearer garbage
+
+### logout → 204（2 回目は 401。frontend は成功扱い）
+DELETE {{host}}/auth/sessions/current
+Authorization: Bearer {{createSession.response.body.token}}
+
+### createSession (empty code) → 400 Problem type=/problems/validation-failed
+POST {{host}}/auth/sessions
+Content-Type: application/json
+
+{"code": "", "redirectUri": "http://localhost:3000/auth/github/callback"}

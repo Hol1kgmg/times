@@ -92,7 +92,69 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /auth/sessions:
+    post:
+      operationId: createSession
+      summary: GitHub の code を検証し、管理者の session を発行する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewSession"
+      responses:
+        "201":
+          description: Created。token はこの応答にだけ現れる
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: 許可されていない GitHub アカウント、または backend の GitHub 連携が未設定
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: GitHub との通信・応答の検証に失敗 (code が無効な場合も含む)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /auth/sessions/current:
+    get:
+      operationId: getCurrentSession
+      summary: Bearer の session を照合し、管理者を返す
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      operationId: deleteCurrentSession
+      summary: Bearer の session を削除する (ログアウト)。存在しなくても 204
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
+  securitySchemes:
+    # 管理者の session トークン (adr/backend/0007)。frontend のサーバー関数が Cookie から転送する。
+    # グローバル security は置かず、管理者専用の操作に個別に付ける
+    bearerAuth:
+      type: http
+      scheme: bearer
   responses:
     BadRequest:
       description: Bad Request
@@ -100,7 +162,54 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
   schemas:
+    NewSession:
+      type: object
+      required: [code, redirectUri]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: GitHub authorize から戻った code
+        redirectUri:
+          type: string
+          format: uri
+          description: authorize に渡した redirect_uri。token 交換で GitHub が一致を検証する
+    AdminUser:
+      type: object
+      required: [id, login]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: GitHub 固定 ID。サービス内で管理者を指す識別子
+        login:
+          type: string
+    Session:
+      type: object
+      required: [user, expiresAt]
+      properties:
+        user:
+          $ref: "#/components/schemas/AdminUser"
+        expiresAt:
+          type: string
+          format: date-time
+    CreatedSession:
+      allOf:
+        - $ref: "#/components/schemas/Session"
+        - type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+              description: 不透明トークン。Cookie に入れて Bearer で転送する
     Item:
       type: object
       required: [id, title, createdAt]
@@ -179,6 +288,8 @@ components:
             - /problems/validation-failed
             - /problems/not-found
             - /problems/unauthorized
+            - /problems/forbidden
+            - /problems/upstream-failed
         title:
           type: string
         status:

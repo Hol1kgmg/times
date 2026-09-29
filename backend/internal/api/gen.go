@@ -58,8 +58,10 @@ func (e Category) Valid() bool {
 // Defines values for ProblemType.
 const (
 	AboutBlank               ProblemType = "about:blank"
+	Problemsforbidden        ProblemType = "/problems/forbidden"
 	ProblemsnotFound         ProblemType = "/problems/not-found"
 	Problemsunauthorized     ProblemType = "/problems/unauthorized"
+	ProblemsupstreamFailed   ProblemType = "/problems/upstream-failed"
 	ProblemsvalidationFailed ProblemType = "/problems/validation-failed"
 )
 
@@ -68,15 +70,26 @@ func (e ProblemType) Valid() bool {
 	switch e {
 	case AboutBlank:
 		return true
+	case Problemsforbidden:
+		return true
 	case ProblemsnotFound:
 		return true
 	case Problemsunauthorized:
+		return true
+	case ProblemsupstreamFailed:
 		return true
 	case ProblemsvalidationFailed:
 		return true
 	default:
 		return false
 	}
+}
+
+// AdminUser defines model for AdminUser.
+type AdminUser struct {
+	// Id GitHub 固定 ID。サービス内で管理者を指す識別子
+	Id    int64  `json:"id"`
+	Login string `json:"login"`
 }
 
 // Article defines model for Article.
@@ -92,6 +105,15 @@ type Article struct {
 
 // Category defines model for Category.
 type Category string
+
+// CreatedSession defines model for CreatedSession.
+type CreatedSession struct {
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// Token 不透明トークン。Cookie に入れて Bearer で転送する
+	Token string    `json:"token"`
+	User  AdminUser `json:"user"`
+}
 
 // Digest defines model for Digest.
 type Digest struct {
@@ -112,6 +134,15 @@ type NewItem struct {
 	Title string `json:"title"`
 }
 
+// NewSession defines model for NewSession.
+type NewSession struct {
+	// Code GitHub authorize から戻った code
+	Code string `json:"code"`
+
+	// RedirectUri authorize に渡した redirect_uri。token 交換で GitHub が一致を検証する
+	RedirectUri string `json:"redirectUri"`
+}
+
 // Problem defines model for Problem.
 type Problem struct {
 	Detail *string `json:"detail,omitempty"`
@@ -125,14 +156,35 @@ type Problem struct {
 // ProblemType エラー種別。クライアントはこれで分岐する。想定外は about:blank
 type ProblemType string
 
+// Session defines model for Session.
+type Session struct {
+	ExpiresAt time.Time `json:"expiresAt"`
+	User      AdminUser `json:"user"`
+}
+
 // BadRequest defines model for BadRequest.
 type BadRequest = Problem
+
+// Unauthorized defines model for Unauthorized.
+type Unauthorized = Problem
+
+// CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
+type CreateSessionJSONRequestBody = NewSession
 
 // CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
 type CreateItemJSONRequestBody = NewItem
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// CreateSession GitHub の code を検証し、管理者の session を発行する
+	// (POST /auth/sessions)
+	CreateSession(c *gin.Context)
+	// DeleteCurrentSession Bearer の session を削除する (ログアウト)。存在しなくても 204
+	// (DELETE /auth/sessions/current)
+	DeleteCurrentSession(c *gin.Context)
+	// GetCurrentSession Bearer の session を照合し、管理者を返す
+	// (GET /auth/sessions/current)
+	GetCurrentSession(c *gin.Context)
 
 	// (GET /digests/latest)
 	GetLatestDigest(c *gin.Context)
@@ -158,6 +210,45 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// CreateSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateSession(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateSession(c)
+}
+
+// DeleteCurrentSession operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCurrentSession(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteCurrentSession(c)
+}
+
+// GetCurrentSession operation middleware
+func (siw *ServerInterfaceWrapper) GetCurrentSession(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetCurrentSession(c)
+}
 
 // GetLatestDigest operation middleware
 func (siw *ServerInterfaceWrapper) GetLatestDigest(c *gin.Context) {
@@ -268,9 +359,148 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
 	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
 	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
+	router.POST(options.BaseURL+"/auth/sessions", wrapper.CreateSession)
+	router.DELETE(options.BaseURL+"/auth/sessions/current", wrapper.DeleteCurrentSession)
+	router.GET(options.BaseURL+"/auth/sessions/current", wrapper.GetCurrentSession)
 }
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
+
+type UnauthorizedApplicationProblemPlusJSONResponse Problem
+
+type CreateSessionRequestObject struct {
+	Body *CreateSessionJSONRequestBody
+}
+
+type CreateSessionResponseObject interface {
+	VisitCreateSessionResponse(w http.ResponseWriter) error
+}
+
+type CreateSession201JSONResponse CreatedSession
+
+func (response CreateSession201JSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSession400ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession403ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateSession502ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateSession502ApplicationProblemPlusJSONResponse) VisitCreateSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(502)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteCurrentSessionRequestObject struct {
+}
+
+type DeleteCurrentSessionResponseObject interface {
+	VisitDeleteCurrentSessionResponse(w http.ResponseWriter) error
+}
+
+type DeleteCurrentSession204Response struct {
+}
+
+func (response DeleteCurrentSession204Response) VisitDeleteCurrentSessionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteCurrentSession401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteCurrentSession401ApplicationProblemPlusJSONResponse) VisitDeleteCurrentSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCurrentSessionRequestObject struct {
+}
+
+type GetCurrentSessionResponseObject interface {
+	VisitGetCurrentSessionResponse(w http.ResponseWriter) error
+}
+
+type GetCurrentSession200JSONResponse Session
+
+func (response GetCurrentSession200JSONResponse) VisitGetCurrentSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCurrentSession401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetCurrentSession401ApplicationProblemPlusJSONResponse) VisitGetCurrentSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetLatestDigestRequestObject struct {
 }
@@ -445,6 +675,15 @@ func (response GetItem404ApplicationProblemPlusJSONResponse) VisitGetItemRespons
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// CreateSession GitHub の code を検証し、管理者の session を発行する
+	// (POST /auth/sessions)
+	CreateSession(ctx context.Context, request CreateSessionRequestObject) (CreateSessionResponseObject, error)
+	// DeleteCurrentSession Bearer の session を削除する (ログアウト)。存在しなくても 204
+	// (DELETE /auth/sessions/current)
+	DeleteCurrentSession(ctx context.Context, request DeleteCurrentSessionRequestObject) (DeleteCurrentSessionResponseObject, error)
+	// GetCurrentSession Bearer の session を照合し、管理者を返す
+	// (GET /auth/sessions/current)
+	GetCurrentSession(ctx context.Context, request GetCurrentSessionRequestObject) (GetCurrentSessionResponseObject, error)
 
 	// (GET /digests/latest)
 	GetLatestDigest(ctx context.Context, request GetLatestDigestRequestObject) (GetLatestDigestResponseObject, error)
@@ -517,6 +756,85 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictGinServerOptions
+}
+
+// CreateSession operation middleware
+func (sh *strictHandler) CreateSession(ctx *gin.Context) {
+	var request CreateSessionRequestObject
+
+	var body CreateSessionJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSession(ctx, request.(CreateSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSession")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CreateSessionResponseObject); ok {
+		if err := validResponse.VisitCreateSessionResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteCurrentSession operation middleware
+func (sh *strictHandler) DeleteCurrentSession(ctx *gin.Context) {
+	var request DeleteCurrentSessionRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteCurrentSession(ctx, request.(DeleteCurrentSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteCurrentSession")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(DeleteCurrentSessionResponseObject); ok {
+		if err := validResponse.VisitDeleteCurrentSessionResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCurrentSession operation middleware
+func (sh *strictHandler) GetCurrentSession(ctx *gin.Context) {
+	var request GetCurrentSessionRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCurrentSession(ctx, request.(GetCurrentSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCurrentSession")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetCurrentSessionResponseObject); ok {
+		if err := validResponse.VisitGetCurrentSessionResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetLatestDigest operation middleware
@@ -653,24 +971,36 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

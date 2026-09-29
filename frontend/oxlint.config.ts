@@ -18,6 +18,19 @@ export default defineConfig({
     },
   ],
   rules: {
+    // TanStack Router の notFound() / redirect() は Error でない素のオブジェクトを throw する慣習
+    "typescript/only-throw-error": [
+      "error",
+      {
+        allow: [
+          {
+            from: "package",
+            name: ["NotFoundError", "Redirect"],
+            package: "@tanstack/router-core",
+          },
+        ],
+      },
+    ],
     "react-js/jsx-sort-props": [
       "error",
       { callbacksLast: true, ignoreCase: true, reservedFirst: true },

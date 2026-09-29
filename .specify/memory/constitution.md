@@ -1,19 +1,21 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 1.1.0
-- Modified principles:
-  - V. 品質ゲート → V. 品質はテストとスキーマで判断する
-    (完了判定の基準を「テストとスキーマ」に明示。spec → schema → test の対応を必須化)
-- Governance: 完了判定が原則 V に従う旨を追記
-- Added sections (1.0.0 initial ratification):
-  - Core Principles (I. 仕様駆動, II. 契約ファースト, III. サーバー関数経由のみ,
-    IV. 最小実装 (YAGNI), V. 品質ゲート)
-  - 技術スタックと制約
-  - 開発ワークフロー
-  - Governance
+- Version change: 1.1.0 → 1.1.1 (PATCH)
+- Modified sections:
+  - 技術スタックと制約 / backend: 「環境変数は DATABASE_URL と PORT のみ」を
+    「環境変数の一覧は docs/tech-stack.md が正」に改める (BACKEND_TOKEN と GitHub ログイン用の
+    3 変数が増え、本文書に列挙し続けると乖離するため。原則の意味は変えない)
+- Modified principles: none
+- Added sections: none
 - Removed sections: none
 - Templates: .specify/templates/* は本文書を実行時に参照するため変更なし
 - Follow-up TODOs: none
+
+Previous (1.0.0 → 1.1.0)
+- V. 品質ゲート → V. 品質はテストとスキーマで判断する
+  (完了判定の基準を「テストとスキーマ」に明示。spec → schema → test の対応を必須化)
+- Governance: 完了判定が原則 V に従う旨を追記
+- 1.0.0 initial ratification: Core Principles (I〜V)、技術スタックと制約、開発ワークフロー、Governance
 -->
 
 # times Constitution
@@ -97,8 +99,8 @@ backend を直接呼んではならず (MUST NOT)、CORS や API バージョニ
 詳細は [docs/tech-stack.md](../../docs/tech-stack.md)。
 
 - **backend**: Go / Gin (oapi-codegen strict server の下に隠す) / sqlc + pgx v5 /
-  PostgreSQL 18 / golang-migrate (手書きの命令型マイグレーション)。環境変数は
-  `DATABASE_URL` と `PORT` のみ。ログは slog の JSON を stdout へ。
+  PostgreSQL 18 / golang-migrate (手書きの命令型マイグレーション)。環境変数の一覧は
+  `docs/tech-stack.md` が正 (本文書には列挙しない)。ログは slog の JSON を stdout へ。
 - **frontend**: React 19 / TanStack Start + Router / Zod / Vite / CSS Modules + PostCSS /
   TypeScript strict / ultracite (oxlint + oxfmt) / Vitest / Playwright。
   デプロイ先は Cloudflare Workers。
@@ -136,4 +138,4 @@ backend を直接呼んではならず (MUST NOT)、CORS や API バージョニ
 - 準拠確認: `/speckit-plan` の Constitution Check と PR レビューで、各原則への準拠を
   確認する。完了判定は原則 V に従い、テストとスキーマで行う。
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-22
+**Version**: 1.1.1 | **Ratified**: 2026-09-22 | **Last Amended**: 2026-09-29

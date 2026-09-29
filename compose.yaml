@@ -32,6 +32,11 @@ services:
     environment:
       DATABASE_URL: postgres://times:times@db:5432/times?sslmode=disable
       GIN_MODE: release
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      ADMIN_GITHUB_LOGIN: ${ADMIN_GITHUB_LOGIN:-}
+      GITHUB_BASE_URL: ${GITHUB_BASE_URL:-https://github.com}
+      GITHUB_API_URL: ${GITHUB_API_URL:-https://api.github.com}
     ports:
       - "8080:8080"
     depends_on:

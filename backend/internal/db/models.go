@@ -31,3 +31,18 @@ type Item struct {
 	Title     string
 	CreatedAt time.Time
 }
+
+type Session struct {
+	ID        uuid.UUID
+	TokenHash []byte
+	UserID    int64
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+type User struct {
+	ID        int64
+	Login     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}

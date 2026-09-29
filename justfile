@@ -1,9 +1,5 @@
 # 命名規則: frontend のみ → fe-*、backend のみ → be-*、DB / マイグレーション → db-*、両方 / リポジトリ全体 → prefix なし
-
-# GCP (adr/backend/0006)
-gcp_project := "project-34107f2d-36dc-49d8-a58"
-gcp_region := "asia-northeast1"
-gcp_sql := gcp_project + ":" + gcp_region + ":times-db"
+# gcloud (本番の backend / DB 操作) はここに載せない。手順は docs/deploy.md
 
 # List recipes
 list:
@@ -170,19 +166,11 @@ be-tidy:
 be-up:
     docker compose up --build
 
-# Deploy the API to Cloud Run (run `just db-migrate-prod` first if migrations changed)
-# Requires Secret Manager `database-url` and `backend-token` (initial setup: TODO.md)
-be-deploy:
-    gcloud run deploy times-api --source backend --project={{gcp_project}} --region={{gcp_region}} \
-        --set-cloudsql-instances={{gcp_sql}} --set-secrets=DATABASE_URL=database-url:latest,BACKEND_TOKEN=backend-token:latest \
-        --set-env-vars=GIN_MODE=release --min-instances=0 --max-instances=2 --memory=256Mi \
-        --allow-unauthenticated --quiet
-
-# Tail Cloud Run API logs
-be-logs *args:
-    gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="times-api"' \
-        --project={{gcp_project}} --limit=50 {{args}} \
-        --format="value(timestamp,jsonPayload.level,jsonPayload.msg,jsonPayload.method,jsonPayload.path,jsonPayload.status,jsonPayload.duration_ms,jsonPayload.err,textPayload)"
+# Start the API in compose pointed at the e2e GitHub mock (frontend/e2e/github-mock.mjs). Linux CI needs `--add-host=host.docker.internal:host-gateway`
+be-dev-e2e:
+    GITHUB_CLIENT_ID=test GITHUB_CLIENT_SECRET=test ADMIN_GITHUB_LOGIN=octocat \
+        GITHUB_BASE_URL=http://host.docker.internal:3100 GITHUB_API_URL=http://host.docker.internal:3100 \
+        docker compose up --build api
 
 # --- db ---
 
@@ -211,10 +199,3 @@ db-migrate *args:
 # Create a migration pair: db/migrations/NNNNNN_<name>.{up,down}.sql
 db-migrate-new name:
     docker compose run --rm migrate create -ext sql -dir /migrations -seq {{name}}
-
-# Apply migrations to Cloud SQL via the Cloud Run Job (`up`; for `down 1` etc. pass comma-separated: `just db-migrate-prod down,1`)
-# Timeout (5m) を超えて kill されると dirty になる。`just db-migrate-prod version` で確認し、`force,<直前の版>` で戻してから再実行
-db-migrate-prod args="up":
-    gcloud run jobs deploy times-migrate --source backend/db --project={{gcp_project}} --region={{gcp_region}} \
-        --set-cloudsql-instances={{gcp_sql}} --set-secrets=DATABASE_URL=database-url:latest \
-        --max-retries=0 --task-timeout=5m --args={{args}} --execute-now --wait --quiet

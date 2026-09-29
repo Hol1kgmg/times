@@ -29,11 +29,12 @@ backend/
 ## 決定事項（詳細は [adr/backend](../adr/backend/README.md)）
 
 - framework は `cmd/server/main.go` に閉じ込める（0001）。エラーは全て RFC 9457 Problem Details（0002）
-- backend を呼ぶのは frontend のサーバー関数だけ。CORS 無し、API バージョニング無し（0003）。認証は未決
+- backend を呼ぶのは frontend のサーバー関数だけ。CORS 無し、API バージョニング無し（0003）。到達制限は共有シークレット `X-Backend-Token`（0006）
+- 認証は GitHub OAuth + backend session（0007）。管理者専用の操作は OpenAPI の `security: [bearerAuth]` で宣言し、`AuthenticationFunc` が `sessions` を照合する。運用手順は [docs/admin-login.md](admin-login.md)
 - ホスティングは GCP asia-northeast1 の Cloud Run (`times-api`) + Cloud SQL PostgreSQL 18 (`times-db`)。`DATABASE_URL` は Secret Manager、マイグレーションは Cloud Run Job `times-migrate`（0006）
 - 一覧応答は `{items: [...]}`。ページネーションは未実装、必要になったらカーソル方式（0004）
 - マイグレーションは手書きの命令型。Atlas の宣言型はテーブルが増えて全体把握が辛くなったら再検討（0005）
-- 環境変数は `DATABASE_URL` と `PORT` の2つ。ログは slog の JSON を stdout に出す。SIGTERM で graceful shutdown（10 秒）、`statement_timeout` 5 秒、リクエスト本文 1 MiB 上限
+- 環境変数: `DATABASE_URL`、`PORT`、`BACKEND_TOKEN`（0006）、`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `ADMIN_GITHUB_LOGIN`（0007。いずれか空なら `POST /auth/sessions` は常に 403）、任意で `GITHUB_BASE_URL` / `GITHUB_API_URL`（テストでモックへ向ける）。ログは slog の JSON を stdout に出す。SIGTERM で graceful shutdown（10 秒）、`statement_timeout` 5 秒、リクエスト本文 1 MiB 上限
 - DB を触るテストは書かない。sqlc の生成時にクエリとスキーマの整合は検証される。必要になったら CI で compose の `db` を起動する
 
 ## 運用
@@ -42,7 +43,7 @@ backend/
 - `just be-up` で api も含めて compose 一式をビルド・起動
 - API や SQL を変えたら `just be-gen` で再生成してコミット。CI が差分なしを検証する
 - マイグレーション追加は `just db-migrate-new <name>`、適用は `just db-up`（up）または `just db-migrate <args>`
-- 本番デプロイは手動。`just db-migrate-prod` でマイグレーション（Cloud Run Job）、`just be-deploy` で API、`just be-logs` でログ（adr/backend/0006）
+- 本番デプロイは手動。gcloud は justfile に載せず、[docs/deploy.md](deploy.md) のコマンドを直接実行する（adr/backend/0006）
 - pre-commit ([lefthook.yaml](../lefthook.yaml)): gofmt / go vet / go test
 - CI ([backend-ci.yml](../.github/workflows/backend-ci.yml)): be-gen 差分 / be-lint / be-test
 
@@ -70,6 +71,8 @@ backend/
 ## 運用
 
 - 操作はルートの [justfile](../justfile) 経由（`just fe-dev` / `just fe-test` / `just fe-lint`）。npm 依存の更新は `just fe-upgrade`
+- 環境変数（サーバー側のみ。クライアントバンドルに出さない）: `BACKEND_URL`、`BACKEND_TOKEN`（0006）、`ADMIN_LOGIN_PATH`、`GITHUB_CLIENT_ID`、任意で `GITHUB_BASE_URL`（[docs/admin-login.md](admin-login.md)）。本番は Workers ダッシュボードの Variables で管理
+- E2E は GitHub モック（`frontend/e2e/github-mock.ts`）と compose の backend（`just be-dev-e2e`）で通す。e2e 用の dev server は 3001 で起動し、開発用の 3000 と分ける（変えるときは `E2E_PORT`）
 - pre-commit ([lefthook.yaml](../lefthook.yaml)): gitleaks / lint / markuplint / typecheck / test
 - CI ([frontend-ci.yml](../.github/workflows/frontend-ci.yml)): typecheck / lint / test
 - pnpm は `allowBuilds` でビルドスクリプトを制限し、公開後 48 時間未満のパッケージを取り込まない ([pnpm-workspace.yaml](../frontend/pnpm-workspace.yaml))
