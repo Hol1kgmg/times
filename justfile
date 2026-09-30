@@ -131,10 +131,6 @@ fe-format:
 fe-typecheck:
     pnpm -C frontend typecheck
 
-# Deploy to Cloudflare Workers
-fe-deploy:
-    pnpm -C frontend deploy
-
 # --- backend ---
 
 # Start the API server (needs `just db-up`)

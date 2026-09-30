@@ -90,11 +90,14 @@ Timeout (5m) を超えて kill されると dirty になる。`version` で確�
 
 ## 5. frontend
 
-```sh
-just fe-deploy
-```
+Workers ダッシュボードの Git 連携 (Workers Builds) が `main` への push でビルドしてデプロイする。手元から `wrangler deploy` は打たない (justfile にも置かない)。
 
-Workers の変数はダッシュボードの Variables で管理する (`keep_vars = true` で deploy 時に保持)。
+1. Workers & Pages → `times` → デプロイ で、`main` の最新コミットのバージョンがビルド成功していることを確認する
+2. 変数を足したり変えたりしたときは、設定 → Runtime variables and secrets で保存したあと Deploy を押す (保存だけでは反映されない)
+
+戻すときは デプロイ → バージョン履歴 で前のバージョンにロールバックする。
+
+Workers の変数はダッシュボードの Runtime variables and secrets で管理する (`keep_vars = true` で deploy 時に保持)。変数の一覧は [docs/admin-login.md](admin-login.md)。
 
 ## 6. 状況確認 (gcloud、読み取りだけ)
 

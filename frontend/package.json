@@ -21,7 +21,6 @@
     "lint:markup": "markuplint \"src/**/*.tsx\" --fix --problem-only",
     "format": "ultracite fix --type-aware",
     "typecheck": "tsc --noEmit",
-    "deploy": "wrangler deploy",
     "postinstall": "playwright install chromium && pnpm generate-api"
   },
   "dependencies": {
