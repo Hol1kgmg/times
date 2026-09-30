@@ -25,7 +25,7 @@ Client ID を控え、Generate a new client secret で Client Secret を控え�
 just db-migrate          # ローカル: users / sessions を作る
 ```
 
-本番は Cloud Run Job `times-migrate`。コマンドは [docs/deploy.md](../../docs/deploy.md)。
+本番は Cloud Run Job `times-migrate`。手順は [docs/deploy.md](../../docs/deploy.md)。
 
 ## 3. 環境変数
 
@@ -49,11 +49,10 @@ GITHUB_CLIENT_ID=<ローカル用 Client ID>
 
 | 対象 | 変数 | 置き場所 |
 |---|---|---|
-| backend (Cloud Run) | `GITHUB_CLIENT_SECRET` | Secret Manager `github-client-secret` |
-| backend (Cloud Run) | `GITHUB_CLIENT_ID`, `ADMIN_GITHUB_LOGIN` | Cloud Run のサービスの環境変数 (`--update-env-vars` で一度だけ設定) |
+| backend (Cloud Run) | `GITHUB_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `ADMIN_GITHUB_LOGIN` | Secret Manager (変数名と同じ名前)。Cloud Run が環境変数として注入 |
 | frontend (Workers) | `ADMIN_LOGIN_PATH`, `GITHUB_CLIENT_ID` | ダッシュボードの Variables (Plaintext)。`keep_vars = true` で deploy 時に保持 |
 
-設定とデプロイのコマンドは [docs/deploy.md](../../docs/deploy.md)。
+設定とデプロイの手順は [docs/deploy.md](../../docs/deploy.md)。
 
 ## 4. 動作確認 (手動、実 GitHub)
 

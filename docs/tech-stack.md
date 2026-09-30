@@ -43,7 +43,7 @@ backend/
 - `just be-up` で api も含めて compose 一式をビルド・起動
 - API や SQL を変えたら `just be-gen` で再生成してコミット。CI が差分なしを検証する
 - マイグレーション追加は `just db-migrate-new <name>`、適用は `just db-up`（up）または `just db-migrate <args>`
-- 本番デプロイは手動。gcloud は justfile に載せず、[docs/deploy.md](deploy.md) のコマンドを直接実行する（adr/backend/0006）
+- 本番デプロイは手動。GCP コンソールから Cloud Build のトリガーを起動する。gcloud は状況確認にだけ使い、justfile に載せない。手順は [docs/deploy.md](deploy.md)（adr/backend/0006）
 - pre-commit ([lefthook.yaml](../lefthook.yaml)): gofmt / go vet / go test
 - CI ([backend-ci.yml](../.github/workflows/backend-ci.yml)): be-gen 差分 / be-lint / be-test
 

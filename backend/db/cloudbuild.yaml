@@ -1,0 +1,20 @@
+# Cloud Build トリガー `times-migrate` (手動起動) が読む。手順: docs/deploy.md
+# Job のイメージを差し替えるだけで、実行はしない。実行はコンソールの Job 画面から行う
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -t, "$LOCATION-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/times-migrate:$SHORT_SHA", backend/db]
+  - name: gcr.io/cloud-builders/docker
+    args: [push, "$LOCATION-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/times-migrate:$SHORT_SHA"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - update
+      - times-migrate
+      - --image=$LOCATION-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/times-migrate:$SHORT_SHA
+      - --region=$LOCATION
+      - --quiet
+options:
+  # サービスアカウントを指定したビルドでは必須
+  logging: CLOUD_LOGGING_ONLY

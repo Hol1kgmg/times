@@ -21,18 +21,19 @@ decision-makers: 'Hol1kgmg'
 
 **GCP の Cloud Run + Cloud SQL (asia-northeast1) を採る。** frontend は Workers 据え置き。
 
-- Cloud Run Service `times-api`: `backend/Dockerfile` をそのまま `gcloud run deploy --source backend` でビルド・デプロイ。min instances 0、`PORT` は Cloud Run が注入する
+- Cloud Run Service `times-api`: `backend/Dockerfile` をそのままビルド・デプロイ (2026-09-30 から Cloud Build の手動トリガー。それまでは `gcloud run deploy --source backend`)。min instances 0、`PORT` は Cloud Run が注入する
 - Cloud SQL `times-db`: PostgreSQL 18、db-f1-micro (共有コア)、SSD 10GB、日次バックアップ。Cloud Run からは Cloud SQL コネクタ (Unix socket `/cloudsql/<connection name>`) で接続する
 - 接続文字列は Secret Manager `database-url` に置き、`DATABASE_URL` として注入する。アプリの環境変数は `DATABASE_URL`、`PORT`、`BACKEND_TOKEN` (下記) の 3 つだけ
 - 到達制限は共有シークレット方式 (0003)。Secret Manager `backend-token` を `BACKEND_TOKEN` として注入し、`X-Backend-Token` ヘッダが一致しない要求は全ルート 401。同じ値を Workers の secret `BACKEND_TOKEN` に入れ、`backendFetch` が付ける。ローカル (compose) は未設定で制限なし
 - マイグレーションは Cloud Run Job `times-migrate` で適用する。`backend/db/Dockerfile` が `migrate/migrate` イメージに `db/migrations/` を焼き、`DATABASE_URL` を読んで `up` する。compose の `migrate` サービスと同じ発想
-- ソースアップロードは `backend/.gcloudignore` で `.agents/` と `.direnv/` を除外する。どちらも Nix store への参照で mtime が 1970 のため、zip 化が失敗する
+- ソースアップロードは `backend/.gcloudignore` で `.agents/` と `.direnv/` を除外する。どちらも Nix store への参照で mtime が 1970 のため、zip 化が失敗する (`gcloud run deploy --source` を使っていた時期の対処。トリガーは GitHub から取得するので通らない)
+- **GCP の変更はコンソール (ブラウザ) で行い、`gcloud` は状況確認にだけ使う** (2026-09-30)。ビルドは Cloud Build の手動トリガー 2 つ (`times-api` / `times-migrate`) が GitHub の `main` から行い、`backend/cloudbuild.yaml` と `backend/db/cloudbuild.yaml` を読む。複数行の `gcloud` コマンドは貼り付けで行継続が崩れ、zsh では `"$A:$B:times-db"` の `:t` が修飾子として消えるため、spec 003 のデプロイで 3 回失敗した
 
 AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT Gateway / ALB / Public IPv4 のような固定費の罠が無い。同じ運用負荷の AWS 構成 (App Runner + RDS) より月額で半分以下。EC2 1 台に compose を載せる案の方が安いが、バックアップと OS パッチを自前で持つことになる。
 
 **未決のまま残すもの**
 
-- CI からのデプロイ。今は手動の `gcloud run deploy`。固まったら GitHub Actions + Workload Identity Federation に載せる
+- push を契機にした自動デプロイ。今は Cloud Build トリガーの手動起動。自動にするならマイグレーション → API の順を守る仕組みが要る
 
 ## Consequences
 
@@ -45,19 +46,23 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 
 ## Implementation Plan
 
-実施済み (2026-09-24)。2026-09-30 に gcloud を justfile から外し、手順を `docs/deploy.md` へ移した。
+実施済み (2026-09-24)。2026-09-30 に gcloud を justfile から外し、手順を `docs/deploy.md` へ移した。同日、変更操作をコンソールと Cloud Build トリガーへ移した。
 
-- **Affected paths**: `docs/deploy.md` (デプロイ / マイグレーション / ログの gcloud コマンド)、`backend/db/Dockerfile` (新規)、`backend/.gcloudignore` (新規)、`backend/.dockerignore` (`.agents/` `.direnv/` を追加)、`flake.nix` (`google-cloud-sdk` を devShell に追加)、`skills.nix` (google/skills の gcloud / cloud-run / cloud-sql スキル)
+- **Affected paths**: `docs/deploy.md` (コンソールでのデプロイ / マイグレーション手順と、状況確認の gcloud コマンド)、`backend/cloudbuild.yaml` と `backend/db/cloudbuild.yaml` (新規、トリガーが読む)、`backend/db/Dockerfile` (新規)、`backend/.gcloudignore` (新規)、`backend/.dockerignore` (`.agents/` `.direnv/` を追加)、`flake.nix` (`google-cloud-sdk` を devShell に追加)、`skills.nix` (google/skills の gcloud / cloud-run / cloud-sql スキル)
 - **Dependencies**: なし (アプリ側の依存は変えない)
 - **Patterns to follow**:
-  - GCP リソースの操作は devShell の `gcloud` で行い、`--project` と `--region` を明示する
-  - デプロイは `docs/deploy.md` の gcloud コマンドを直接実行する (マイグレーション → API の順)。プロジェクト ID、リージョン、Cloud SQL 接続名は `docs/deploy.md` が正
+  - GCP の変更はコンソールで行う。devShell の `gcloud` は読み取り (describe / list / logging read) にだけ使い、`--project` と `--region` を明示する
+  - デプロイは `docs/deploy.md` の手順でトリガーを手動起動する (マイグレーション → API の順)。プロジェクト ID、リージョン、Cloud SQL 接続名は `docs/deploy.md` が正
+  - `cloudbuild.yaml` はイメージの差し替えだけを行う。秘密・環境変数・Cloud SQL 接続は Cloud Run 側の設定を引き継がせる
+  - ビルドは専用のサービスアカウント `times-deploy` で動かす。実行用アカウントにデプロイ権限を持たせない
   - 秘密情報 (DB パスワード、`DATABASE_URL`、`BACKEND_TOKEN`) は Secret Manager にだけ置く。リポジトリにも issue にも書かない
-  - 秘密でない本番値 (`GITHUB_CLIENT_ID` など) は Cloud Run のサービスに `--update-env-vars` で一度だけ設定する
+  - `GITHUB_CLIENT_ID` と `ADMIN_GITHUB_LOGIN` も Secret Manager から注入する (2026-09-30 の実態。名前の一覧は `docs/deploy.md`)
 - **Patterns to avoid**:
   - gcloud を justfile のレシピにする。本番値を追跡対象ファイルに書くことになり、空のままデプロイすると本番の値を消す
   - `DATABASE_URL` に Cloud SQL の Public IP を直書きする (コネクタ経由の Unix socket を使う)
-  - Cloud Run の環境変数に秘密情報を平文で入れる (`--set-env-vars` ではなく `--set-secrets`)
+  - Cloud Run の環境変数に秘密情報を平文で入れる (Secret Manager の参照にする)
+  - `cloudbuild.yaml` に本番値や `--set-secrets` / `--set-env-vars` を書く
+  - `docs/deploy.md` に変更系の gcloud コマンドを足す
 
 ### Verification
 

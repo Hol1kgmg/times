@@ -41,11 +41,10 @@ GITHUB_CLIENT_ID=<ローカル用 Client ID>
 
 | 対象 | 変数 | 置き場所 |
 |---|---|---|
-| backend (Cloud Run) | `GITHUB_CLIENT_SECRET` | Secret Manager `github-client-secret` |
-| backend (Cloud Run) | `GITHUB_CLIENT_ID`, `ADMIN_GITHUB_LOGIN` | Cloud Run のサービスの環境変数 (`--update-env-vars` で一度だけ設定) |
+| backend (Cloud Run) | `GITHUB_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `ADMIN_GITHUB_LOGIN` | Secret Manager (変数名と同じ名前)。Cloud Run が環境変数として注入 |
 | frontend (Workers) | `ADMIN_LOGIN_PATH`, `GITHUB_CLIENT_ID` | ダッシュボードの Variables (Plaintext)。`keep_vars = true` で deploy 時に保持 |
 
-設定とデプロイのコマンドは [docs/deploy.md](deploy.md)。順序は 秘密と環境変数 → マイグレーション (users / sessions テーブル) → API → frontend。
+設定とデプロイの手順は [docs/deploy.md](deploy.md) (GCP はコンソールで操作する)。順序は 秘密と環境変数 → マイグレーション (users / sessions テーブル) → API → frontend。
 
 backend の 3 変数のいずれかが空だと起動時に警告が出て、`POST /auth/sessions` は常に 403 になる (未設定で開放しない)。frontend の `ADMIN_LOGIN_PATH` が空・16 文字未満なら秘匿パスは 404。
 

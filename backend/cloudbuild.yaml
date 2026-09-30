@@ -1,0 +1,19 @@
+# Cloud Build トリガー `times-api` (手動起動) が読む。手順: docs/deploy.md
+# イメージだけを差し替える。秘密・環境変数・Cloud SQL 接続は Cloud Run 側の設定を引き継ぐので、ここに本番値を書かない
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -t, "$LOCATION-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/times-api:$SHORT_SHA", backend]
+  - name: gcr.io/cloud-builders/docker
+    args: [push, "$LOCATION-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/times-api:$SHORT_SHA"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - times-api
+      - --image=$LOCATION-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/times-api:$SHORT_SHA
+      - --region=$LOCATION
+      - --quiet
+options:
+  # サービスアカウントを指定したビルドでは必須
+  logging: CLOUD_LOGGING_ONLY
