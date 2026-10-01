@@ -4,13 +4,13 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 import viteReact from "@vitejs/plugin-react";
 
-// fontsource は swap 固定でフォント到着時にチラつくため optional に差し替える
-const fontDisplayOptional: Plugin = {
-  name: "fontsource-font-display-optional",
+// fontsource は swap 固定で、フォント到着時に差し替わってチラつく
+const fontDisplayBlock: Plugin = {
+  name: "fontsource-font-display-block",
   enforce: "pre",
   transform(code, id) {
     if (!/@fontsource\/.*\.css/.test(id)) return;
-    return code.replaceAll("font-display: swap;", "font-display: optional;");
+    return code.replaceAll("font-display: swap;", "font-display: block;");
   },
 };
 
@@ -19,7 +19,7 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   // FSD: ルーティング関連は src/app/ に集約する (tsr.config.json と揃える)
   plugins: [
-    fontDisplayOptional,
+    fontDisplayBlock,
     tanstackStart({
       // パスは srcDirectory (src) 基準
       router: {

@@ -7,7 +7,7 @@
 
 ```ts
 // NG: 挙動の説明
-// fontsource の @font-face は swap 固定で、optional にすると初回はフォールバックで描画し 2 回目以降は Web フォントで描く
+// fontsource は swap 固定で、block にすると到着までテキストを隠してチラつきを防ぐ
 // OK: 理由だけ
-// fontsource は swap 固定でフォント到着時にチラつくため optional に差し替える
+// fontsource は swap 固定で、フォント到着時に差し替わってチラつく
 ```
