@@ -6,7 +6,7 @@ import type { Browser, Page } from "@playwright/test";
 const loginPath = "/e2e-secret-login-path/auth/login";
 const loginButton = { name: "GitHub でログイン" };
 const logoutButton = { name: "ログアウト" };
-// トップページは検索パラメータ (?q=) を補うので pathname で判定する
+// 絞り込み中は ?q= が付くので pathname で判定する
 const atHome = (url: URL) => url.pathname === "/";
 
 // Router 既定の 404 表示。ログインの存在を匂わせる文言が無いこと (SC-005)
