@@ -24,5 +24,13 @@
   "cloud-sql-basics"
   "google-cloud-recipe-auth"
 
+  # addyosmani/web-quality-skills
+  "web-quality-audit"
+  "performance"
+  "core-web-vitals"
+  "accessibility"
+  "seo"
+  "best-practices"
+
   # ./skills（独自）は flake.nix で全件自動有効。ここに書かない。
 ]

@@ -113,22 +113,41 @@
         "versionUpperBound": null
       },
       "subdir": "skills"
+    },
+    "web-quality": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "owner": "addyosmani",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "web-quality-skills",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "skills"
     }
   },
   "npins": {
     "pins": {
       "anthropic": {
         "branch": "main",
-        "hash": "sha256-tI4bTTBfI1ylltklGyiyA7pLoKXEWtrT6lrmwrpLbCw=",
+        "hash": "sha256-PRBkTEGNwT73EFCvuTprzIBGiG+UGSYiaCkY7Ji13us=",
         "repository": {
           "owner": "anthropics",
           "repo": "skills",
           "type": "GitHub"
         },
-        "revision": "34040c9c568585f6929bedeaad110ad08f079624",
+        "revision": "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4",
         "submodules": false,
         "type": "Git",
-        "url": "https://github.com/anthropics/skills/archive/34040c9c568585f6929bedeaad110ad08f079624.tar.gz"
+        "url": "https://github.com/anthropics/skills/archive/8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4.tar.gz"
       },
       "cognitive-rhythm-writing": {
         "branch": "main",
@@ -157,16 +176,16 @@
       },
       "google": {
         "branch": "main",
-        "hash": "sha256-wROv9nKH0+04ZFnDFeAm3qmgNk+Aya2fTj5z/aNNXy0=",
+        "hash": "sha256-UGmhjF4pBtFl4B6sWyKMlXd/LClwsQKP4qZKs1qQwrQ=",
         "repository": {
           "owner": "google",
           "repo": "skills",
           "type": "GitHub"
         },
-        "revision": "2a1e4549d591688f3a605771cf101d05d43f8ae8",
+        "revision": "d5d905232ec501743831cc68e6763af90da3cd69",
         "submodules": false,
         "type": "Git",
-        "url": "https://github.com/google/skills/archive/2a1e4549d591688f3a605771cf101d05d43f8ae8.tar.gz"
+        "url": "https://github.com/google/skills/archive/d5d905232ec501743831cc68e6763af90da3cd69.tar.gz"
       },
       "japanese-tech-writing": {
         "branch": "main",
@@ -182,16 +201,29 @@
       },
       "vercel": {
         "branch": "main",
-        "hash": "sha256-HtGw2ggANPffWBDbKyydEOmoCZ0UGPahe3xhOkQorNI=",
+        "hash": "sha256-UxQEuNPOwCC5juZlzCi6zylBCcQrX0xa9Fw6I1XtYsA=",
         "repository": {
           "owner": "vercel",
           "repo": "ai",
           "type": "GitHub"
         },
-        "revision": "40231b6222a41f89987dd35fe63825598aef453b",
+        "revision": "eee1954ddd8ccf5e6c9a8582a826fba8b256653b",
         "submodules": false,
         "type": "Git",
-        "url": "https://github.com/vercel/ai/archive/40231b6222a41f89987dd35fe63825598aef453b.tar.gz"
+        "url": "https://github.com/vercel/ai/archive/eee1954ddd8ccf5e6c9a8582a826fba8b256653b.tar.gz"
+      },
+      "web-quality": {
+        "branch": "main",
+        "hash": "sha256-RW+30OFUYxNO/SqPJ/bmwAn965GOoxjeuKBMFBtESHE=",
+        "repository": {
+          "owner": "addyosmani",
+          "repo": "web-quality-skills",
+          "type": "GitHub"
+        },
+        "revision": "afa8da942115f2961fdbfa80807ea0b232ff6c00",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/addyosmani/web-quality-skills/archive/afa8da942115f2961fdbfa80807ea0b232ff6c00.tar.gz"
       }
     },
     "version": 8
