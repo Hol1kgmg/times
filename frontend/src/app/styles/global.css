@@ -61,11 +61,8 @@ body {
   margin: 0;
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: "Klee One", cursive, sans-serif;
-}
-
-.text-kyokasho {
-  font-family: "Klee One", cursive, sans-serif;
+  /* cursive だと Klee One との字形差が大きくチラつく */
+  font-family: "Klee One", "Hiragino Sans", "Noto Sans JP", sans-serif;
 }
 
 /* タイポグラフィ: 用途別クラス。.agents/rules/frontend-ui-design.md 参照 */
