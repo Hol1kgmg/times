@@ -9,9 +9,11 @@ export const ItemPage = () => {
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>{item.title}</h1>
-      <Suspense fallback={<p className={styles.loading}>loading detail…</p>}>
-        <Await promise={slow}>{(d) => <p className={styles.body}>{d}</p>}</Await>
-      </Suspense>
+      <div aria-live="polite">
+        <Suspense fallback={<p className={styles.loading}>loading detail…</p>}>
+          <Await promise={slow}>{(d) => <p className={styles.body}>{d}</p>}</Await>
+        </Suspense>
+      </div>
     </div>
   );
 };

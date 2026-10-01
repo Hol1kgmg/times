@@ -7,7 +7,8 @@
   --color-text: #1a1a1a;
   --color-text-secondary: #444;
   --color-text-muted: #666;
-  --color-text-faint: #999;
+  /* 白背景で 4.5:1 を満たす下限 (WCAG AA)。#999 は 2.85:1 で未達 */
+  --color-text-faint: #767676;
   --color-fill-subtle: #eee;
   --color-fill-faint: #f7f7f7;
   --color-status: #3fb950;
@@ -37,7 +38,7 @@
     --color-text: #e6e6e6;
     --color-text-secondary: #ccc;
     --color-text-muted: #999;
-    --color-text-faint: #777;
+    --color-text-faint: #8a8a8a;
     --color-fill-subtle: #2a2a2a;
     --color-fill-faint: #1a1a1a;
     --color-skeleton-base: #2a2a2a;

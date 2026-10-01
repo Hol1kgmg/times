@@ -12,6 +12,7 @@ export const HomePage = () => {
     <div className={styles.page}>
       <h1 className={styles.heading}>Items</h1>
       <input
+        aria-label="絞り込み"
         className={styles.filter}
         placeholder="filter"
         value={q}

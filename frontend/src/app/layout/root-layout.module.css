@@ -25,12 +25,25 @@
     top: 0;
     left: 0;
     z-index: var(--z-sidebar);
+    /* 画面外でもフォーカス可能なため visibility で Tab 順と AT から外す */
+    visibility: hidden;
     transform: translateX(-100%);
-    transition: transform 0.2s;
+    /* 閉じる時だけ visibility を遅らせる。開く時に遷移させると開いた直後の focus() が効かない */
+    transition:
+      transform 0.2s,
+      visibility 0s 0.2s;
   }
 
   .sidebar[data-open="true"] {
+    visibility: visible;
     transform: none;
+    transition: transform 0.2s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar {
+      transition: none;
+    }
   }
 
   .overlay {
