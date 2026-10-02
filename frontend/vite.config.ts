@@ -1,4 +1,5 @@
-import { defineConfig, type Plugin } from "vite";
+import type { Plugin } from "vite";
+import { defineConfig } from "vite";
 
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
@@ -9,7 +10,9 @@ const fontDisplayBlock: Plugin = {
   name: "fontsource-font-display-block",
   enforce: "pre",
   transform(code, id) {
-    if (!/@fontsource\/.*\.css/.test(id)) return;
+    if (!/@fontsource\/.*\.css/u.test(id)) {
+      return null;
+    }
     return code.replaceAll("font-display: swap;", "font-display: block;");
   },
 };
