@@ -11,7 +11,7 @@
     "security/no-event-handler-attr": false
   },
   "overrides": {
-    "src/routes/__root.tsx": {
+    "src/app/routes/__root.tsx": {
       "rules": {
         "permitted-contents": false,
         "required-element": false
