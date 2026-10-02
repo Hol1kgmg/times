@@ -138,9 +138,12 @@ be-dev *args:
     cd backend && go run ./cmd/server {{args}}
 
 # Regenerate oapi-codegen, sqlc, and frontend API types (openapi-typescript)
-be-gen:
-    cd backend && oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml && sqlc generate
+be-gen: be-gen-go
     pnpm -C frontend generate-api
+
+# Regenerate oapi-codegen and sqlc only (CI checks the backend diff and has no Node.js)
+be-gen-go:
+    cd backend && oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml && sqlc generate
 
 # Run backend tests
 be-test *args:

@@ -18,14 +18,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # gen: 生成物(internal/api, internal/db)がコミット済みのものと一致するか
-        task: [be-gen, be-lint, be-test]
+        # gen-go: 生成物(internal/api, internal/db)がコミット済みのものと一致するか
+        task: [be-gen-go, be-lint, be-test]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # go / sqlc / oapi-codegen のバージョンは flake.lock が単一の真実
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      # nixpkgs の展開と devShell のダウンロードで毎回 1 分以上かかるため /nix/store ごとキャッシュする
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 1G
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -33,6 +39,6 @@ jobs:
             ~/.cache/go-build
           key: go-${{ runner.os }}-${{ hashFiles('backend/go.sum') }}
           restore-keys: go-${{ runner.os }}-
-      - run: nix develop --command just ${{ matrix.task }}
-      - if: matrix.task == 'be-gen'
+      - run: nix develop .#backend --command just ${{ matrix.task }}
+      - if: matrix.task == 'be-gen-go'
         run: git diff --exit-code -- backend

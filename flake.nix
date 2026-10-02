@@ -64,6 +64,11 @@
           program = "${agentLib.mkLocalInstallProgram { inherit pkgs bundle; targets = localTargets; }}/bin/skills-install-local";
         };
 
+        # backend-ci 用。default は gcloud や skills まで含み CI の環境構築だけで約 2 分かかるため最小構成に絞る
+        devShells.backend = pkgs.mkShell {
+          packages = [ pkgs.just pkgs.go pkgs.sqlc pkgs.oapi-codegen ];
+        };
+
         devShells.default = pkgs.mkShell {
           packages = [
             nodejs
