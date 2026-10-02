@@ -31,7 +31,7 @@ jobs:
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
-          gc-max-store-size-linux: 1G
+          # 保存前に GC すると devenv-nixpkgs のパッチ適用済みツリーが消え、毎回 25 秒かけて再生成されるので GC しない
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
