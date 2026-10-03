@@ -10,6 +10,9 @@ keep_vars = true
 directory = "dist/client"
 binding = "ASSETS"
 
+# Workers Builds は main 以外で wrangler preview を使い、空でもこのブロックが無いと落ちる
+[previews]
+
 [observability]
 enabled = true
 head_sampling_rate = 1
