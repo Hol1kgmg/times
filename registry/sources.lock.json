@@ -76,6 +76,25 @@
       },
       "subdir": "skills/cloud"
     },
+    "hol1kgmg": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "owner": "Hol1kgmg",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "skills",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "skills"
+    },
     "japanese-tech-writing": {
       "filter": {
         "maxDepth": 0,
@@ -187,6 +206,19 @@
         "type": "Git",
         "url": "https://github.com/google/skills/archive/d5d905232ec501743831cc68e6763af90da3cd69.tar.gz"
       },
+      "hol1kgmg": {
+        "branch": "main",
+        "hash": "sha256-PdSdE9fquZO7tgW1ZOxRxahwoT4sgGDU7glb1xHSw2c=",
+        "repository": {
+          "owner": "Hol1kgmg",
+          "repo": "skills",
+          "type": "GitHub"
+        },
+        "revision": "6802a0cb19decb79206e547f5d30f3080b8f2264",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/Hol1kgmg/skills/archive/6802a0cb19decb79206e547f5d30f3080b8f2264.tar.gz"
+      },
       "japanese-tech-writing": {
         "branch": "main",
         "hash": "sha256-jo1DvsAVIAKzurutp+T66kctgaFEe+sVbY9bf7wlCLM=",
@@ -201,16 +233,16 @@
       },
       "vercel": {
         "branch": "main",
-        "hash": "sha256-UxQEuNPOwCC5juZlzCi6zylBCcQrX0xa9Fw6I1XtYsA=",
+        "hash": "sha256-12ebV5hgn2RRBojjzhHcLC1LAKpPM64EQ1QsdG+85W4=",
         "repository": {
           "owner": "vercel",
           "repo": "ai",
           "type": "GitHub"
         },
-        "revision": "eee1954ddd8ccf5e6c9a8582a826fba8b256653b",
+        "revision": "15f1a4d0531ac641a4a4d9cc602c0536c1906834",
         "submodules": false,
         "type": "Git",
-        "url": "https://github.com/vercel/ai/archive/eee1954ddd8ccf5e6c9a8582a826fba8b256653b.tar.gz"
+        "url": "https://github.com/vercel/ai/archive/15f1a4d0531ac641a4a4d9cc602c0536c1906834.tar.gz"
       },
       "web-quality": {
         "branch": "main",

@@ -1,12 +1,15 @@
 .direnv/
-**/.agents/skills/
-coverage/
+.agents/skills/
+.agents/rules/
 .claude/settings.local.json
 
 .env
 .env.local
 .env*.local
 
+# frontend/ backend/ 配下にも .agents/skills が生成される
+**/.agents/skills/
+coverage/
 backend/bin/
 
 .DS_Store

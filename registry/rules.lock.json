@@ -1,0 +1,42 @@
+{
+  "manifests": {
+    "hol1kgmg": {
+      "filter": {
+        "maxDepth": null,
+        "nameRegex": null
+      },
+      "idPrefix": null,
+      "pin": {
+        "at": null,
+        "branch": "main",
+        "owner": "Hol1kgmg",
+        "preReleases": false,
+        "releasePrefix": null,
+        "repo": "rules",
+        "submodules": false,
+        "type": "github",
+        "versionUpperBound": null
+      },
+      "subdir": "rules"
+    }
+  },
+  "npins": {
+    "pins": {
+      "hol1kgmg": {
+        "branch": "main",
+        "hash": "sha256-vDS7q7JEkxAbdQ0AMubxlK9PGvx81BcQi7+0Ch9cK9k=",
+        "repository": {
+          "owner": "Hol1kgmg",
+          "repo": "rules",
+          "type": "GitHub"
+        },
+        "revision": "77067226e1dbbc89e026d82ab70aabd334c5c723",
+        "submodules": false,
+        "type": "Git",
+        "url": "https://github.com/Hol1kgmg/rules/archive/77067226e1dbbc89e026d82ab70aabd334c5c723.tar.gz"
+      }
+    },
+    "version": 8
+  },
+  "schemaVersion": 1
+}
