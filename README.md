@@ -61,7 +61,11 @@ just be-dev    # backend:  http://localhost:8080
 | go / gopls / sqlc / oapi-codegen | backend 開発（[docs/tech-stack.md](docs/tech-stack.md)）。Postgres と golang-migrate は Docker Compose で動かす |
 
 エージェント用スキルは `skills.nix` の宣言から devShell 起動時に `.agents/skills` へ同期されます
-（`just skills` / `just skills-list` / `just skills-update`）。独自スキルは [skills/](skills/) に置きます。
+（`just skills` / `just skills-list`）。取得元は `flake.nix` の `flake = false` な input で、独自スキルは [skills/](skills/) に置きます。
+エージェント用のルール（`.claude/rules/*.md`）も同じ流儀で、`rules.nix` の宣言から `.agents/rules` へ同期されます
+（`just rules` / `just rules-list`）。独自ルールは [rules/](rules/) に置きます。
+
+取得元の更新は Dependabot（`nix` ecosystem）が input ごとに PR を出します。マージ前に `dependabot-review` スキルで差分をレビューしてください。
 
 ## タスク
 
@@ -82,11 +86,13 @@ just db-reset     # DB のデータを消して作り直す
 
 ## テンプレート同期
 
+生成直後は `init-from-template` スキルで README / AGENTS.md のプレースホルダを埋めてください。同期対象のファイルは削除しないこと（[adr/from-template/0001](adr/from-template/0001-sync-template-via-merge-commit.md)）。
+
 テンプレート元の変更と lockfile の更新は、必要なときに手動で取り込みます。
 
 ```bash
 just sync      # テンプレート元の変更を取り込む
-just update    # flake.lock / sources.lock.json を更新して検証する
+just update    # flake.lock を更新して検証する
 ```
 
 `just sync` はマージコミットで取り込みます。PR 経由にする場合も **Create a merge commit** を使ってください（squash / rebase は共通祖先を壊します）。

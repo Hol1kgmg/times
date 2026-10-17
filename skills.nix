@@ -1,6 +1,6 @@
 # 有効にするスキル ID の宣言ファイル。
 #
-# 取得元は registry/sources/*.nix（rev は registry/sources.lock.json に固定）。
+# 取得元は flake.nix の flake = false な input（rev は flake.lock に固定）。
 # ID 一覧は `just skills-list` で確認できる。不要なものは行ごと消す。
 # ./skills（独自）は flake.nix で全件自動有効になるのでここには書かない。
 [
@@ -37,9 +37,9 @@
   "seo"
   "best-practices"
 
-  # Hol1kgmg/skills（必要なリポジトリで有効化する）
-  # "dependabot-review"
-  # "speckit-explain"
+  # nanaism/yomiyasu
+  "yomiyasu"
 
   # ./skills（独自）
+  "init-from-template"
 ]

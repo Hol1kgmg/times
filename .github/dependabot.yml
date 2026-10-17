@@ -85,9 +85,8 @@ updates:
     cooldown:
       default-days: 2
 
-  # flake.lock が対象。upstream(claude-temp) の update-locks.yaml は
-  # ここでは動かないうえ Dependabot の対象になるだけなので削除済み。
-  # just sync で降ってきたら再度削除する。
+  # flake.lock の全 input が対象。skill / rules の取得元も flake = false な input なので
+  # ここに含まれ、input ごとに PR が立つ。レビューは dependabot-review スキルで行う
   - package-ecosystem: "nix"
     directory: "/"
     schedule:

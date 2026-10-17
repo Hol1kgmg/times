@@ -1,5 +1,5 @@
 ---
-status: 'accepted'
+status: 'superseded by [0003](0003-update-skill-sources-via-dependabot.md)'
 date: 2026-09-19
 decision-makers: 'Hol1kgmg'
 ---
