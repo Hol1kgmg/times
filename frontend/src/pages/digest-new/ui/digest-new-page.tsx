@@ -22,7 +22,6 @@ const noop = () => {
 const subscribeNever = () => noop;
 const emptyRow = (key: number): Row => ({ key, url: "", title: "", category: "その他" });
 
-// 日付 1 つと記事行の繰り返し。検証は HTML 属性とサーバー関数の zod だけ (rules/quality.md)
 export const DigestNewPage = () => {
   const submit = useServerFn(createDigest);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
@@ -48,7 +47,7 @@ export const DigestNewPage = () => {
     setBusy(true);
     setFailed(false);
     try {
-      // 成功時は redirect が投げられ、Router が / へ遷移する
+      // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が / へ遷移する
       await submit({
         data: {
           entryDate,

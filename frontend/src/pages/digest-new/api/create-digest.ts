@@ -5,7 +5,6 @@ import { backendFetch } from "#/shared/api";
 import { newDigest } from "#/shared/api/schemas";
 import { readAdminToken, SESSION_EXPIRED } from "#/shared/auth";
 
-// 形式の検証は zod (ここ) と openapi.yaml (backend) の 2 か所。重複 URL などの業務ルールは backend が 400 で返す。
 // requireAdmin middleware は .server.ts 由来でクライアントのバンドルに乗せられないため、handler の中で Cookie を読む
 export const createDigest = createServerFn({ method: "POST" })
   .validator(newDigest)

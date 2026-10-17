@@ -46,7 +46,6 @@
   list-style: none;
 }
 
-/* 1 記事 = 1 カード。URL / タイトル / 分類 / 削除を横に並べる */
 .row {
   display: flex;
   gap: var(--space-2);

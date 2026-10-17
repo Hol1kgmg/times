@@ -1,7 +1,12 @@
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { requireAdminPage } from "#/shared/auth";
+import { currentAdmin } from "#/shared/auth";
 
-// route の beforeLoad はクライアントでも走るので、.server.ts の requireAdminPage をここで包む
-export const resolveDigestNewPage = createServerFn({ method: "GET" }).handler(
-  async () => await requireAdminPage(),
-);
+// requireAdminPage (createServerFn) を server function 内から呼ぶと本番ビルドで "Server function info not found" になる
+export const resolveDigestNewPage = createServerFn({ method: "GET" }).handler(async () => {
+  const user = await currentAdmin();
+  if (!user) {
+    throw notFound();
+  }
+  return { user };
+});

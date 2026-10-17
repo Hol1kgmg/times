@@ -33,7 +33,6 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   const run = Date.now();
   const date = "2099-12-31";
 
-  // ログイン中はサイドバーのリンクから入る
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   await page.getByRole("link", { name: "記事を登録" }).click();
