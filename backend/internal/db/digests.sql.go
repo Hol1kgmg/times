@@ -7,9 +7,54 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const createArticle = `-- name: CreateArticle :one
+INSERT INTO articles (digest_id, position, category, title, url) VALUES ($1, $2, $3, $4, $5) RETURNING id, digest_id, position, category, title, url, description
+`
+
+type CreateArticleParams struct {
+	DigestID uuid.UUID
+	Position int32
+	Category string
+	Title    string
+	Url      string
+}
+
+func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error) {
+	row := q.db.QueryRow(ctx, createArticle,
+		arg.DigestID,
+		arg.Position,
+		arg.Category,
+		arg.Title,
+		arg.Url,
+	)
+	var i Article
+	err := row.Scan(
+		&i.ID,
+		&i.DigestID,
+		&i.Position,
+		&i.Category,
+		&i.Title,
+		&i.Url,
+		&i.Description,
+	)
+	return i, err
+}
+
+const createDigest = `-- name: CreateDigest :one
+INSERT INTO digests (entry_date) VALUES ($1) RETURNING id, entry_date, created_at
+`
+
+func (q *Queries) CreateDigest(ctx context.Context, entryDate time.Time) (Digest, error) {
+	row := q.db.QueryRow(ctx, createDigest, entryDate)
+	var i Digest
+	err := row.Scan(&i.ID, &i.EntryDate, &i.CreatedAt)
+	return i, err
+}
 
 const getLatestDigest = `-- name: GetLatestDigest :one
 SELECT id, entry_date, created_at FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1

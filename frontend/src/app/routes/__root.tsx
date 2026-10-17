@@ -2,11 +2,15 @@ import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import kleeOne400Css from "@fontsource/klee-one/400.css?url";
 import kleeOne600Css from "@fontsource/klee-one/600.css?url";
+// barrel (#/shared/auth) は .server.ts を再 export しており、クライアントで走る beforeLoad から import すると build が落ちる
+import { getCurrentAdmin } from "#/shared/auth/get-current-admin";
 import { RootLayout } from "../layout/root-layout";
 import appCss from "../styles/global.css?url";
 
 // 全文書 SSR: <html> から描画する
 export const Route = createRootRoute({
+  // ログイン中はサイドバーに管理者向けリンクを出す
+  beforeLoad: async () => ({ user: await getCurrentAdmin() }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

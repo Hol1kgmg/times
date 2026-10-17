@@ -1,34 +1,41 @@
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
+import { groupByCategory } from "../model/group-by-category";
 import styles from "./home-page.module.css";
 
-// getRouteApi でルート定義 (app 層) を import せずに loader/search の型を得る
+// getRouteApi でルート定義 (app 層) を import せずに loader の型を得る
 const route = getRouteApi("/");
 
 export const HomePage = () => {
-  const items = route.useLoaderData();
-  const { q } = route.useSearch();
-  const navigate = route.useNavigate();
+  const digest = route.useLoaderData();
+  if (!digest) {
+    return (
+      <div className={styles.page}>
+        <p className={styles.empty}>まだ記事がありません</p>
+      </div>
+    );
+  }
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Items</h1>
-      <input
-        aria-label="絞り込み"
-        className={styles.filter}
-        placeholder="filter"
-        value={q}
-        onChange={(e) => {
-          void navigate({ search: { q: e.target.value }, replace: true });
-        }}
-      />
-      <ul className={styles.list}>
-        {items.map((i) => (
-          <li key={i.id} className={styles.card}>
-            <Link className={styles.cardLink} params={{ id: i.id }} to="/items/$id">
-              {i.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <h1 className={styles.heading}>{digest.entryDate}</h1>
+      {groupByCategory(digest.items).map(([name, articles]) => (
+        <section key={name} className={styles.section}>
+          <h2 className={styles.label}>{name}</h2>
+          <ul className={styles.list}>
+            {articles.map((a) => (
+              <li key={a.id} className={styles.card}>
+                <a
+                  className={styles.cardLink}
+                  href={a.url}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {a.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 };

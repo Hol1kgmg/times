@@ -1,2 +1,15 @@
+### 登録 → 201 Digest / 400 (空・重複 URL) / 401 (Bearer なし)。token は auth.http の createSession の応答から貼る
+POST {{host}}/digests
+Authorization: Bearer paste-token-here
+Content-Type: application/json
+
+{
+  "entryDate": "2026-10-17",
+  "items": [
+    { "category": "IT系", "title": "Hello", "url": "https://example.com/hello" },
+    { "category": "その他", "title": "World", "url": "https://example.com/world" }
+  ]
+}
+
 ### latest → 200 Digest（登録済みなら）/ 404 Problem type=/problems/not-found（未登録）
 GET {{host}}/digests/latest

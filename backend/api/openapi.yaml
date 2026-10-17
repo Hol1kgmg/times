@@ -76,6 +76,29 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digests:
+    post:
+      operationId: createDigest
+      summary: 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewDigest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Digest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /digests/latest:
     get:
       operationId: getLatestDigest
@@ -262,6 +285,35 @@ components:
         description:
           type: string
           description: ページの説明文。取得できた記事だけ持つ
+    NewDigest:
+      type: object
+      required: [entryDate, items]
+      properties:
+        entryDate:
+          type: string
+          format: date
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/NewArticle"
+    NewArticle:
+      type: object
+      required: [category, title, url]
+      properties:
+        category:
+          $ref: "#/components/schemas/Category"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        url:
+          type: string
+          format: uri
+          # kin-openapi は format: uri を検証しない。href にそのまま出るので javascript: 等を弾く
+          pattern: "^https?://"
+          maxLength: 2000
     # 固定 7 カテゴリ。表示順もこの順 (specs/001 FR-007)
     Category:
       type: string

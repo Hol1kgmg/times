@@ -10,12 +10,15 @@ import (
 	"github.com/Hol1kgmg/times/backend/internal/apperr"
 	"github.com/Hol1kgmg/times/backend/internal/auth"
 	"github.com/Hol1kgmg/times/backend/internal/db"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 type Server struct {
+	pool  *pgxpool.Pool
 	q     *db.Queries
 	authq authQueries
 	gh    auth.Client
@@ -30,7 +33,7 @@ var _ api.StrictServerInterface = (*Server)(nil)
 func New(pool *pgxpool.Pool, gh auth.Client, adminLogin string) *Server {
 	q := db.New(pool)
 	return &Server{
-		q: q, authq: q, gh: gh, adminLogin: adminLogin,
+		pool: pool, q: q, authq: q, gh: gh, adminLogin: adminLogin,
 		authConfigured: gh.ClientID != "" && gh.ClientSecret != "" && adminLogin != "",
 	}
 }
@@ -84,6 +87,42 @@ func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestReque
 		return nil, err
 	}
 	return api.GetLatestDigest200JSONResponse(toDigest(d, rows)), nil
+}
+
+// digest と articles を 1 トランザクションで入れる。途中で失敗したら digest も残さない
+func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestObject) (api.CreateDigestResponseObject, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	q := s.q.WithTx(tx)
+	d, err := q.CreateDigest(ctx, req.Body.EntryDate.Time)
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]db.Article, len(req.Body.Items))
+	for i, a := range req.Body.Items {
+		rows[i], err = q.CreateArticle(ctx, db.CreateArticleParams{
+			DigestID: d.ID, Position: int32(i), Category: string(a.Category), Title: a.Title, Url: a.Url,
+		})
+		if err != nil {
+			return nil, constraintViolation(err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return api.CreateDigest201JSONResponse(toDigest(d, rows)), nil
+}
+
+// 同じ digest 内の URL 重複 (unique) と空文字 (check) は入力の誤りなので 400 にする
+func constraintViolation(err error) error {
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && (pg.Code == pgerrcode.UniqueViolation || pg.Code == pgerrcode.CheckViolation) {
+		return apperr.ValidationFailed(pg.ConstraintName + " violated")
+	}
+	return err
 }
 
 func toDigest(d db.Digest, rows []db.Article) api.Digest {

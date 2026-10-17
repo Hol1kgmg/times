@@ -129,6 +129,19 @@ type Item struct {
 	Title     string             `json:"title"`
 }
 
+// NewArticle defines model for NewArticle.
+type NewArticle struct {
+	Category Category `json:"category"`
+	Title    string   `json:"title"`
+	Url      string   `json:"url"`
+}
+
+// NewDigest defines model for NewDigest.
+type NewDigest struct {
+	EntryDate openapi_types.Date `json:"entryDate"`
+	Items     []NewArticle       `json:"items"`
+}
+
 // NewItem defines model for NewItem.
 type NewItem struct {
 	Title string `json:"title"`
@@ -171,6 +184,9 @@ type Unauthorized = Problem
 // CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
 type CreateSessionJSONRequestBody = NewSession
 
+// CreateDigestJSONRequestBody defines body for CreateDigest for application/json ContentType.
+type CreateDigestJSONRequestBody = NewDigest
+
 // CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
 type CreateItemJSONRequestBody = NewItem
 
@@ -185,6 +201,9 @@ type ServerInterface interface {
 	// GetCurrentSession Bearer の session を照合し、管理者を返す
 	// (GET /auth/sessions/current)
 	GetCurrentSession(c *gin.Context)
+	// CreateDigest 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
+	// (POST /digests)
+	CreateDigest(c *gin.Context)
 
 	// (GET /digests/latest)
 	GetLatestDigest(c *gin.Context)
@@ -248,6 +267,19 @@ func (siw *ServerInterfaceWrapper) GetCurrentSession(c *gin.Context) {
 	}
 
 	siw.Handler.GetCurrentSession(c)
+}
+
+// CreateDigest operation middleware
+func (siw *ServerInterfaceWrapper) CreateDigest(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateDigest(c)
 }
 
 // GetLatestDigest operation middleware
@@ -358,6 +390,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/items", wrapper.ListItems)
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
 	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
+	router.POST(options.BaseURL+"/digests", wrapper.CreateDigest)
 	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
 	router.POST(options.BaseURL+"/auth/sessions", wrapper.CreateSession)
 	router.DELETE(options.BaseURL+"/auth/sessions/current", wrapper.DeleteCurrentSession)
@@ -491,6 +524,60 @@ type GetCurrentSession401ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetCurrentSession401ApplicationProblemPlusJSONResponse) VisitGetCurrentSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDigestRequestObject struct {
+	Body *CreateDigestJSONRequestBody
+}
+
+type CreateDigestResponseObject interface {
+	VisitCreateDigestResponse(w http.ResponseWriter) error
+}
+
+type CreateDigest201JSONResponse Digest
+
+func (response CreateDigest201JSONResponse) VisitCreateDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDigest400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateDigest400ApplicationProblemPlusJSONResponse) VisitCreateDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDigest401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateDigest401ApplicationProblemPlusJSONResponse) VisitCreateDigestResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -684,6 +771,9 @@ type StrictServerInterface interface {
 	// GetCurrentSession Bearer の session を照合し、管理者を返す
 	// (GET /auth/sessions/current)
 	GetCurrentSession(ctx context.Context, request GetCurrentSessionRequestObject) (GetCurrentSessionResponseObject, error)
+	// CreateDigest 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
+	// (POST /digests)
+	CreateDigest(ctx context.Context, request CreateDigestRequestObject) (CreateDigestResponseObject, error)
 
 	// (GET /digests/latest)
 	GetLatestDigest(ctx context.Context, request GetLatestDigestRequestObject) (GetLatestDigestResponseObject, error)
@@ -837,6 +927,37 @@ func (sh *strictHandler) GetCurrentSession(ctx *gin.Context) {
 	}
 }
 
+// CreateDigest operation middleware
+func (sh *strictHandler) CreateDigest(ctx *gin.Context) {
+	var request CreateDigestRequestObject
+
+	var body CreateDigestJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDigest(ctx, request.(CreateDigestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDigest")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CreateDigestResponseObject); ok {
+		if err := validResponse.VisitCreateDigestResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetLatestDigest operation middleware
 func (sh *strictHandler) GetLatestDigest(ctx *gin.Context) {
 	var request GetLatestDigestRequestObject
@@ -971,36 +1092,39 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"D8gxvw7RiasrFP4fAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -40,6 +40,19 @@ export const digest = z.object({
   items: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
 
+// 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
+export const newArticle = z.object({
+  category,
+  title: z.string().trim().min(1).max(300),
+  // href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
+  url: z.url({ protocol: /^https?$/u }).max(2000),
+}) satisfies z.ZodType<Schemas["NewArticle"]>;
+
+export const newDigest = z.object({
+  entryDate: z.iso.date(),
+  items: newArticle.array().min(1).max(100),
+}) satisfies z.ZodType<Schemas["NewDigest"]>;
+
 export const problem = z.object({
   type: z.enum(["about:blank", "/problems/validation-failed", "/problems/not-found"]),
   title: z.string(),
@@ -54,4 +67,6 @@ export type Item = z.infer<typeof item>;
 export type Category = z.infer<typeof category>;
 export type Article = z.infer<typeof article>;
 export type Digest = z.infer<typeof digest>;
+export type NewArticle = z.infer<typeof newArticle>;
+export type NewDigest = z.infer<typeof newDigest>;
 export type Problem = z.infer<typeof problem>;

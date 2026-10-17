@@ -78,6 +78,7 @@ func TestRouter(t *testing.T) {
 		{"POST", "/items", `{"title":"` + strings.Repeat("a", maxBodyBytes) + `"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", id, "", http.StatusNotFound, api.ProblemsnotFound},
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound},
+		{"POST", "/digests", `{"entryDate":"2026-10-17","items":[]}`, http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
 		{"POST", "/auth/sessions", `{"code":"","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/auth/sessions", `{"code":"x"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/auth/sessions", `{"code":"x","redirectUri":"https://app/cb"}`, http.StatusForbidden, api.Problemsforbidden}, // 未設定
@@ -158,6 +159,7 @@ func TestBearerAuth(t *testing.T) {
 		{"GET", "/auth/sessions/current", "Bearer valid", 200, true},
 		{"DELETE", "/auth/sessions/current", "", 401, false},
 		{"DELETE", "/auth/sessions/current", "Bearer valid", 204, true},
+		{"POST", "/digests", "Bearer valid", 400, true}, // 認証後に body 検証 (空 body)
 		{"GET", "/health", "Bearer valid", 200, false},
 	}
 	for _, tt := range tests {
@@ -181,6 +183,24 @@ func TestBearerAuth(t *testing.T) {
 				t.Errorf("session body: %s (%v)", w.Body, err)
 			}
 		}
+	}
+}
+
+// url は http(s) だけ受ける。href にそのまま出るので javascript: 等は spec の pattern で 400
+func TestCreateDigestRejectsNonHTTPURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
+		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
+	}
+	r, _ := newRouter(newStub(nil), "", lookup)
+	body := `{"entryDate":"2026-10-17","items":[{"category":"その他","title":"t","url":"javascript:alert(1)"}]}`
+	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer valid")
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
+		t.Errorf("got %d: %s", w.Code, w.Body)
 	}
 }
 
