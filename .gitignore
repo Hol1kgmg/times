@@ -11,6 +11,9 @@
 **/.agents/skills/
 coverage/
 backend/bin/
+# 直下の package.json は packageManager の固定だけ。ここで pnpm を叩いても依存は無く、生成物は要らない
+node_modules/
+/pnpm-lock.yaml
 
 .DS_Store
 *.log
