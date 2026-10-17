@@ -3,18 +3,10 @@ If README.md still contains `{app name}`, this repository was just generated fro
 Run the `init-from-template` skill before any other work.
 
 # Project Overview
-{Describe the project (e.g. Dotfiles management project for macOS using Nix and Home-Manager)}
+記事リンクを日付・カテゴリごとにまとめた Digest を公開する個人サイト。
 
 # Setup and Basic Usage
 Setup instructions and basic usage are documented in [README.md](./README.md).
-
-# Directory Structure
-{Remove this whole section if a directory structure document is not needed}
-See [{DIRECTORY_STRUCTURE_FILE}.md](./{DIRECTORY_STRUCTURE_FILE}.md) for details.
-
-# Troubleshooting
-{Remove this whole section if a troubleshooting document is not needed}
-- Setup and daily usage issues: See [{TROUBLESHOOTING_FILE}.md](./{TROUBLESHOOTING_FILE}.md)
 
 # Work Rules
 0. Feature development follows spec-kit: `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` (constitution: `.specify/memory/constitution.md`)
