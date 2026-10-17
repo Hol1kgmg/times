@@ -1,3 +1,7 @@
+# First Run
+If README.md still contains `{app name}`, this repository was just generated from the template.
+Run the `init-from-template` skill before any other work.
+
 # Project Overview
 {Describe the project (e.g. Dotfiles management project for macOS using Nix and Home-Manager)}
 

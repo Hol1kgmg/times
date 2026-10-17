@@ -1,7 +1,7 @@
 ---
 name: init-from-template
 description: Hol1kgmg/claude-temp をテンプレートにして生成した直後のリポジトリで、README.md / AGENTS.md / adr/README.md に残るテンプレートのプレースホルダ（{app name} など）を埋め、不要なセクションを削る。「テンプレートの初期化」「プレースホルダを埋めて」「テンプレート固有のものを消して」と言われたとき、または生成直後のリポジトリで README に {app name} が残っているときに使う。
-allowed-tools: Bash(git remote:*), Bash(nix flake check:*), Read, Edit, Grep, Glob, AskUserQuestion
+allowed-tools: Bash(git remote:*), Bash(git status:*), Bash(just sync:*), Bash(nix flake check:*), Read, Edit, Grep, Glob, AskUserQuestion
 ---
 
 # init-from-template — テンプレート生成直後の初期化
@@ -15,7 +15,7 @@ allowed-tools: Bash(git remote:*), Bash(nix flake check:*), Read, Edit, Grep, Gl
 - `adr/from-template/`、`docs/`、`justfile` の `sync` レシピ、`.github/`、`skills/init-from-template/`（このスキル自身）
 - README.md の「テンプレート同期」節
 
-やることはプレースホルダの **置換** と、AGENTS.md の任意セクションの削除だけ。
+やることはプレースホルダの **置換** と、AGENTS.md の任意セクションの削除だけ。置換より **先に初回の `just sync` を済ませる**（理由は手順 2）。
 
 ## 手順
 
@@ -30,11 +30,22 @@ git remote get-url origin
 対象ファイルにプレースホルダが残っているかを Grep で確認する。1 つも無ければ「すでに初期化済み」と報告して終了する。
 
 ```
-pattern: \{app name\}|\{アプリの概要\}|\{プロジェクトの概要|\{※|\{DIRECTORY_STRUCTURE_FILE\}|\{TROUBLESHOOTING_FILE\}
+pattern: \{app name\}|\{アプリの概要\}|\{Describe the project|\{Remove this whole section|\{DIRECTORY_STRUCTURE_FILE\}|\{TROUBLESHOOTING_FILE\}|# First Run
 files: README.md AGENTS.md adr/README.md
 ```
 
-### 2. 情報を集める
+### 2. 先にテンプレート元と同期する
+
+```bash
+git status --porcelain
+just sync
+```
+
+作業ツリーが clean でなければ中断する（コミットまたは退避してもらう）。
+
+初回の `just sync` は共通祖先が無いため、テンプレート由来で派生側が変更したファイルを upstream 版で上書きする（`-X theirs`）。プレースホルダを埋める **前** に実行すれば上書きされるものが無く、このマージコミットが以降の共通祖先になる。sync が衝突で止まったら、解決してから次へ進む。
+
+### 3. 情報を集める
 
 AskUserQuestion で一度にまとめて聞く。引数で渡されていればその分は聞かない。
 
@@ -45,7 +56,7 @@ AskUserQuestion で一度にまとめて聞く。引数で渡されていれば�
 | Directory Structure ドキュメントの要否（要るならファイル名） | AGENTS.md |
 | Troubleshooting ドキュメントの要否（要るならファイル名） | AGENTS.md |
 
-### 3. 置換する
+### 4. 置換する
 
 Edit で行う。sed は使わない。
 
@@ -56,9 +67,10 @@ Edit で行う。sed は使わない。
 
 **AGENTS.md**
 
-- `{プロジェクトの概要を記述 (例: ...)}` の行 → 概要（AGENTS.md は英語セクション見出しだが本文は日本語でよい）
-- Directory Structure: 不要なら `# Directory Structure` から次の `#` 見出しの直前まで削除。要るなら `{※...}` の行を消し、`{DIRECTORY_STRUCTURE_FILE}` 2 箇所をファイル名（拡張子なし）に置換
-- Troubleshooting: 同様に削除、または `{※...}` の行を消して `{TROUBLESHOOTING_FILE}` 2 箇所を置換
+- `# First Run` セクション（次の `#` 見出しの直前まで）を削除。初期化後は不要で、毎セッション読まれるファイルに残す理由が無い
+- `{Describe the project (e.g. ...)}` の行 → 概要（AGENTS.md は英語セクション見出しだが本文は日本語でよい）
+- Directory Structure: 不要なら `# Directory Structure` から次の `#` 見出しの直前まで削除。要るなら `{Remove this whole section ...}` の行を消し、`{DIRECTORY_STRUCTURE_FILE}` 2 箇所をファイル名（拡張子なし）に置換
+- Troubleshooting: 同様に削除、または `{Remove this whole section ...}` の行を消して `{TROUBLESHOOTING_FILE}` 2 箇所を置換
 
 **adr/README.md**
 
@@ -66,13 +78,13 @@ Edit で行う。sed は使わない。
 
 ディレクトリ `adr/<アプリ名>/` はこの時点では作らない。最初の ADR を書くときに `adr-skill` が作る。
 
-### 4. 確認
+### 5. 確認
 
 - 手順 1 の Grep を再実行し、ヒットが 0 であること
 - 参照先ファイルを指定した場合、そのファイルが存在するか Glob で確認し、無ければ「作成が必要」と報告する（勝手に作らない）
 - `nix flake check` を実行（skills.nix / rules.nix の解決が壊れていないことの確認）
 
-### 5. 後片付けの提案
+### 6. 後片付けの提案
 
 変更は自動でコミットしない。差分を要約し、次を提案する:
 
