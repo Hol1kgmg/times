@@ -55,6 +55,9 @@ AskUserQuestion で一度にまとめて聞く。引数で渡されていれば�
 | 概要（1〜2 文） | README.md 2 行目、AGENTS.md の Project Overview |
 | Directory Structure ドキュメントの要否（要るならファイル名） | AGENTS.md |
 | Troubleshooting ドキュメントの要否（要るならファイル名） | AGENTS.md |
+| Dependabot の更新 PR を派生側でも受け取るか | .github/dependabot.yml |
+
+Dependabot は、触らない派生や flake.lock の更新を `just sync` 経由で受け取る派生では不要。選択肢の説明にそう添える。
 
 ### 4. 置換する
 
@@ -77,6 +80,11 @@ Edit で行う。sed は使わない。
 - 表の `` `{app name}/` `` → `` `<アプリ名>/` ``
 
 ディレクトリ `adr/<アプリ名>/` はこの時点では作らない。最初の ADR を書くときに `adr-skill` が作る。
+
+**.github/dependabot.yml**（受け取らない場合のみ）
+
+- `nix` と `github-actions` の両 `updates` エントリに `open-pull-requests-limit: 0` を追加する。`0` は version updates を無効化する公式の値
+- ファイルは削除しない（同期対象）。以後の `just sync` でこのファイルが衝突したら `0` を残して解決する
 
 ### 5. 確認
 

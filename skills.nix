@@ -40,6 +40,9 @@
   # nanaism/yomiyasu
   "yomiyasu"
 
+  # cloudflare/security-audit-skill
+  "security-audit"
+
   # ./skills（独自）
   "init-from-template"
 ]
