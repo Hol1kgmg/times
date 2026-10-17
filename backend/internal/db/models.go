@@ -20,6 +20,12 @@ type Article struct {
 	Description *string
 }
 
+type ArticleLink struct {
+	ParentID uuid.UUID
+	ChildID  uuid.UUID
+	Position int32
+}
+
 type Digest struct {
 	ID        uuid.UUID
 	EntryDate time.Time

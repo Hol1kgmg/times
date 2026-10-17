@@ -45,6 +45,21 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 	return i, err
 }
 
+const createArticleLink = `-- name: CreateArticleLink :exec
+INSERT INTO article_links (parent_id, child_id, position) VALUES ($1, $2, $3)
+`
+
+type CreateArticleLinkParams struct {
+	ParentID uuid.UUID
+	ChildID  uuid.UUID
+	Position int32
+}
+
+func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkParams) error {
+	_, err := q.db.Exec(ctx, createArticleLink, arg.ParentID, arg.ChildID, arg.Position)
+	return err
+}
+
 const createDigest = `-- name: CreateDigest :one
 INSERT INTO digests (entry_date) VALUES ($1) RETURNING id, entry_date, created_at
 `
@@ -66,6 +81,32 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 	var i Digest
 	err := row.Scan(&i.ID, &i.EntryDate, &i.CreatedAt)
 	return i, err
+}
+
+const listArticleLinksByDigest = `-- name: ListArticleLinksByDigest :many
+SELECT l.parent_id, l.child_id, l.position FROM article_links l
+JOIN articles a ON a.id = l.child_id
+WHERE a.digest_id = $1 ORDER BY l.parent_id, l.position
+`
+
+func (q *Queries) ListArticleLinksByDigest(ctx context.Context, digestID uuid.UUID) ([]ArticleLink, error) {
+	rows, err := q.db.Query(ctx, listArticleLinksByDigest, digestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ArticleLink
+	for rows.Next() {
+		var i ArticleLink
+		if err := rows.Scan(&i.ParentID, &i.ChildID, &i.Position); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listArticlesByDigest = `-- name: ListArticlesByDigest :many

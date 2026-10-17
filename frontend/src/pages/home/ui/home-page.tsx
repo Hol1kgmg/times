@@ -31,6 +31,22 @@ export const HomePage = () => {
                 >
                   {a.title}
                 </a>
+                {a.children.length > 0 && (
+                  <ul className={styles.children}>
+                    {a.children.map((c) => (
+                      <li key={c.id}>
+                        <a
+                          className={styles.childLink}
+                          href={c.url}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {c.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>

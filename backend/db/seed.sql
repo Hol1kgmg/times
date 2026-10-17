@@ -19,5 +19,15 @@ INSERT INTO articles (id, digest_id, position, category, title, url, description
     ('00000000-0000-4000-8000-000000000205', '00000000-0000-4000-8000-000000000002', 5, 'UI系',   '白背景と 1px 境界線で作る UI', 'https://example.com/ui/border-first', 'グラデーションを使わない設計'),
     ('00000000-0000-4000-8000-000000000206', '00000000-0000-4000-8000-000000000002', 6, 'AI系',   'Claude Code でスペック駆動開発', 'https://example.com/ai/spec-driven', NULL),
     ('00000000-0000-4000-8000-000000000207', '00000000-0000-4000-8000-000000000002', 7, '面白そうなツール・サービス', 'just: コマンドランナー', 'https://github.com/casey/just', 'Makefile の代替'),
-    ('00000000-0000-4000-8000-000000000208', '00000000-0000-4000-8000-000000000002', 8, 'その他', 'Understanding React 19''s new hooks', 'https://example.com/react-19-hooks', 'This is a long description that should be truncated by the digest view because it goes on and on without saying anything new about the new hooks in React 19.')
+    ('00000000-0000-4000-8000-000000000208', '00000000-0000-4000-8000-000000000002', 8, 'その他', 'Understanding React 19''s new hooks', 'https://example.com/react-19-hooks', 'This is a long description that should be truncated by the digest view because it goes on and on without saying anything new about the new hooks in React 19.'),
+    -- 2026-09-22 の関連記事 (親: 201 と 203)
+    ('00000000-0000-4000-8000-000000000209', '00000000-0000-4000-8000-000000000002', 9, 'セキュリティ', '修正版のリリースノート', 'https://example.com/security/cve-2026-xxxx/fix', NULL),
+    ('00000000-0000-4000-8000-000000000210', '00000000-0000-4000-8000-000000000002', 10, 'セキュリティ', '影響を受けるかの確認手順', 'https://example.com/security/cve-2026-xxxx/check', NULL),
+    ('00000000-0000-4000-8000-000000000211', '00000000-0000-4000-8000-000000000002', 11, 'IT系', 'sqlc 公式ドキュメント', 'https://docs.sqlc.dev/', NULL)
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO article_links (parent_id, child_id, position) VALUES
+    ('00000000-0000-4000-8000-000000000201', '00000000-0000-4000-8000-000000000209', 0),
+    ('00000000-0000-4000-8000-000000000201', '00000000-0000-4000-8000-000000000210', 1),
+    ('00000000-0000-4000-8000-000000000203', '00000000-0000-4000-8000-000000000211', 0)
+ON CONFLICT (child_id) DO NOTHING;

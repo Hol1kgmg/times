@@ -270,7 +270,7 @@ components:
             $ref: "#/components/schemas/Article"
     Article:
       type: object
-      required: [id, category, title, url]
+      required: [id, category, title, url, children]
       properties:
         id:
           type: string
@@ -285,6 +285,25 @@ components:
         description:
           type: string
           description: ページの説明文。取得できた記事だけ持つ
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChildArticle"
+    # 親に紐づく関連記事。children を持たないので孫は表現できない (親子 2 階層まで)
+    ChildArticle:
+      type: object
+      required: [id, title, url]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
     NewDigest:
       type: object
       required: [entryDate, items]
@@ -312,6 +331,24 @@ components:
           type: string
           format: uri
           # kin-openapi は format: uri を検証しない。href にそのまま出るので javascript: 等を弾く
+          pattern: "^https?://"
+          maxLength: 2000
+        children:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/NewChildArticle"
+    NewChildArticle:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        url:
+          type: string
+          format: uri
           pattern: "^https?://"
           maxLength: 2000
     # 固定 7 カテゴリ。表示順もこの順 (specs/001 FR-007)

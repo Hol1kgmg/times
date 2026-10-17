@@ -27,21 +27,28 @@ func TestConstraintViolation(t *testing.T) {
 	}
 }
 
-// DB 行 → API 応答の変換: 日付は date 形式、description は NULL なら省略、順序は行順のまま
+// DB 行 → API 応答の変換: 日付は date 形式、description は NULL なら省略、順序は行順のまま。
+// link の child 側は items から外れて親の children に入り、子のない親も children は [] になる
 func TestToDigest(t *testing.T) {
 	desc := "summary"
 	d := db.Digest{ID: uuid.New(), EntryDate: time.Date(2026, 9, 22, 0, 0, 0, 0, time.UTC)}
 	rows := []db.Article{
 		{ID: uuid.New(), Category: "セキュリティ", Title: "a", Url: "https://a.example", Description: &desc},
+		{ID: uuid.New(), Category: "セキュリティ", Title: "a-child", Url: "https://a.example/child"},
 		{ID: uuid.New(), Category: "その他", Title: "b", Url: "https://b.example"},
 	}
-	body, err := json.Marshal(toDigest(d, rows))
+	links := []db.ArticleLink{{ParentID: rows[0].ID, ChildID: rows[1].ID}}
+	body, err := json.Marshal(toDigest(d, rows, links))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var got struct {
 		EntryDate string `json:"entryDate"`
-		Items     []map[string]any
+		Items     []struct {
+			Title       string
+			Description any
+			Children    []map[string]any
+		}
 	}
 	if err := json.Unmarshal(body, &got); err != nil {
 		t.Fatal(err)
@@ -49,13 +56,19 @@ func TestToDigest(t *testing.T) {
 	if got.EntryDate != "2026-09-22" {
 		t.Errorf("entryDate: got %q", got.EntryDate)
 	}
-	if len(got.Items) != 2 || got.Items[0]["title"] != "a" || got.Items[1]["title"] != "b" {
+	if len(got.Items) != 2 || got.Items[0].Title != "a" || got.Items[1].Title != "b" {
 		t.Errorf("items order: got %v", got.Items)
 	}
-	if got.Items[0]["description"] != "summary" {
-		t.Errorf("description: got %v", got.Items[0]["description"])
+	if got.Items[0].Description != "summary" {
+		t.Errorf("description: got %v", got.Items[0].Description)
 	}
-	if _, ok := got.Items[1]["description"]; ok {
+	if len(got.Items[0].Children) != 1 || got.Items[0].Children[0]["title"] != "a-child" {
+		t.Errorf("children: got %v", got.Items[0].Children)
+	}
+	if got.Items[1].Children == nil || len(got.Items[1].Children) != 0 {
+		t.Errorf("children of childless parent should be []: got %s", body)
+	}
+	if got.Items[1].Description != nil {
 		t.Errorf("nil description must be omitted: %v", got.Items[1])
 	}
 }

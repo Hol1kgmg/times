@@ -14,13 +14,14 @@ describe("schemas", () => {
       id: "b3b2b6e0-1c8e-4b6a-9f1e-3b8d0d0a1c2d",
       title: "t",
       url: "https://x.example",
+      children: [],
     };
     expect(article.safeParse({ ...base, category: "その他" }).success).toBeTruthy();
     expect(article.safeParse({ ...base, category: "未知" }).success).toBeFalsy();
   });
 
   it("accepts only http(s) URLs for a new article", () => {
-    const base = { category: "その他", title: "t" };
+    const base = { category: "その他", title: "t", children: [] };
     expect(newArticle.safeParse({ ...base, url: "https://x.example/a" }).success).toBeTruthy();
     expect(newArticle.safeParse({ ...base, url: "http://x.example/a" }).success).toBeTruthy();
     // eslint-disable-next-line no-script-url -- 弾く対象の文字列そのもの

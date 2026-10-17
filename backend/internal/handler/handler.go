@@ -10,6 +10,7 @@ import (
 	"github.com/Hol1kgmg/times/backend/internal/apperr"
 	"github.com/Hol1kgmg/times/backend/internal/auth"
 	"github.com/Hol1kgmg/times/backend/internal/db"
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -86,7 +87,11 @@ func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestReque
 	if err != nil {
 		return nil, err
 	}
-	return api.GetLatestDigest200JSONResponse(toDigest(d, rows)), nil
+	links, err := s.q.ListArticleLinksByDigest(ctx, d.ID)
+	if err != nil {
+		return nil, err
+	}
+	return api.GetLatestDigest200JSONResponse(toDigest(d, rows, links)), nil
 }
 
 // digest と articles を 1 トランザクションで入れる。途中で失敗したら digest も残さない
@@ -101,19 +106,43 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	if err != nil {
 		return nil, err
 	}
-	rows := make([]db.Article, len(req.Body.Items))
-	for i, a := range req.Body.Items {
-		rows[i], err = q.CreateArticle(ctx, db.CreateArticleParams{
-			DigestID: d.ID, Position: int32(i), Category: string(a.Category), Title: a.Title, Url: a.Url,
+	var rows []db.Article
+	var links []db.ArticleLink
+	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category を引き継ぐ
+	insert := func(category, title, url string) (db.Article, error) {
+		row, err := q.CreateArticle(ctx, db.CreateArticleParams{
+			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url,
 		})
 		if err != nil {
-			return nil, constraintViolation(err)
+			return row, constraintViolation(err)
+		}
+		rows = append(rows, row)
+		return row, nil
+	}
+	for _, a := range req.Body.Items {
+		parent, err := insert(string(a.Category), a.Title, a.Url)
+		if err != nil {
+			return nil, err
+		}
+		if a.Children == nil {
+			continue
+		}
+		for j, c := range *a.Children {
+			child, err := insert(string(a.Category), c.Title, c.Url)
+			if err != nil {
+				return nil, err
+			}
+			link := db.ArticleLink{ParentID: parent.ID, ChildID: child.ID, Position: int32(j)}
+			if err := q.CreateArticleLink(ctx, db.CreateArticleLinkParams(link)); err != nil {
+				return nil, err
+			}
+			links = append(links, link)
 		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return api.CreateDigest201JSONResponse(toDigest(d, rows)), nil
+	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
 }
 
 // 同じ digest 内の URL 重複 (unique) と空文字 (check) は入力の誤りなので 400 にする
@@ -125,10 +154,25 @@ func constraintViolation(err error) error {
 	return err
 }
 
-func toDigest(d db.Digest, rows []db.Article) api.Digest {
-	items := make([]api.Article, len(rows))
-	for i, r := range rows {
-		items[i] = api.Article{Id: r.ID, Category: api.Category(r.Category), Title: r.Title, Url: r.Url, Description: r.Description}
+func toDigest(d db.Digest, rows []db.Article, links []db.ArticleLink) api.Digest {
+	parentOf := make(map[uuid.UUID]uuid.UUID, len(links))
+	for _, l := range links {
+		parentOf[l.ChildID] = l.ParentID
+	}
+	children := make(map[uuid.UUID][]api.ChildArticle)
+	items := make([]api.Article, 0, len(rows)-len(links))
+	for _, r := range rows {
+		if p, ok := parentOf[r.ID]; ok {
+			children[p] = append(children[p], api.ChildArticle{Id: r.ID, Title: r.Title, Url: r.Url, Description: r.Description})
+			continue
+		}
+		items = append(items, api.Article{Id: r.ID, Category: api.Category(r.Category), Title: r.Title, Url: r.Url, Description: r.Description})
+	}
+	for i := range items {
+		items[i].Children = children[items[i].Id]
+		if items[i].Children == nil {
+			items[i].Children = []api.ChildArticle{}
+		}
 	}
 	return api.Digest{Id: d.ID, EntryDate: openapi_types.Date{Time: d.EntryDate}, Items: items}
 }

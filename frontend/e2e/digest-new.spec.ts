@@ -49,6 +49,10 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   await fillRow(1, `https://e2e.example/${run}/2`, `セキュリティの記事 ${run}`, "セキュリティ");
   await page.getByRole("button", { name: "行を追加" }).click();
   await fillRow(2, `https://e2e.example/${run}/3`, `その他の記事 2 ${run}`, "その他");
+  // 2 行目 (セキュリティ) に関連記事を 1 件。親の直下に出る
+  await page.locator('[name="add-child-1"]').click();
+  await page.locator('[name="url-1-0"]').fill(`https://e2e.example/${run}/2/child`);
+  await page.locator('[name="title-1-0"]').fill(`関連記事 ${run}`);
 
   await page.getByRole("button", { name: "登録" }).click();
   await page.waitForURL((url) => url.pathname === "/");
@@ -59,6 +63,7 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   const links = main.getByRole("link");
   await expect(links).toHaveText([
     `セキュリティの記事 ${run}`,
+    `関連記事 ${run}`,
     `その他の記事 ${run}`,
     `その他の記事 2 ${run}`,
   ]);

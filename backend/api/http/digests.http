@@ -6,7 +6,10 @@ Content-Type: application/json
 {
   "entryDate": "2026-10-17",
   "items": [
-    { "category": "IT系", "title": "Hello", "url": "https://example.com/hello" },
+    {
+      "category": "IT系", "title": "Hello", "url": "https://example.com/hello",
+      "children": [{ "title": "Hello (関連)", "url": "https://example.com/hello/related" }]
+    },
     { "category": "その他", "title": "World", "url": "https://example.com/world" }
   ]
 }

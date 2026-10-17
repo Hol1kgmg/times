@@ -26,12 +26,21 @@ export const category = z.enum([
   "その他",
 ]) satisfies z.ZodType<Schemas["Category"]>;
 
+// children を持たない型にすることで孫が作れない (親子 2 階層まで)
+export const childArticle = z.object({
+  id: articleId,
+  title: z.string(),
+  url: z.url(),
+  description: z.string().optional(),
+}) satisfies z.ZodType<Schemas["ChildArticle"]>;
+
 export const article = z.object({
   id: articleId,
   category,
   title: z.string(),
   url: z.url(),
   description: z.string().optional(),
+  children: childArticle.array(),
 }) satisfies z.ZodType<Schemas["Article"]>;
 
 export const digest = z.object({
@@ -41,11 +50,15 @@ export const digest = z.object({
 }) satisfies z.ZodType<Schemas["Digest"]>;
 
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
-export const newArticle = z.object({
-  category,
+export const newChildArticle = z.object({
   title: z.string().trim().min(1).max(300),
   // href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
   url: z.url({ protocol: /^https?$/u }).max(2000),
+}) satisfies z.ZodType<Schemas["NewChildArticle"]>;
+
+export const newArticle = newChildArticle.extend({
+  category,
+  children: newChildArticle.array().max(20),
 }) satisfies z.ZodType<Schemas["NewArticle"]>;
 
 export const newDigest = z.object({
@@ -65,8 +78,10 @@ export type DigestId = z.infer<typeof digestId>;
 export type ArticleId = z.infer<typeof articleId>;
 export type Item = z.infer<typeof item>;
 export type Category = z.infer<typeof category>;
+export type ChildArticle = z.infer<typeof childArticle>;
 export type Article = z.infer<typeof article>;
 export type Digest = z.infer<typeof digest>;
+export type NewChildArticle = z.infer<typeof newChildArticle>;
 export type NewArticle = z.infer<typeof newArticle>;
 export type NewDigest = z.infer<typeof newDigest>;
 export type Problem = z.infer<typeof problem>;
