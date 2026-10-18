@@ -84,3 +84,4 @@ AWS ではなく GCP にした理由: Cloud Run はゼロスケールし、NAT G
 - 検討経緯と料金表: issue [#8](https://github.com/Hol1kgmg/times/issues/8)
 - 関連: [0003](0003-call-backend-from-server-functions-only.md) (backend を呼ぶのは Workers のサーバー関数だけ。到達制限は共有シークレット方式)
 - 再検討条件: 月額が $30 を超えた、db-f1-micro の性能が足りない、GCP 以外に置く理由 (組織の都合、他サービスとの統合) が出た
+- 2026-10-18: 公開 read の結果は Workers の Cache API に載せ、min instances 0 のまま Cloud Run への到達を減らす方針を [frontend/0002](../frontend/0002-cache-backend-reads-in-workers-cache-api.md) で決めた。backend 側にキャッシュは置かない
