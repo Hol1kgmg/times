@@ -52,6 +52,9 @@ AI系
 面白そうなツール・サービス
 
 - [Nixの切り替えコマンドを1つにまとめたnhが良さげかも | kawarimidoll.com](https://kawarimidoll.com/posts/202610151/)
+その他
+
+- [ローカル開発サーバー](http://localhost:3000)
 
 
 
