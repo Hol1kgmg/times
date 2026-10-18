@@ -78,7 +78,7 @@ SELECT id, user_id, expires_at FROM sessions;
 
 | やりたいこと | コマンド |
 |---|---|
-| 開発用のダミーデータを入れる | `just db-seed` |
+| 開発用のダミーデータを入れる (`backend/db/seed.md`、昨日と一昨日の日付で登録) | `just db-seed` |
 | マイグレーションの版を見る | `just db-migrate version` |
 | 1 つ戻す | `just db-migrate down 1` |
 | データを消して作り直す | `just db-reset` → `just db-up` |

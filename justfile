@@ -190,9 +190,9 @@ db-down:
 db-reset:
     docker compose down -v
 
-# Load dev dummy data (backend/db/seed.sql, idempotent)
+# Load dev dummy data (backend/db/seed.md, dated relative to today, idempotent)
 db-seed:
-    docker compose exec -T db psql -U times -d times -v ON_ERROR_STOP=1 < backend/db/seed.sql
+    cd backend && go run ./cmd/seed db/seed.md
 
 # Run golang-migrate (e.g. `just db-migrate down 1`, `just db-migrate version`)
 db-migrate *args:
