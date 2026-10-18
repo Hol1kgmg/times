@@ -1,5 +1,8 @@
 import { getRouteApi } from "@tanstack/react-router";
+import { Suspense, use, useState } from "react";
+import { getLinkPreview } from "../api/get-link-preview";
 import { groupByCategory } from "../model/group-by-category";
+import type { LinkPreview } from "../model/parse-link-preview";
 import fallbackFavicon from "./fallback-favicon.svg";
 import styles from "./home-page.module.css";
 
@@ -30,6 +33,74 @@ const Favicon = ({ url }: { url: string }) => (
   />
 );
 
+// use() は reject を throw するので、失敗は「プレビューなし」に畳む
+const fetchPreview = async (url: string): Promise<LinkPreview | null> => {
+  try {
+    return await getLinkPreview({ data: url });
+  } catch {
+    return null;
+  }
+};
+
+const previews = new Map<string, Promise<LinkPreview | null>>();
+// oxlint-disable-next-line typescript/promise-function-async -- async にすると毎 render 新しい Promise になり use() が再サスペンドし続ける
+const loadPreview = (url: string): Promise<LinkPreview | null> => {
+  const cached = previews.get(url);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const p = fetchPreview(url);
+  previews.set(url, p);
+  return p;
+};
+
+const Preview = ({ url }: { url: string }) => {
+  const meta = use(loadPreview(url)) ?? { description: null, image: null };
+  return (
+    <div className={styles.preview}>
+      {meta.image === null ? (
+        <div className={styles.previewNoImage}>no image</div>
+      ) : (
+        <img alt="" className={styles.previewImage} height={120} src={meta.image} width={256} />
+      )}
+      {meta.description === null ? (
+        <p className={styles.previewNoBody}>no description</p>
+      ) : (
+        <p className={styles.previewBody}>{meta.description}</p>
+      )}
+    </div>
+  );
+};
+
+const Row = ({ url, title, className }: { url: string; title: string; className: string }) => {
+  const [hovered, setHovered] = useState(false);
+  const show = () => {
+    setHovered(true);
+  };
+  return (
+    <div className={styles.row}>
+      <Favicon url={url} />
+      <span className={styles.text}>
+        <a
+          className={className}
+          href={url}
+          rel="noopener noreferrer"
+          target="_blank"
+          onFocus={show}
+          onMouseEnter={show}
+        >
+          {title}
+        </a>
+        {hovered && (
+          <Suspense fallback={null}>
+            <Preview url={url} />
+          </Suspense>
+        )}
+      </span>
+    </div>
+  );
+};
+
 export const HomePage = () => {
   const digest = route.useLoaderData();
   if (!digest) {
@@ -48,30 +119,12 @@ export const HomePage = () => {
           <ul className={styles.list}>
             {articles.map((a) => (
               <li key={a.id}>
-                <div className={styles.row}>
-                  <Favicon url={a.url} />
-                  <a
-                    className={styles.title}
-                    href={a.url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {a.title}
-                  </a>
-                </div>
+                <Row className={styles.title} title={a.title} url={a.url} />
                 {a.children.length > 0 && (
                   <ul className={styles.children}>
                     {a.children.map((c) => (
-                      <li key={c.id} className={styles.row}>
-                        <Favicon url={c.url} />
-                        <a
-                          className={styles.childTitle}
-                          href={c.url}
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          {c.title}
-                        </a>
+                      <li key={c.id}>
+                        <Row className={styles.childTitle} title={c.title} url={c.url} />
                       </li>
                     ))}
                   </ul>
