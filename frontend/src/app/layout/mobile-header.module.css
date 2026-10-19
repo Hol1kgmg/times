@@ -40,9 +40,7 @@
 .title {
   position: absolute;
   left: 50%;
-  composes: t-date from global;
   padding: var(--space-1) 4px;
   transform: translateX(-50%);
   color: var(--color-text);
-  text-decoration: none;
 }

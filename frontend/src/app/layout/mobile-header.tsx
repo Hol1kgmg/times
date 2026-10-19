@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { RefObject } from "react";
+import { Logo } from "#/shared/ui/logo";
 import menuIcon from "./menu.svg";
 import styles from "./mobile-header.module.css";
 
@@ -23,7 +24,7 @@ export const MobileHeader = ({ menuRef, open, onMenuClick }: Props) => (
       <img alt="" height={24} src={menuIcon} width={24} />
     </button>
     <Link className={styles.title} to="/">
-      times
+      <Logo />
     </Link>
   </header>
 );

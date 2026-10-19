@@ -9,10 +9,8 @@
 }
 
 .title {
-  composes: t-date from global;
   padding: var(--space-4) var(--space-4) 0;
   color: var(--color-text);
-  text-decoration: none;
 }
 
 .nav {

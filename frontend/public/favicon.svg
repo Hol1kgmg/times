@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="113 156 200 200">
+  <defs>
+    <clipPath id="tile">
+      <rect x="113" y="156" width="200" height="200" rx="51.4"/>
+    </clipPath>
+  </defs>
+  <rect x="113" y="156" width="200" height="200" rx="51.4" fill="#FF6B35"/>
+  <rect x="153" y="193.1" width="120" height="28.6" rx="14.3" fill="#FFFFFF"/>
+  <path d="M258.7 207.4 L167.3 304.6" fill="none" stroke="#FFFFFF" stroke-width="28.6" stroke-linecap="round"/>
+  <rect x="153" y="290.3" width="120" height="28.6" rx="14.3" fill="#FFFFFF"/>
+  <g clip-path="url(#tile)">
+    <circle cx="284.4" cy="184.6" r="23.6" fill="#FF6B35"/>
+    <circle cx="284.4" cy="184.6" r="18.6" fill="#FFC21A"/>
+  </g>
+</svg>

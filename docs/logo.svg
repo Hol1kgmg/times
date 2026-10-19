@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 512">
+  <defs>
+    <clipPath id="icon-clip">
+      <rect x="113" y="156" width="200" height="200" rx="51.4"/>
+    </clipPath>
+  </defs>
+  <style>
+    #wordmark-main, #wordmark-dev, #bell, #bell-body, #dot {
+      transform-box: fill-box;
+      animation-duration: 2.1s;
+      animation-iteration-count: 1;
+      animation-fill-mode: both;
+      animation-timing-function: cubic-bezier(.3, .7, .4, 1);
+    }
+    #wordmark-main { transform-origin: 50% 100%; animation-name: main; }
+    #wordmark-dev  { transform-origin: 50% 100%; animation-name: dev; }
+    #bell          { transform-origin: 50% 50%; animation-name: bell; }
+    #bell-body     { transform-origin: 50% 0%; animation-name: ring; }
+    #dot           { transform-origin: 50% 50%; animation-name: dot; }
+
+    @keyframes dev {
+      0%       { opacity: 0; transform: translate(0, -100px) scale(1, 1); animation-timing-function: linear; }
+      4%       { opacity: 1; transform: translate(0, -100px) scale(1, 1); animation-timing-function: linear; }
+      10%      { transform: translate(0, 0) scale(1, 1); }
+      11.5%    { transform: translate(0, 0) scale(1.3, 0.7); }
+      14%, 53% { transform: translate(0, 0) scale(1, 1); }
+      60%, 77% { transform: translate(16px, 0) scale(1, 1); }
+      91%      { transform: translate(-2px, 0) scale(1, 1); }
+      100%     { transform: translate(0, 0) scale(1, 1); }
+    }
+    @keyframes main {
+      0%, 13%  { transform: translateX(0) skewX(0deg); }
+      22%      { transform: translateX(-10px) skewX(8deg); }
+      28%      { transform: translateX(-4px) skewX(3deg); }
+      34%, 48% { transform: translateX(0) skewX(0deg); }
+      55%, 77% { transform: translateX(14px) skewX(-10deg); }
+      91%      { transform: translateX(-3px) skewX(2deg); }
+      100%     { transform: translateX(0) skewX(0deg); }
+    }
+    @keyframes bell {
+      0%, 39%   { opacity: 0; transform: scale(0); }
+      42%       { opacity: 1; transform: scale(1.2); }
+      46%, 77%  { opacity: 1; transform: scale(1); }
+      89%       { opacity: 1; transform: scale(.3); }
+      93%, 100% { opacity: 0; transform: scale(0); }
+    }
+    @keyframes ring {
+      0%, 39%   { transform: rotate(0deg); }
+      44%       { transform: rotate(26deg); }
+      51%       { transform: rotate(-26deg); }
+      58%       { transform: rotate(26deg); }
+      65%       { transform: rotate(-26deg); }
+      71%, 100% { transform: rotate(0deg); }
+    }
+    @keyframes dot {
+      0%, 87% { transform: scale(0); }
+      96%     { transform: scale(1.25); }
+      100%    { transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #wordmark-main, #wordmark-dev, #bell, #bell-body, #dot { animation: none; }
+    }
+  </style>
+
+  <g id="icon">
+    <rect x="113" y="156" width="200" height="200" rx="51.4" fill="#FF6B35"/>
+    <rect x="153" y="193.1" width="120" height="28.6" rx="14.3" fill="#FFFFFF"/>
+    <path d="M258.7 207.4 L167.3 304.6" fill="none" stroke="#FFFFFF" stroke-width="28.6" stroke-linecap="round"/>
+    <rect x="153" y="290.3" width="120" height="28.6" rx="14.3" fill="#FFFFFF"/>
+    <g clip-path="url(#icon-clip)">
+      <g id="dot">
+        <circle id="dot-gap" cx="284.4" cy="184.6" r="23.6" fill="#FF6B35"/>
+        <circle cx="284.4" cy="184.6" r="18.6" fill="#FFC21A"/>
+      </g>
+    </g>
+  </g>
+
+  <g id="bell" opacity="0">
+    <g id="bell-body">
+      <path id="bell-gap" d="M284.4 150.3 C263 150.3 252.3 167.4 252.3 186.7 V199.6 L243.7 210.3 H325.1 L316.6 199.6 V186.7 C316.6 167.4 305.9 150.3 284.4 150.3 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/>
+      <path d="M284.4 150.3 C263 150.3 252.3 167.4 252.3 186.7 V199.6 L243.7 210.3 H325.1 L316.6 199.6 V186.7 C316.6 167.4 305.9 150.3 284.4 150.3 Z" fill="#FFC21A"/>
+      <circle cx="284.4" cy="141.7" r="11.8" fill="#FFC21A" stroke="#FFFFFF" stroke-width="6"/>
+      <circle cx="284.4" cy="223.1" r="13.9" fill="#FFC21A" stroke="#FFFFFF" stroke-width="6"/>
+    </g>
+  </g>
+
+  <g id="wordmark">
+    <text id="wordmark-main" x="353" y="306" font-family="'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif" font-weight="700" font-size="140" fill="#2B2B2B">z_times</text>
+    <text id="wordmark-dev" x="870" y="306" font-family="'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif" font-weight="700" font-size="90" fill="#FF6B35">.dev</text>
+  </g>
+</svg>

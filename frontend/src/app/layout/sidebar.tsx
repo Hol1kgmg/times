@@ -1,4 +1,5 @@
 import { Link, useRouteContext } from "@tanstack/react-router";
+import { Logo } from "#/shared/ui/logo";
 import styles from "./sidebar.module.css";
 
 interface Props {
@@ -11,7 +12,7 @@ export const Sidebar = ({ onNavigate }: Props) => {
   return (
     <div className={styles.sidebar}>
       <Link className={styles.title} to="/" onClick={onNavigate}>
-        times
+        <Logo />
       </Link>
       <nav aria-label="サイドナビゲーション" className={styles.nav}>
         <Link className={styles.link} to="/" onClick={onNavigate}>
