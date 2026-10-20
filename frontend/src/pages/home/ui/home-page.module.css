@@ -71,9 +71,8 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
-    width: 280px;
-    padding: var(--space-2);
+    width: 320px;
+    overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background: var(--color-surface);
@@ -94,12 +93,39 @@
   }
 }
 
+.previewText {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+}
+
+.previewTitle {
+  composes: t-label from global;
+  display: -webkit-box;
+  margin: 0 0 var(--space-1);
+  overflow: hidden;
+  color: var(--color-text);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.previewSource {
+  composes: t-meta from global;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.previewSource .favicon {
+  margin-top: 0;
+}
+
 .previewImage {
   display: block;
   width: 100%;
-  height: 120px;
+  height: 136px;
+  border-top: 1px solid var(--color-border);
   object-fit: cover;
-  border-radius: var(--radius-card);
   background: var(--color-fill-faint);
 }
 
@@ -118,12 +144,7 @@
   margin: 0;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-}
-
-.previewNoBody {
-  composes: previewBody;
-  color: var(--color-text-muted);
+  -webkit-line-clamp: 3;
 }
 
 .favicon {

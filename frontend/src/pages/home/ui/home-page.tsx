@@ -54,19 +54,22 @@ const loadPreview = (url: string): Promise<LinkPreview | null> => {
   return p;
 };
 
-const Preview = ({ url }: { url: string }) => {
-  const meta = use(loadPreview(url)) ?? { description: null, image: null };
+const Preview = ({ url, title }: { url: string; title: string }) => {
+  const meta = use(loadPreview(url)) ?? { title: null, description: null, image: null };
   return (
     <div className={styles.preview}>
+      <div className={styles.previewText}>
+        <p className={styles.previewTitle}>{meta.title ?? title}</p>
+        {meta.description !== null && <p className={styles.previewBody}>{meta.description}</p>}
+        <span className={styles.previewSource}>
+          <Favicon url={url} />
+          {new URL(url).hostname}
+        </span>
+      </div>
       {meta.image === null ? (
         <div className={styles.previewNoImage}>no image</div>
       ) : (
-        <img alt="" className={styles.previewImage} height={120} src={meta.image} width={256} />
-      )}
-      {meta.description === null ? (
-        <p className={styles.previewNoBody}>no description</p>
-      ) : (
-        <p className={styles.previewBody}>{meta.description}</p>
+        <img alt="" className={styles.previewImage} height={136} src={meta.image} width={320} />
       )}
     </div>
   );
@@ -93,7 +96,7 @@ const Row = ({ url, title, className }: { url: string; title: string; className:
         </a>
         {hovered && (
           <Suspense fallback={null}>
-            <Preview url={url} />
+            <Preview title={title} url={url} />
           </Suspense>
         )}
       </span>

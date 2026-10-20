@@ -55,7 +55,8 @@ export const getLinkPreview = createServerFn({ method: "GET" })
     async ({ data: url }): Promise<LinkPreview | null> =>
       // 利用者 URL をそのままキーにすると digest の固定キーを上書きできてしまう
       await cachedJson(
-        `https://cache.times.invalid/preview/${encodeURIComponent(url)}`,
+        // v2: title を足した。旧形のキャッシュを読まないためにキーを変える
+        `https://cache.times.invalid/preview/v2/${encodeURIComponent(url)}`,
         ttlOf,
         async () => {
           try {

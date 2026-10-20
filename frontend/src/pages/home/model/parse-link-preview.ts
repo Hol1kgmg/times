@@ -1,4 +1,5 @@
 export interface LinkPreview {
+  title: string | null;
   description: string | null;
   image: string | null;
 }
@@ -54,7 +55,12 @@ const httpUrl = (raw: string | undefined, base: string) => {
 
 export const parseLinkPreview = (html: string, pageUrl: string): LinkPreview | null => {
   const meta = metaTags(html);
+  const title =
+    nonEmpty(meta.get("og:title")) ??
+    nonEmpty(decode(/<title[^>]*>(?<t>[^<]*)<\/title>/iu.exec(html)?.groups?.t ?? "").trim());
   const description = nonEmpty(meta.get("og:description")) ?? nonEmpty(meta.get("description"));
   const image = httpUrl(meta.get("og:image") ?? meta.get("twitter:image"), pageUrl);
-  return description === null && image === null ? null : { description, image };
+  return title === null && description === null && image === null
+    ? null
+    : { title, description, image };
 };
