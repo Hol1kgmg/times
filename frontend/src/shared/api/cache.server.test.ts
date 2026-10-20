@@ -28,8 +28,16 @@ describe(cachedJson, () => {
   it("derives the ttl from the loaded value when given a function", async () => {
     const cache = stubCaches();
     const ttl = vi.fn<(v: null | string) => number>((v) => (v === null ? 3600 : 86_400));
-    await cachedJson("https://example.test/a", ttl, async () => Promise.resolve(null));
-    await cachedJson("https://example.test/b", ttl, async () => Promise.resolve("ok"));
+    await cachedJson(
+      "https://example.test/a",
+      ttl,
+      vi.fn<() => Promise<null>>().mockResolvedValue(null),
+    );
+    await cachedJson(
+      "https://example.test/b",
+      ttl,
+      vi.fn<() => Promise<string>>().mockResolvedValue("ok"),
+    );
 
     const headers = cache.put.mock.calls.map(([, res]) => res.headers.get("cache-control"));
     expect(headers).toStrictEqual(["public, max-age=3600", "public, max-age=86400"]);
