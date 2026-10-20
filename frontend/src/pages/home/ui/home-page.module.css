@@ -2,12 +2,43 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  max-width: 720px;
+  margin: 0 auto;
   padding: var(--space-4);
 }
 
-.heading {
-  composes: t-date from global;
+.site {
   margin: 0;
+  color: var(--color-text);
+}
+
+.intro {
+  composes: t-body from global;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* チャンネル画面の切り抜き。浮かせて「アプリの中身の見本」に見せる */
+.panel {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.channel {
+  composes: t-label from global;
+  display: flex;
+  gap: 4px;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.hash {
+  color: var(--color-text-faint);
 }
 
 .empty {
@@ -16,10 +47,70 @@
   color: var(--color-text-muted);
 }
 
+/* Slack の日付区切り: 線の中央にピル */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--color-border);
+}
+
+.date {
+  composes: t-label from global;
+  padding: 4px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  color: var(--color-text);
+}
+
+.post {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-card);
+  background-color: var(--color-brand);
+}
+
+/* bot アバターは文字 1 つで足りる */
+.avatar::before {
+  content: "z";
+  display: block;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 36px;
+  text-align: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.author {
+  composes: t-label from global;
+  color: var(--color-text);
+}
+
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .label {
@@ -34,17 +125,40 @@
   list-style: none;
 }
 
+.children {
+  margin-left: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--color-border);
+}
+
 .row {
   position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--space-1);
-  padding: 4px 0;
 }
 
 /* リンクをインラインのままにして、:hover がテキストの行ボックスだけで効くようにする */
 .text {
   min-width: 0;
+}
+
+.favicon {
+  flex-shrink: 0;
+  /* 24px の行高に対して 16px を上下中央に置く */
+  margin-top: 4px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px var(--color-shadow-soft);
+}
+
+.title {
+  composes: t-title from global;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.title:hover {
+  text-decoration: underline;
 }
 
 /* プレビューカードは Figma「記事カード」。ホバーできる環境 (PC) でだけ出す */
@@ -53,8 +167,7 @@
 }
 
 @media (hover: hover) {
-  .title,
-  .childTitle {
+  .title {
     anchor-name: --link;
   }
 
@@ -145,36 +258,4 @@
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-}
-
-.favicon {
-  flex-shrink: 0;
-  /* 24px の行高に対して 16px を上下中央に置く */
-  margin-top: 4px;
-  border-radius: 2px;
-  box-shadow: 0 1px 2px var(--color-shadow-soft);
-}
-
-.title {
-  composes: t-title from global;
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.title:hover,
-.childTitle:hover {
-  text-decoration: underline;
-}
-
-.children {
-  margin-left: var(--space-1);
-  padding-left: var(--space-3);
-  border-left: 1px solid var(--color-border);
-}
-
-.childTitle {
-  composes: t-body from global;
-  /* 子行も親と同じ 24px 行高にして favicon の位置を揃える */
-  line-height: 24px;
-  text-decoration: none;
 }

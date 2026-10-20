@@ -5,7 +5,7 @@ import type { LoginError } from "../api/pick-login-error";
 import { startGitHubLogin } from "../api/start-github-login";
 import styles from "./login-page.module.css";
 
-const route = getRouteApi("/$loginPath/auth/login");
+const route = getRouteApi("/_shell/$loginPath/auth/login");
 
 const messages: Record<LoginError, string> = {
   forbidden: "このアカウントは管理者として許可されていません",

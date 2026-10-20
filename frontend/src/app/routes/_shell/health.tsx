@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getHealth, HealthPage } from "#/pages/health";
 
-export const Route = createFileRoute("/health")({
+export const Route = createFileRoute("/_shell/health")({
   loader: async () => await getHealth(),
   component: HealthPage,
 });

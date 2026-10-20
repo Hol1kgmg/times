@@ -1,7 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import styles from "./health-page.module.css";
 
-const route = getRouteApi("/health");
+const route = getRouteApi("/_shell/health");
 
 export const HealthPage = () => {
   const { status } = route.useLoaderData();

@@ -19,7 +19,7 @@ const expectNotFound = async (page: Page, path: string) => {
 
 const expectNoLoginUi = async (page: Page) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("times");
+  await expect(page).toHaveTitle("z_times.dev");
   await expect(page.locator("body")).not.toContainText("ログイン");
   await expect(page.locator("body")).not.toContainText("ログアウト");
 };
@@ -63,7 +63,7 @@ test.describe("US1: 管理者専用のページ・処理を管理者だけのも
 
   test("秘匿パスでログインカードが出る", async ({ page }) => {
     await page.goto(loginPath);
-    await expect(page).toHaveTitle("times");
+    await expect(page).toHaveTitle("z_times.dev");
     await expect(page.getByRole("heading", { name: "管理者ログイン" })).toBeVisible();
     await expect(page.getByRole("button", loginButton)).toBeVisible();
   });

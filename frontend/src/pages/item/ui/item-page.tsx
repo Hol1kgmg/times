@@ -2,7 +2,7 @@ import { Await, getRouteApi } from "@tanstack/react-router";
 import { Suspense } from "react";
 import styles from "./item-page.module.css";
 
-const route = getRouteApi("/items/$id");
+const route = getRouteApi("/_shell/items/$id");
 
 export const ItemPage = () => {
   const { item, slow } = route.useLoaderData();

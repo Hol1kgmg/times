@@ -6,7 +6,7 @@ interface Props {
   onNavigate?: () => void;
 }
 
-// サイドバー: サイトタイトル + 縦ナビ。モバイルではオーバーレイとして表示される
+// サイドバー: ワークスペース名 + チャンネル一覧。モバイルではオーバーレイとして表示される
 export const Sidebar = ({ onNavigate }: Props) => {
   const { user } = useRouteContext({ from: "__root__" });
   return (
@@ -14,20 +14,22 @@ export const Sidebar = ({ onNavigate }: Props) => {
       <Link className={styles.title} to="/" onClick={onNavigate}>
         <Logo />
       </Link>
-      <nav aria-label="サイドナビゲーション" className={styles.nav}>
+      <nav aria-label="チャンネル" className={styles.nav}>
+        <span className={styles.group}>Channels</span>
         <Link className={styles.link} to="/" onClick={onNavigate}>
-          Home
+          <span className={styles.hash}>#</span>general
         </Link>
         {user && (
           <Link className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
-            記事を登録
+            <span className={styles.hash}>+</span>記事を登録
           </Link>
         )}
+        <span className={styles.group}>Dev</span>
         <Link className={styles.link} params={{ id: "1" }} to="/items/$id" onClick={onNavigate}>
-          Item 1
+          <span className={styles.hash}>#</span>item-1
         </Link>
         <Link className={styles.link} to="/client" onClick={onNavigate}>
-          Client only
+          <span className={styles.hash}>#</span>client-only
         </Link>
       </nav>
     </div>
