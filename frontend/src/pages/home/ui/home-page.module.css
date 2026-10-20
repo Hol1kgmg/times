@@ -7,38 +7,200 @@
   padding: var(--space-4);
 }
 
+/* 記事が多い日もカードを 1 画面に収め、「気軽に見る」印象を保つ。下限はロゴ + 説明 + カードの最低の高さ */
+.fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fit[data-collapsed] {
+  max-height: max(calc(100dvh - 2 * var(--space-4)), 480px);
+}
+
+/* カード 634px = プレビュー (最大 285px + 4px) が行の上下どちらかに必ず収まる高さ */
+@media (hover: hover) {
+  .fit[data-collapsed] {
+    max-height: max(calc(100dvh - 2 * var(--space-4)), 786px);
+  }
+}
+
 .site {
+  flex-shrink: 0;
   margin: 0;
   color: var(--color-text);
 }
 
 .intro {
   composes: t-body from global;
+  flex-shrink: 0;
   margin: 0;
   color: var(--color-text-secondary);
 }
 
-/* チャンネル画面の切り抜き。浮かせて「アプリの中身の見本」に見せる */
 .panel {
-  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   background-color: var(--color-surface);
   box-shadow: var(--shadow-raised);
 }
 
-.channel {
-  composes: t-label from global;
-  display: flex;
-  gap: 4px;
-  margin: 0 0 var(--space-3);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-muted);
+/* fixed のプレビューの基準をカードにし、上下の反転を見えている範囲で判定させる。展開後はカードが画面より長くなるので外す */
+.fit[data-collapsed] .panel {
+  contain: layout;
 }
 
-.hash {
-  color: var(--color-text-faint);
+.body {
+  min-height: 0;
+  padding: var(--space-3);
+  border-radius: inherit;
+}
+
+/* clip を外側の .panel に付けると、.panel を基準にした fixed のプレビューまで切れる */
+.fit[data-collapsed] .body {
+  overflow: clip;
+}
+
+/* フェードは高さを測る前 (SSR) から出し、ハイドレーション後に途中から現れて見えないようにする */
+.fade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 64px;
+  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+  background: linear-gradient(transparent, var(--color-surface) 60%);
+  /* 読めないほど薄れたリンクでプレビューが出たり誤って開いたりしないよう、ポインターを受け止める */
+  transition: opacity 0.2s ease-out;
+}
+
+.fade[data-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.more {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: center;
+  padding-bottom: var(--space-2);
+  pointer-events: none;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-fill-subtle);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: appear 0.25s ease-out;
+}
+
+.expand:hover,
+.expand:focus-visible {
+  color: var(--color-accent);
+}
+
+.expand path {
+  transition: transform 0.3s ease-in-out;
+}
+
+.expand:hover path:first-child,
+.expand:focus-visible path:first-child {
+  transform: translateY(3px);
+}
+
+.expand:hover path:last-child,
+.expand:focus-visible path:last-child {
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade,
+  .expand path {
+    transition: none;
+  }
+
+  .expand {
+    animation: none;
+  }
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.aboutHeading {
+  composes: t-date from global;
+  margin: 0;
+}
+
+.facts {
+  composes: t-body from global;
+  display: grid;
+  grid-template-columns: 8em 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.term {
+  composes: t-label from global;
+}
+
+.facts dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.facts a {
+  color: var(--color-accent);
+}
+
+@media (--mobile) {
+  .facts {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .facts dd + dt {
+    margin-top: var(--space-2);
+  }
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categoryName {
+  margin-right: var(--space-1);
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .empty {
@@ -78,27 +240,12 @@
 
 .avatar {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-card);
-  background-color: var(--color-brand);
-}
-
-/* bot アバターは文字 1 つで足りる */
-.avatar::before {
-  content: "z";
-  display: block;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 36px;
-  text-align: center;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -118,14 +265,31 @@
   margin: 0;
 }
 
-.list,
-.children {
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.list,
 .children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list {
+  padding-left: var(--space-3);
+}
+
+.children {
+  margin-top: var(--space-1);
   margin-left: var(--space-1);
   padding-left: var(--space-2);
   border-left: 1px solid var(--color-border);
@@ -153,12 +317,13 @@
 
 .title {
   composes: t-title from global;
-  color: var(--color-accent);
+  color: var(--color-text);
   text-decoration: none;
 }
 
-.title:hover {
-  text-decoration: underline;
+.title:hover,
+.title:focus-visible {
+  color: var(--color-accent);
 }
 
 /* プレビューカードは Figma「記事カード」。ホバーできる環境 (PC) でだけ出す */
@@ -192,7 +357,7 @@
     box-shadow: var(--shadow-raised);
   }
 
-  /* 画面下端で収まらなければリンクの上側に出す。fixed にしないと溢れ判定の基準が行の高さになり常に flip する */
+  /* カード下端で収まらなければリンクの上側に出す。fixed にしないと溢れ判定の基準が行の高さになり常に flip する */
   @supports (position-area: bottom span-right) {
     .text > a:hover + .preview,
     .text > a:focus-visible + .preview {
@@ -222,6 +387,15 @@
   -webkit-line-clamp: 2;
 }
 
+.previewBody {
+  composes: t-body from global;
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .previewSource {
   composes: t-meta from global;
   display: flex;
@@ -249,13 +423,4 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-muted);
-}
-
-.previewBody {
-  composes: t-body from global;
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
 }

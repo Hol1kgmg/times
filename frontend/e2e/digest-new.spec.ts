@@ -58,8 +58,8 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   await page.getByRole("button", { name: "登録" }).click();
   await page.waitForURL((url) => url.pathname === "/");
 
-  // トップはシェルの外なので main は無い。#general パネルの中を見る
-  const panel = page.getByRole("region", { name: "# general" });
+  // トップはシェルの外なので main は無い。Digest のパネルの中を見る
+  const panel = page.getByRole("region", { name: "最新の Digest" });
   await expect(panel.getByText(date, { exact: true })).toBeVisible();
   await expect(panel.getByRole("heading", { level: 3 })).toHaveText(["セキュリティ", "その他"]);
   const links = panel.getByRole("link");

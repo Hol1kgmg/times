@@ -1,6 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { Suspense, use, useState } from "react";
-import type { Article, ChildArticle } from "#/shared/api/schemas";
+import { Suspense, use, useCallback, useRef, useState } from "react";
+import { category } from "#/shared/api/schemas";
+import type { Article, Category, ChildArticle } from "#/shared/api/schemas";
 import { getLinkPreview } from "../api/get-link-preview";
 import { groupByCategory } from "../model/group-by-category";
 import type { LinkPreview } from "../model/parse-link-preview";
@@ -125,51 +126,164 @@ const Entry = ({ article }: { article: Article }) => (
 // 1 日分の Digest = bot の 1 投稿
 const Post = ({ items }: { items: readonly Article[] }) => (
   <article className={styles.post}>
-    <span aria-hidden className={styles.avatar} />
+    <img alt="" className={styles.avatar} height={36} src="/favicon.svg" width={36} />
     <div className={styles.content}>
-      <span className={styles.author}>z-times</span>
-      {groupByCategory(items).map(([name, articles]) => (
-        <section key={name} className={styles.section}>
-          <h3 className={styles.label}>{name}</h3>
-          <ul className={styles.list}>
-            {articles.map((a) => (
-              <li key={a.id}>
-                <Entry article={a} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <span className={styles.author}>z_times.dev</span>
+      <ul className={styles.sections}>
+        {groupByCategory(items).map(([name, articles]) => (
+          <li key={name} className={styles.section}>
+            <h3 className={styles.label}>{name}</h3>
+            <ul className={styles.list}>
+              {articles.map((a) => (
+                <li key={a.id}>
+                  <Entry article={a} />
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
     </div>
   </article>
 );
 
-// トップはシェルの外の入り口ページ。最新 Digest をチャンネルの切り抜きとして見せる (adr/frontend/0003)
+const categoryDescriptions = {
+  ホットトピック: "その日いちばん話題になっていたもの",
+  セキュリティ: "注意喚起や脆弱性の情報",
+  IT系: "設計や開発全般の記事・スライド",
+  UI系: "デザインやフロントエンドの表現",
+  AI系: "AI やエージェントまわり",
+  "面白そうなツール・サービス": "試してみたいツール",
+  その他: "上のどれにも入らないもの",
+} satisfies Record<Category, string>;
+
+const About = () => (
+  <section aria-labelledby="about" className={styles.about}>
+    <h2 className={styles.aboutHeading} id="about">
+      このサイトについて
+    </h2>
+    <dl className={styles.facts}>
+      <dt className={styles.term}>目的</dt>
+      <dd>
+        管理者が日々見かけた技術記事や面白いサイトを、1 日 1 本の Digest にまとめて残しています。
+      </dd>
+      <dt className={styles.term}>カテゴリ</dt>
+      <dd>
+        <ul className={styles.categories}>
+          {category.options.map((c) => (
+            <li key={c}>
+              <span className={styles.categoryName}>{c}</span>
+              {categoryDescriptions[c]}
+            </li>
+          ))}
+        </ul>
+      </dd>
+      <dt className={styles.term}>更新頻度</dt>
+      <dd>毎日</dd>
+      <dt className={styles.term}>運営者</dt>
+      <dd>
+        Hol1kgmg (
+        <a href="https://github.com/Hol1kgmg" rel="noopener noreferrer" target="_blank">
+          GitHub
+        </a>
+        )
+      </dd>
+    </dl>
+  </section>
+);
+
+// トップはシェルの外の入り口ページ。Slack の構造は投稿 1 件分だけ借りる (adr/frontend/0003)
 export const HomePage = () => {
   const digest = route.useLoaderData();
+  const [expanded, setExpanded] = useState(false);
+  const fadeRef = useRef<HTMLDivElement>(null);
+  // null は未計測 (SSR とハイドレーション直後)
+  const [overflowing, setOverflowing] = useState<boolean | null>(null);
+  // 枠の高さは画面で、中身の高さはフォントの到着で変わるので両方を見る
+  const observeOverflow = useCallback((el: HTMLDivElement) => {
+    const ro = new ResizeObserver(() => {
+      setOverflowing(el.scrollHeight > el.clientHeight);
+    });
+    ro.observe(el);
+    for (const child of el.children) {
+      ro.observe(child);
+    }
+    return () => {
+      ro.disconnect();
+    };
+  }, []);
+  const expand = () => {
+    setExpanded(true);
+  };
   return (
     <div className={styles.page}>
-      <h1 className={styles.site}>
-        <Logo hero />
-      </h1>
-      <p className={styles.intro}>
-        管理者が見かけた技術や趣味などの記事やサイトを日々投稿しています
-      </p>
-      <section aria-labelledby="channel" className={styles.panel}>
-        <h2 className={styles.channel} id="channel">
-          <span className={styles.hash}>#</span>general
-        </h2>
-        {digest ? (
-          <>
-            <div className={styles.divider}>
-              <span className={styles.date}>{digest.entryDate}</span>
+      <div className={styles.fit} data-collapsed={expanded ? undefined : ""}>
+        <h1 className={styles.site}>
+          <Logo hero />
+        </h1>
+        <p className={styles.intro}>
+          管理者が見かけた技術や趣味などの記事やサイトを日々投稿しています
+        </p>
+        <div className={styles.panel}>
+          <div
+            ref={observeOverflow}
+            className={styles.body}
+            // Tab で隠れた・フェードにかかった記事に入ったら、読めないリンクを操作させないよう展開する
+            onFocus={(e) => {
+              const fadeTop = fadeRef.current?.getBoundingClientRect().top ?? Infinity;
+              if (e.target.getBoundingClientRect().bottom > fadeTop) {
+                expand();
+              }
+            }}
+          >
+            <section aria-label="最新の Digest">
+              {digest ? (
+                <>
+                  <div className={styles.divider}>
+                    <span className={styles.date}>{digest.entryDate}</span>
+                  </div>
+                  <Post items={digest.items} />
+                </>
+              ) : (
+                <p className={styles.empty}>まだ記事がありません</p>
+              )}
+            </section>
+          </div>
+          {!expanded && (
+            <div
+              ref={fadeRef}
+              className={styles.fade}
+              data-hidden={overflowing === false ? "" : undefined}
+            />
+          )}
+          {!expanded && overflowing === true && (
+            <div className={styles.more}>
+              <button
+                aria-label="すべて表示"
+                className={styles.expand}
+                type="button"
+                onClick={expand}
+              >
+                {/* lucide の chevrons-up-down (ISC)。上下に開く動きは CSS で付ける */}
+                <svg
+                  fill="none"
+                  height={20}
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  width={20}
+                >
+                  <path d="m7 15 5 5 5-5" />
+                  <path d="m7 9 5-5 5 5" />
+                </svg>
+              </button>
             </div>
-            <Post items={digest.items} />
-          </>
-        ) : (
-          <p className={styles.empty}>まだ記事がありません</p>
-        )}
-      </section>
+          )}
+        </div>
+      </div>
+      <About />
     </div>
   );
 };
