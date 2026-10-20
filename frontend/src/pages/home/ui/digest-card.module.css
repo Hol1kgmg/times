@@ -1,0 +1,154 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+/* fixed のプレビューの基準をカードにし、上下の反転を見えている範囲で判定させる。展開後はカードが画面より長くなるので外す */
+.panel[data-collapsed] {
+  contain: layout;
+}
+
+.body {
+  min-height: 0;
+  padding: var(--space-3);
+  border-radius: inherit;
+}
+
+/* clip を外側の .panel に付けると、.panel を基準にした fixed のプレビューまで切れる */
+.panel[data-collapsed] .body {
+  overflow: clip;
+}
+
+/* フェードは高さを測る前 (SSR) から出し、ハイドレーション後に途中から現れて見えないようにする */
+.fade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 64px;
+  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+  background: linear-gradient(transparent, var(--color-surface) 60%);
+  /* 読めないほど薄れたリンクでプレビューが出たり誤って開いたりしないよう、ポインターを受け止める */
+  transition: opacity 0.2s ease-out;
+}
+
+.fade[data-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.more {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: center;
+  padding-bottom: var(--space-2);
+  pointer-events: none;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-fill-subtle);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: appear 0.25s ease-out;
+}
+
+.expand:hover,
+.expand:focus-visible {
+  color: var(--color-accent);
+}
+
+.expand path {
+  transition: transform 0.3s ease-in-out;
+}
+
+.expand:hover path:first-child,
+.expand:focus-visible path:first-child {
+  transform: translateY(3px);
+}
+
+.expand:hover path:last-child,
+.expand:focus-visible path:last-child {
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade,
+  .expand path {
+    transition: none;
+  }
+
+  .expand {
+    animation: none;
+  }
+}
+
+.empty {
+  composes: t-body from global;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* Slack の日付区切り: 線の中央にピル */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--color-border);
+}
+
+.date {
+  composes: t-label from global;
+  padding: 4px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  color: var(--color-text);
+}
+
+.post {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.avatar {
+  flex-shrink: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.author {
+  composes: t-label from global;
+  color: var(--color-text);
+}
