@@ -1,0 +1,84 @@
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.body {
+  min-height: 0;
+  padding: var(--space-3);
+  border-radius: inherit;
+}
+
+.panel[data-collapsed] .body {
+  overflow: clip;
+}
+
+/* フェードは高さを測る前 (SSR) から出し、ハイドレーション後に途中から現れて見えないようにする */
+.fade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 64px;
+  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+  background: linear-gradient(transparent, var(--color-surface) 60%);
+  /* 読めないほど薄れたリンクでプレビューが出たり誤って開いたりしないよう、ポインターを受け止める */
+  transition: opacity 0.2s ease-out;
+}
+
+.fade[data-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.more {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: center;
+  padding-bottom: var(--space-2);
+  pointer-events: none;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.expand {
+  composes: t-body from global;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: appear 0.25s ease-out;
+}
+
+.expand:hover,
+.expand:focus-visible {
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade {
+    transition: none;
+  }
+
+  .expand {
+    animation: none;
+  }
+}
