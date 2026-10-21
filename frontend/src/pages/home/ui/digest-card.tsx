@@ -3,7 +3,15 @@ import type { Digest as DigestData } from "#/shared/api/schemas";
 import { Digest } from "./digest";
 import styles from "./digest-card.module.css";
 
-// 日付ピル + bot の 1 投稿という Slack の構造はトップでだけ借りる (adr/frontend/0003)
+// entryDate は日付だけの ISO で UTC の 0 時として読まれるため、UTC で書式化しないと前日になりうる
+const dateFormat = new Intl.DateTimeFormat("ja-JP", {
+  month: "long",
+  day: "numeric",
+  weekday: "short",
+  timeZone: "UTC",
+});
+
+// bot の 1 投稿という Slack の構造はトップでだけ借りる。チャンネル名は出さない (adr/frontend/0003)
 export const DigestCard = ({ digest }: { digest: DigestData | null }) => {
   const [expanded, setExpanded] = useState(false);
   const fadeRef = useRef<HTMLDivElement>(null);
@@ -42,7 +50,12 @@ export const DigestCard = ({ digest }: { digest: DigestData | null }) => {
           {digest ? (
             <>
               <div className={styles.divider}>
-                <span className={styles.date}>{digest.entryDate}</span>
+                <time className={styles.date} dateTime={digest.entryDate}>
+                  {dateFormat.format(new Date(digest.entryDate))}
+                </time>
+                <span className={styles.count}>
+                  {digest.items.reduce((n, a) => n + 1 + a.children.length, 0)} 件
+                </span>
               </div>
               <article className={styles.post}>
                 <img alt="" className={styles.avatar} height={36} src="/favicon.svg" width={36} />
@@ -66,20 +79,21 @@ export const DigestCard = ({ digest }: { digest: DigestData | null }) => {
       )}
       {!expanded && overflowing === true && (
         <div className={styles.more}>
-          <button aria-label="すべて表示" className={styles.expand} type="button" onClick={expand}>
-            {/* lucide の chevrons-up-down (ISC)。上下に開く動きは CSS で付ける */}
+          <button className={styles.expand} type="button" onClick={expand}>
+            すべて表示
+            {/* lucide の chevron-down (ISC) */}
             <svg
+              aria-hidden="true"
               fill="none"
-              height={20}
+              height={14}
               stroke="currentColor"
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
               viewBox="0 0 24 24"
-              width={20}
+              width={14}
             >
-              <path d="m7 15 5 5 5-5" />
-              <path d="m7 9 5-5 5 5" />
+              <path d="m6 9 6 6 6-6" />
             </svg>
           </button>
         </div>

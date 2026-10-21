@@ -1,4 +1,5 @@
 .panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -8,18 +9,39 @@
   box-shadow: var(--shadow-raised);
 }
 
-/* fixed のプレビューの基準をカードにし、上下の反転を見えている範囲で判定させる。展開後はカードが画面より長くなるので外す */
-.panel[data-collapsed] {
-  contain: layout;
-}
-
 .body {
   min-height: 0;
   padding: var(--space-3);
   border-radius: inherit;
 }
 
-/* clip を外側の .panel に付けると、.panel を基準にした fixed のプレビューまで切れる */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--color-border);
+}
+
+.date {
+  composes: t-label from global;
+  padding: 4px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  color: var(--color-text);
+}
+
+.count {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
+}
+
 .panel[data-collapsed] .body {
   overflow: clip;
 }
@@ -57,16 +79,17 @@
 }
 
 .expand {
+  composes: t-body from global;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
+  gap: 4px;
   height: 32px;
-  padding: 0;
+  padding: 0 var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background-color: var(--color-fill-subtle);
+  background-color: var(--color-surface);
   color: var(--color-text-muted);
+  font-family: inherit;
   cursor: pointer;
   pointer-events: auto;
   animation: appear 0.25s ease-out;
@@ -77,23 +100,8 @@
   color: var(--color-accent);
 }
 
-.expand path {
-  transition: transform 0.3s ease-in-out;
-}
-
-.expand:hover path:first-child,
-.expand:focus-visible path:first-child {
-  transform: translateY(3px);
-}
-
-.expand:hover path:last-child,
-.expand:focus-visible path:last-child {
-  transform: translateY(-3px);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .fade,
-  .expand path {
+  .fade {
     transition: none;
   }
 
@@ -106,29 +114,6 @@
   composes: t-body from global;
   margin: 0;
   color: var(--color-text-muted);
-}
-
-/* Slack の日付区切り: 線の中央にピル */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0 0 var(--space-3);
-}
-
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  border-top: 1px solid var(--color-border);
-}
-
-.date {
-  composes: t-label from global;
-  padding: 4px var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: 9999px;
-  color: var(--color-text);
 }
 
 .post {

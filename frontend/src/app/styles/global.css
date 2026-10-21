@@ -11,9 +11,11 @@
   --color-text-faint: #767676;
   --color-fill-subtle: #eee;
   --color-fill-faint: #f7f7f7;
-  /* ロゴのオレンジは白地で 2.8:1 しかないので、リンク等の操作色は一段濃くする (5.2:1) */
   --color-brand: #ff6b35;
-  --color-accent: #c2410c;
+  /* 白地で 2.8:1 と AA 未達だが、濃い橙 (#c2410c) は沈んで見えるためロゴ色に揃える (ADR frontend/0003) */
+  --color-accent: var(--color-brand);
+  /* この上の --color-text-faint は 4.5:1 を切るので、文字は --color-text-muted 以上を置く */
+  --color-brand-faint: #fff4ee;
   --color-status: var(--color-accent);
   --color-sidebar-bg: #1b2a41;
   --color-sidebar-active: #2e4a6b;
@@ -48,6 +50,8 @@
     --color-text-faint: #8a8a8a;
     --color-fill-subtle: #2a2a2a;
     --color-fill-faint: #1a1a1a;
+    /* 暗地で橙を薄めると泥色の茶になるため、ダークでは無彩色にする */
+    --color-brand-faint: var(--color-fill-faint);
     --color-skeleton-base: #2a2a2a;
     --color-skeleton-highlight: #333;
     --color-shadow: rgb(0 0 0 / 0.4);
