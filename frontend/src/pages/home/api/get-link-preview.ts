@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { cachedJson } from "#/shared/api";
+import { digestHasUrl } from "../model/digest-urls";
 import type { LinkPreview } from "../model/parse-link-preview";
 import { parseLinkPreview } from "../model/parse-link-preview";
+import { loadLatestDigest } from "./get-latest-digest";
 
 // 外部サイトの HTML を Workers 側で取りに行く。ブラウザからは CORS で読めないため
 // YouTube は og タグの手前に 750KB 超のスクリプトを置くので、</head> が出るまで読む
@@ -51,27 +53,30 @@ const readHead = async (res: Response) => {
 
 export const getLinkPreview = createServerFn({ method: "GET" })
   .validator(z.url({ protocol: /^https?$/u }).max(2000))
-  .handler(
-    async ({ data: url }): Promise<LinkPreview | null> =>
-      // 利用者 URL をそのままキーにすると digest の固定キーを上書きできてしまう
-      await cachedJson(
-        // v2: title を足した。旧形のキャッシュを読まないためにキーを変える
-        `https://cache.times.invalid/preview/v2/${encodeURIComponent(url)}`,
-        ttlOf,
-        async () => {
-          try {
-            const res = await fetch(url, {
-              headers: { accept: "text/html", "user-agent": "times-link-preview" },
-              signal: AbortSignal.timeout(5000),
-            });
-            if (!res.ok || !(res.headers.get("content-type") ?? "").includes("text/html")) {
-              return null;
-            }
-            // リダイレクト後のページにある相対 og:image は最終 URL 基準で解決する
-            return parseLinkPreview(await readHead(res), res.url || url);
-          } catch {
+  .handler(async ({ data: url }): Promise<LinkPreview | null> => {
+    // 公開エンドポイントなので、任意の URL を受けるとクローラーや踏み台利用で外部 fetch が青天井になる
+    if (!digestHasUrl(await loadLatestDigest(), url)) {
+      return null;
+    }
+    // 利用者 URL をそのままキーにすると digest の固定キーを上書きできてしまう
+    return await cachedJson(
+      // v2: title を足した。旧形のキャッシュを読まないためにキーを変える
+      `https://cache.times.invalid/preview/v2/${encodeURIComponent(url)}`,
+      ttlOf,
+      async () => {
+        try {
+          const res = await fetch(url, {
+            headers: { accept: "text/html", "user-agent": "times-link-preview" },
+            signal: AbortSignal.timeout(5000),
+          });
+          if (!res.ok || !(res.headers.get("content-type") ?? "").includes("text/html")) {
             return null;
           }
-        },
-      ),
-  );
+          // リダイレクト後のページにある相対 og:image は最終 URL 基準で解決する
+          return parseLinkPreview(await readHead(res), res.url || url);
+        } catch {
+          return null;
+        }
+      },
+    );
+  });
