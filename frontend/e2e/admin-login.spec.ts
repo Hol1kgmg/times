@@ -68,11 +68,14 @@ test.describe("US1: 管理者専用のページ・処理を管理者だけのも
     await expect(page.getByRole("button", loginButton)).toBeVisible();
   });
 
-  test("管理者として承認すると / に移り、ログインの表示は出ない", async ({ page }) => {
+  test("管理者として承認すると / に移り、サイドバーに秘匿パスへのログアウトタブが出る", async ({
+    page,
+  }) => {
     await expectNoLoginUi(page);
     await authorizeAs(page, "管理者として承認");
     await page.waitForURL(atHome);
-    await expectNoLoginUi(page);
+    const nav = page.getByRole("navigation", { name: "チャンネル" });
+    await expect(nav.getByRole("link", { name: "ログアウト" })).toHaveAttribute("href", loginPath);
   });
 
   test("別のアカウントは許可されない", async ({ page }) => {

@@ -11,7 +11,7 @@ import appCss from "../styles/global.css?url";
 // 全文書 SSR: <html> から描画する
 export const Route = createRootRoute({
   // ログイン中はサイドバーに管理者向けリンクを出す
-  beforeLoad: async () => ({ user: await getCurrentAdmin() }),
+  beforeLoad: async () => await getCurrentAdmin(),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

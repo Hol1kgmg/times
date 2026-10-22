@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const ChannelNav = ({ onNavigate }: Props) => {
-  const { user } = useRouteContext({ from: "__root__" });
+  const { user, loginPath } = useRouteContext({ from: "__root__" });
   return (
     <nav aria-label="チャンネル" className={styles.nav}>
       <span className={styles.group}>Channels</span>
@@ -19,6 +19,16 @@ export const ChannelNav = ({ onNavigate }: Props) => {
           <Link className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
             <span className={styles.hash}>+</span>記事を登録
           </Link>
+          {loginPath !== undefined && (
+            <Link
+              className={styles.link}
+              params={{ loginPath }}
+              to="/$loginPath/auth/login"
+              onClick={onNavigate}
+            >
+              <span className={styles.hash}>#</span>ログアウト
+            </Link>
+          )}
           <span className={styles.group}>Dev</span>
           <Link className={styles.link} params={{ id: "1" }} to="/items/$id" onClick={onNavigate}>
             <span className={styles.hash}>#</span>item-1
