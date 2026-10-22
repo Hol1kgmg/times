@@ -1,4 +1,3 @@
-import { useRouteContext } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { MobileHeader } from "./mobile-header";
@@ -61,9 +60,8 @@ const Shell = ({ children }: Props) => {
   );
 };
 
-// アプリ全体のレイアウト。シェル (sidebar + main) はログイン中だけ (adr/frontend/0003)
-export const RootLayout = ({ children }: Props) => {
-  const { user } = useRouteContext({ from: "__root__" });
-  const main = <main className={user ? styles.main : undefined}>{children}</main>;
-  return user ? <Shell>{main}</Shell> : main;
-};
+export const RootLayout = ({ children }: Props) => (
+  <Shell>
+    <main className={styles.main}>{children}</main>
+  </Shell>
+);

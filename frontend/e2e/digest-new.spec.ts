@@ -19,12 +19,16 @@ const loggedInState = async (browser: Browser) => {
   return state;
 };
 
-test("未ログインでは登録ページは 404 で、サイドバーも出ない", async ({ page }) => {
+test("未ログインでは登録ページは 404 で、サイドバーに管理者向けのタブが出ない", async ({
+  page,
+}) => {
   const res = await page.goto(newPath);
   expect(res?.status()).toBe(404);
   await page.goto("/");
-  await expect(page.getByRole("navigation", { name: "チャンネル" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "記事を登録" })).toHaveCount(0);
+  const nav = page.getByRole("navigation", { name: "チャンネル" });
+  await expect(nav.getByRole("link", { name: "general" })).toHaveCount(1);
+  await expect(nav.getByRole("link", { name: "記事を登録" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "item-1" })).toHaveCount(0);
 });
 
 test("日付・URL・タイトル・分類を登録するとトップに固定順で出る", async ({ browser }) => {
@@ -58,9 +62,8 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   await page.getByRole("button", { name: "登録" }).click();
   await page.waitForURL((url) => url.pathname === "/");
 
-  // トップはシェルの外なので main は無い。Digest のパネルの中を見る
   const panel = page.getByRole("region", { name: "最新の Digest" });
-  await expect(panel.getByText(date, { exact: true })).toBeVisible();
+  await expect(panel.getByText("12月31日(木)", { exact: true })).toBeVisible();
   await expect(panel.getByRole("heading", { level: 3 })).toHaveText(["セキュリティ", "その他"]);
   const links = panel.getByRole("link");
   await expect(links).toHaveText([

@@ -6,7 +6,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--header-offset));
   background-color: var(--color-bg);
 }
 
@@ -34,7 +34,7 @@
 }
 
 .fit:has(> [data-collapsed]) {
-  max-height: max(calc(100dvh - 2 * var(--hero-padding)), 320px);
+  max-height: max(calc(100dvh - var(--header-offset) - 2 * var(--hero-padding)), 320px);
 }
 
 .site {

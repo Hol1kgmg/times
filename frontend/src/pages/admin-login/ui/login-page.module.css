@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--header-offset));
   padding: var(--space-4);
 }
 
