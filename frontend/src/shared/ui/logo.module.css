@@ -9,7 +9,30 @@
   height: 72px;
 }
 
-/* 以下は docs/logo.svg のアニメーションをそのまま写したもの。hero のときだけ付く */
+/* アイコン (高さ 200 / viewBox 250) を 32px で出す */
+.hover {
+  composes: logo;
+  height: 40px;
+}
+
+/* 透明なベルと隠れた文字がアイコンに重なり、ホバーの判定を奪わないようにする */
+.hover .main,
+.hover .dev,
+.hover .bell {
+  pointer-events: none;
+}
+
+.hover .main,
+.hover .dev {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+:is(:focus-visible > .hover, .hover:has(.icon:hover)) :is(.main, .dev) {
+  opacity: 1;
+}
+
+/* 以下は docs/logo.svg のアニメーションをそのまま写したもの。hover のときだけ付く */
 .main,
 .dev,
 .bell,
@@ -24,26 +47,42 @@
 
 .main {
   transform-origin: 50% 100%;
-  animation-name: main;
 }
 
 .dev {
   transform-origin: 50% 100%;
-  animation-name: dev;
 }
 
 .bell {
   transform-origin: 50% 50%;
-  animation-name: bell;
 }
 
 .bellBody {
   transform-origin: 50% 0%;
-  animation-name: ring;
 }
 
 .dot {
   transform-origin: 50% 50%;
+}
+
+/* animation-name はホバー中だけ付ける。外して付け直すと最初から再生される */
+:is(:focus-visible > .hover, .hover:has(.icon:hover)) .main {
+  animation-name: main;
+}
+
+:is(:focus-visible > .hover, .hover:has(.icon:hover)) .dev {
+  animation-name: dev;
+}
+
+:is(:focus-visible > .hover, .hover:has(.icon:hover)) .bell {
+  animation-name: bell;
+}
+
+:is(:focus-visible > .hover, .hover:has(.icon:hover)) .bellBody {
+  animation-name: ring;
+}
+
+:is(:focus-visible > .hover, .hover:has(.icon:hover)) .dot {
   animation-name: dot;
 }
 

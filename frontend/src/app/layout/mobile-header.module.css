@@ -40,7 +40,6 @@
 .title {
   position: absolute;
   left: 50%;
-  padding: var(--space-1) 4px;
+  display: flex;
   transform: translateX(-50%);
-  color: var(--color-text);
 }

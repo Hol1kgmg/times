@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import type { RefObject } from "react";
-import { Logo } from "#/shared/ui/logo";
 import menuIcon from "./menu.svg";
 import styles from "./mobile-header.module.css";
 
@@ -10,7 +9,7 @@ interface Props {
   onMenuClick: () => void;
 }
 
-// モバイル用ヘッダー: メニューボタン + サイトタイトル
+// モバイル用ヘッダー: メニューボタン + アイコン
 export const MobileHeader = ({ menuRef, open, onMenuClick }: Props) => (
   <header className={styles.header}>
     <button
@@ -24,7 +23,7 @@ export const MobileHeader = ({ menuRef, open, onMenuClick }: Props) => (
       <img alt="" height={24} src={menuIcon} width={24} />
     </button>
     <Link className={styles.title} to="/">
-      <Logo />
+      <img alt="z_times.dev" height={32} src="/favicon.svg" width={32} />
     </Link>
   </header>
 );

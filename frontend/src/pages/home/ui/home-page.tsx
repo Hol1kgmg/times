@@ -15,7 +15,7 @@ export const HomePage = () => {
       <div className={styles.hero}>
         <div className={styles.fit}>
           <h1 className={styles.site}>
-            <Logo hero />
+            <Logo variant="hero" />
           </h1>
           <p className={styles.intro}>
             見かけて気になった技術や趣味の記事を、日ごとにゆるくまとめてます。

@@ -12,7 +12,7 @@ export const Sidebar = ({ onNavigate }: Props) => {
   return (
     <div className={styles.sidebar}>
       <Link className={styles.title} to="/" onClick={onNavigate}>
-        <Logo />
+        <Logo variant="hover" />
       </Link>
       <nav aria-label="チャンネル" className={styles.nav}>
         <span className={styles.group}>Channels</span>

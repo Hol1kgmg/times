@@ -19,11 +19,11 @@ const loggedInState = async (browser: Browser) => {
   return state;
 };
 
-test("未ログインでは登録ページは 404 で、サイドバーにリンクも出ない", async ({ page }) => {
+test("未ログインでは登録ページは 404 で、サイドバーも出ない", async ({ page }) => {
   const res = await page.goto(newPath);
   expect(res?.status()).toBe(404);
-  // トップはシェルの外なので、サイドバーのあるページで見る
-  await page.goto("/health");
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "チャンネル" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "記事を登録" })).toHaveCount(0);
 });
 
@@ -34,7 +34,7 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   const run = Date.now();
   const date = "2099-12-31";
 
-  await page.goto("/health");
+  await page.goto("/");
   await page.waitForLoadState("networkidle");
   await page.getByRole("link", { name: "記事を登録" }).click();
   await page.waitForURL((url) => url.pathname === newPath);

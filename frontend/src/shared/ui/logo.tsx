@@ -2,8 +2,7 @@ import { useId } from "react";
 import styles from "./logo.module.css";
 
 interface Props {
-  // トップの h1 用。表示時に 1 回だけアニメーションする
-  hero?: boolean;
+  variant?: "hero" | "hover";
 }
 
 const wordmarkFont = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif";
@@ -11,12 +10,12 @@ const bellPath =
   "M284.4 150.3 C263 150.3 252.3 167.4 252.3 186.7 V199.6 L243.7 210.3 H325.1 L316.6 199.6 V186.7 C316.6 167.4 305.9 150.3 284.4 150.3 Z";
 
 // docs/logo.svg を React 化したもの。形を変えるときは docs/logo.svg を直してから写す
-export const Logo = ({ hero = false }: Props) => {
+export const Logo = ({ variant }: Props) => {
   const clip = useId();
-  const cls = (name: keyof typeof styles) => (hero ? styles[name] : undefined);
+  const cls = (name: keyof typeof styles) => (variant === "hover" ? styles[name] : undefined);
   return (
     <svg
-      className={hero ? styles.hero : styles.logo}
+      className={styles[variant ?? "logo"]}
       viewBox="100 118 990 250"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -26,20 +25,22 @@ export const Logo = ({ hero = false }: Props) => {
           <rect height="200" rx="51.4" width="200" x="113" y="156" />
         </clipPath>
       </defs>
-      <rect fill="#ff6b35" height="200" rx="51.4" width="200" x="113" y="156" />
-      <rect fill="#fff" height="28.6" rx="14.3" width="120" x="153" y="193.1" />
-      <path
-        d="M258.7 207.4 L167.3 304.6"
-        fill="none"
-        stroke="#fff"
-        strokeLinecap="round"
-        strokeWidth="28.6"
-      />
-      <rect fill="#fff" height="28.6" rx="14.3" width="120" x="153" y="290.3" />
-      <g clipPath={`url(#${clip})`}>
-        <g className={cls("dot")}>
-          <circle cx="284.4" cy="184.6" fill="#ff6b35" r="23.6" />
-          <circle cx="284.4" cy="184.6" fill="#ffc21a" r="18.6" />
+      <g className={cls("icon")}>
+        <rect fill="#ff6b35" height="200" rx="51.4" width="200" x="113" y="156" />
+        <rect fill="#fff" height="28.6" rx="14.3" width="120" x="153" y="193.1" />
+        <path
+          d="M258.7 207.4 L167.3 304.6"
+          fill="none"
+          stroke="#fff"
+          strokeLinecap="round"
+          strokeWidth="28.6"
+        />
+        <rect fill="#fff" height="28.6" rx="14.3" width="120" x="153" y="290.3" />
+        <g clipPath={`url(#${clip})`}>
+          <g className={cls("dot")}>
+            <circle cx="284.4" cy="184.6" fill="#ff6b35" r="23.6" />
+            <circle cx="284.4" cy="184.6" fill="#ffc21a" r="18.6" />
+          </g>
         </g>
       </g>
       <g className={cls("bell")} opacity="0">
