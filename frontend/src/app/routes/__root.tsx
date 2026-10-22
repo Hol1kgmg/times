@@ -16,6 +16,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // meta は CSS 変数を読めないので、ダークの --color-bg を直書きする。ライトはブラウザが地の色から取る
+      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#1e1f22" },
       { title: "z_times.dev" },
     ],
     links: [

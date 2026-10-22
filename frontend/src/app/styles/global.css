@@ -16,6 +16,7 @@
 }
 
 :root {
+  color-scheme: light dark;
   --color-bg: #fff;
   --color-surface: #fff;
   --color-border: #ddd;
@@ -32,10 +33,10 @@
   /* この上の --color-text-faint は 4.5:1 を切るので、文字は --color-text-muted 以上を置く */
   --color-brand-faint: #fff4ee;
   --color-status: var(--color-accent);
-  --color-sidebar-bg: #1b2a41;
-  --color-sidebar-active: #2e4a6b;
-  --color-sidebar-text: #fff;
-  --color-sidebar-text-muted: rgb(255 255 255 / 0.6);
+  --color-sidebar-bg: var(--color-bg);
+  --color-sidebar-active: var(--color-brand-faint);
+  --color-sidebar-text: var(--color-text);
+  --color-sidebar-text-muted: var(--color-text-muted);
   --color-skeleton-base: #eee;
   --color-skeleton-highlight: #f5f5f5;
   --color-shadow: rgb(0 0 0 / 0.12);
@@ -45,6 +46,7 @@
   --radius-card: 6px;
   --radius-control: 8px;
   --radius-panel: 12px;
+  --space-half: 4px;
   --space-1: 8px;
   --space-2: 12px;
   --space-3: 16px;
@@ -60,19 +62,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #121212;
-    --color-surface: #1e1e1e;
-    --color-border: #333;
+    --color-bg: #1e1f22;
+    --color-surface: #2b2d31;
+    --color-border: #3a3c42;
     --color-text: #e6e6e6;
     --color-text-secondary: #ccc;
-    --color-text-muted: #999;
-    --color-text-faint: #8a8a8a;
-    --color-fill-subtle: #2a2a2a;
-    --color-fill-faint: #1a1a1a;
-    /* 暗地で橙を薄めると泥色の茶になるため、ダークでは無彩色にする */
-    --color-brand-faint: var(--color-fill-faint);
-    --color-skeleton-base: #2a2a2a;
-    --color-skeleton-highlight: #333;
+    --color-text-muted: #a6a6a6;
+    /* --color-surface の上で 4.5:1 を満たす下限 (WCAG AA) */
+    --color-text-faint: #9a9a9a;
+    --color-fill-subtle: #35373c;
+    --color-fill-faint: #26272b;
+    /* 暗地で橙を薄めると泥色になり、グレーを敷くとカードが沈むため地と揃える */
+    --color-brand-faint: var(--color-bg);
+    --color-sidebar-bg: var(--color-fill-faint);
+    /* ダークの --color-brand-faint はサイドバーの地より暗く、選択中が沈んで見える */
+    --color-sidebar-active: var(--color-fill-subtle);
+    --color-skeleton-base: #35373c;
+    --color-skeleton-highlight: #3f4147;
     --color-shadow: rgb(0 0 0 / 0.4);
     --color-shadow-soft: rgb(0 0 0 / 0.5);
   }

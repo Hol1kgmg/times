@@ -1,7 +1,13 @@
+/* ブラウザ上部の色は body の地から取られる。theme-color は TanStack が name で 1 つにまとめ、明暗の 2 つを出せない */
+:global(body):has(.page) {
+  background-color: var(--color-brand-faint);
+}
+
 .page {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+  background-color: var(--color-bg);
 }
 
 .hero {

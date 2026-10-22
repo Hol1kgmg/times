@@ -1,7 +1,7 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-half);
 }
 
 .label {
@@ -53,7 +53,7 @@
 
 /* 24px の行高に対して 16px を上下中央に置く */
 .favicon {
-  margin-top: 4px;
+  margin-top: var(--space-half);
 }
 
 .title {
@@ -101,7 +101,7 @@
       position-anchor: --link;
       position-area: bottom span-right;
       position-try-fallbacks: flip-block;
-      margin-top: 4px;
+      margin-top: var(--space-half);
     }
   }
 }
