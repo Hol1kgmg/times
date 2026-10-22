@@ -110,6 +110,11 @@ body {
   font-family: var(--font-fixed);
 }
 
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* タイポグラフィ: 用途別クラス。.agents/rules/frontend-ui-design.md 参照 */
 .t-date {
   font-size: 18px;

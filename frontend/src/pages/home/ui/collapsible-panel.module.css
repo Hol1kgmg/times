@@ -58,15 +58,26 @@
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto;
+  transition: transform 0.1s ease-out;
 }
 
-.expand:hover,
 .expand:focus-visible {
   color: var(--color-accent);
 }
 
+@media (hover: hover) {
+  .expand:hover {
+    color: var(--color-accent);
+  }
+}
+
+.expand:active {
+  transform: scale(1.05);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .fade {
+  .fade,
+  .expand {
     transition: none;
   }
 }

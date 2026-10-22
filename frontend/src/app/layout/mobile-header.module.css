@@ -36,7 +36,6 @@
   border-radius: 9999px;
   background: none;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .close {
