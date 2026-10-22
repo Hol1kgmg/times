@@ -22,16 +22,6 @@
   pointer-events: none;
 }
 
-.hover .main,
-.hover .dev {
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-:is(:focus-visible > .hover, .hover:has(.icon:hover)) :is(.main, .dev) {
-  opacity: 1;
-}
-
 /* 以下は docs/logo.svg のアニメーションをそのまま写したもの。hover のときだけ付く */
 .main,
 .dev,
@@ -65,25 +55,38 @@
   transform-origin: 50% 50%;
 }
 
-/* animation-name はホバー中だけ付ける。外して付け直すと最初から再生される */
-:is(:focus-visible > .hover, .hover:has(.icon:hover)) .main {
-  animation-name: main;
-}
+/* タッチ端末はタップで :hover が残り、1 回再生して文字が出たままになるため、ホバーできる環境に限る */
+@media (hover: hover) {
+  .hover .main,
+  .hover .dev {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
 
-:is(:focus-visible > .hover, .hover:has(.icon:hover)) .dev {
-  animation-name: dev;
-}
+  :is(:focus-visible > .hover, .hover:has(.icon:hover)) :is(.main, .dev) {
+    opacity: 1;
+  }
 
-:is(:focus-visible > .hover, .hover:has(.icon:hover)) .bell {
-  animation-name: bell;
-}
+  /* animation-name はホバー中だけ付ける。外して付け直すと最初から再生される */
+  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .main {
+    animation-name: main;
+  }
 
-:is(:focus-visible > .hover, .hover:has(.icon:hover)) .bellBody {
-  animation-name: ring;
-}
+  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .dev {
+    animation-name: dev;
+  }
 
-:is(:focus-visible > .hover, .hover:has(.icon:hover)) .dot {
-  animation-name: dot;
+  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .bell {
+    animation-name: bell;
+  }
+
+  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .bellBody {
+    animation-name: ring;
+  }
+
+  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .dot {
+    animation-name: dot;
+  }
 }
 
 @keyframes dev {

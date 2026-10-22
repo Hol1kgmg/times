@@ -32,6 +32,12 @@
   padding-left: var(--space-3);
 }
 
+@media (--narrow) {
+  .list {
+    padding-left: 0;
+  }
+}
+
 .children {
   margin-top: var(--space-1);
   margin-left: var(--space-1);

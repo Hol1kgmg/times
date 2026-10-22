@@ -8,10 +8,10 @@ interface Props {
   children: ReactNode;
 }
 
-// デスクトップ: サイドバー常時表示 / モバイル: ヘッダーのボタンでサイドバーをオーバーレイ表示
+// 広い画面: サイドバー常時表示 / 狭い画面: ヘッダーを伸ばしたメニューで出す
 const Shell = ({ children }: Props) => {
   const [open, setOpen] = useState(false);
-  const asideRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
@@ -21,7 +21,7 @@ const Shell = ({ children }: Props) => {
   // 開いている間だけ Escape を拾い、フォーカスをメニュー内へ移す
   useEffect(() => {
     if (open) {
-      asideRef.current?.querySelector("a")?.focus();
+      navRef.current?.querySelector("a")?.focus();
     }
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape" && open) {
@@ -29,9 +29,18 @@ const Shell = ({ children }: Props) => {
         menuRef.current?.focus();
       }
     };
+    // 開いたまま広い幅に変わるとヘッダーが消え、inert の main だけが残って操作できなくなる
+    const wide = window.matchMedia("(min-width: 768px)");
+    const onWide = () => {
+      if (wide.matches) {
+        setOpen(false);
+      }
+    };
     document.addEventListener("keydown", onKeyDown);
+    wide.addEventListener("change", onWide);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      wide.removeEventListener("change", onWide);
     };
   }, [open]);
 
@@ -39,29 +48,23 @@ const Shell = ({ children }: Props) => {
     <div className={styles.layout}>
       <MobileHeader
         menuRef={menuRef}
+        navRef={navRef}
         open={open}
         onMenuClick={() => {
-          setOpen(true);
+          setOpen(!open);
         }}
+        onNavigate={close}
       />
-      {open && (
-        <button
-          aria-label="メニューを閉じる"
-          className={styles.overlay}
-          type="button"
-          onClick={close}
-        />
-      )}
-      <aside ref={asideRef} className={styles.sidebar} data-open={open}>
-        <Sidebar onNavigate={close} />
+      {/* 閉じる操作はヘッダーのボタンと Escape で足りるので、ポインター専用にする */}
+      <div aria-hidden="true" className={styles.overlay} data-open={open} onClick={close} />
+      <aside className={styles.sidebar}>
+        <Sidebar />
       </aside>
-      {children}
+      <main className={styles.main} inert={open}>
+        {children}
+      </main>
     </div>
   );
 };
 
-export const RootLayout = ({ children }: Props) => (
-  <Shell>
-    <main className={styles.main}>{children}</main>
-  </Shell>
-);
+export const RootLayout = Shell;

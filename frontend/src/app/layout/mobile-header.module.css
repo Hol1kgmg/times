@@ -5,41 +5,86 @@
   left: var(--space-1);
   z-index: var(--z-header);
   display: none;
-  align-items: center;
-  height: 56px;
+  flex-direction: column;
   padding: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: 9999px;
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow-menu);
+  /* 9999px からの補間は変化のほとんどが見えない範囲で起きるので、バーの高さの半分にする */
+  border-radius: 28px;
+  background-color: var(--color-surface-floating);
+  backdrop-filter: var(--backdrop-floating);
+  box-shadow: var(--shadow-floating);
+  transition: border-radius 0.2s;
 }
 
-@media (--mobile) {
+.header[data-open="true"] {
+  border-radius: var(--radius-panel);
+}
+
+@media (--narrow) {
   .header {
     display: flex;
   }
 }
 
-.menuButton {
+.bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
   height: 40px;
   padding: 0;
   border: 0;
   border-radius: 9999px;
   background: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.menuButton:hover {
+.close {
+  position: absolute;
+  left: var(--space-1);
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.header[data-open="true"] .close {
+  opacity: 1;
+}
+
+.menu {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s;
+}
+
+.header[data-open="true"] .menu {
+  grid-template-rows: 1fr;
+}
+
+.menuInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* padding を .menuInner に付けると 0fr で閉じきらない */
+.menuBody {
+  padding-bottom: var(--space-half);
+}
+
+.menuBody a {
+  padding-block: var(--space-1);
+}
+
+/* 半透明の地の上では --color-brand-faint が白に溶ける */
+.menuBody a:hover,
+.menuBody a[data-status="active"] {
   background-color: var(--color-fill-subtle);
 }
 
-.title {
-  position: absolute;
-  left: 50%;
-  display: flex;
-  transform: translateX(-50%);
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .menu,
+  .close {
+    transition: none;
+  }
 }

@@ -17,8 +17,8 @@
   background-color: var(--color-brand-faint);
 }
 
-/* スマホ横向きは幅で --mobile に入らないので高さでも詰める */
-@media (--mobile), (max-height: 480px) {
+/* スマホ横向きは幅で --narrow に入らないので高さでも詰める */
+@media (--narrow), (max-height: 480px) {
   .hero {
     --hero-padding: var(--space-4);
   }

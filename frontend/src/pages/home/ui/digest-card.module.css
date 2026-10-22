@@ -52,3 +52,21 @@
   composes: t-label from global;
   color: var(--color-text);
 }
+
+/* アバターの列を記事の下まで伸ばすと、狭い幅でタイトルが折り返しすぎる */
+@media (--narrow) {
+  .post {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-3) var(--space-2);
+    align-items: center;
+  }
+
+  .content {
+    display: contents;
+  }
+
+  .content > :last-child {
+    grid-column: 1 / -1;
+  }
+}

@@ -108,7 +108,7 @@
   color: var(--color-text-muted);
 }
 
-@media (--mobile) {
+@media (--narrow) {
   .row {
     flex-direction: column;
     align-items: stretch;
