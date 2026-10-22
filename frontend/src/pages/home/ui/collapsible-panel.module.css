@@ -44,13 +44,6 @@
   pointer-events: none;
 }
 
-@keyframes appear {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
 .expand {
   composes: t-body from global;
   display: flex;
@@ -65,7 +58,6 @@
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto;
-  animation: appear 0.25s ease-out;
 }
 
 .expand:hover,
@@ -76,9 +68,5 @@
 @media (prefers-reduced-motion: reduce) {
   .fade {
     transition: none;
-  }
-
-  .expand {
-    animation: none;
   }
 }

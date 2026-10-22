@@ -10,3 +10,4 @@
 | 0002 | [backend の読み取り結果とリンクプレビューは Workers の Cache API に載せ、backend にはキャッシュを置かない](0002-cache-backend-reads-in-workers-cache-api.md) | accepted |
 | 0003 | [Slack のチャンネルの構造を借り、色は独自のネイビー 1 色にする](0003-borrow-slack-channel-structure-with-own-colors.md) | accepted |
 | 0004 | [ロゴは「フィードで組んだ z + 新着ドット」で作り、形の正はコードに置く](0004-build-logo-from-feed-bars-z-and-new-dot.md) | accepted |
+| 0005 | [固定の UI 文字は Klee One のサブセットを preload して先に出し、記事タイトルの遅れは許容する](0005-preload-klee-one-subset-for-fixed-ui-text.md) | accepted |

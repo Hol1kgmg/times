@@ -121,6 +121,8 @@
             pkgs.gitleaks
             pkgs.lefthook
             pkgs.gh
+            # just fe-font-subset の pyftsubset。woff2 の書き出しに brotli が要る
+            (pkgs.python3.withPackages (ps: [ ps.fonttools ps.brotli ]))
             nur-packages.packages.${system}.markserv
             nur-packages.packages.${system}.spec-kit
             # gh は上で別途入れているため同梱版 default ではなく minimal

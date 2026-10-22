@@ -1,0 +1,19 @@
+import { globSync, readFileSync } from "node:fs";
+
+// 固定文字のサブセット (adr/frontend/0005) に入れる文字を標準出力に書く。just fe-font-subset から呼ぶ
+const ascii = Array.from({ length: 0x7f - 0x20 }, (_, i) => String.fromCodePoint(0x20 + i));
+// 日付は Intl が組み立てるのでソースに現れない
+const dateChars = ["月", "日", "火", "水", "木", "金", "土"];
+
+const sources = globSync("src/**/*.{ts,tsx}", {
+  exclude: (f) => /\.(?:test|gen)\.tsx?$/u.test(f),
+});
+const literals = sources
+  .map((f) => readFileSync(f, "utf-8"))
+  .join("\n")
+  .replaceAll(/\/\*[\s\S]*?\*\//gu, "")
+  // URL の "://" を残すため、行頭か空白の直後の // だけをコメントとみなす
+  .replaceAll(/(?<head>^|\s)\/\/.*$/gmu, "$<head>");
+
+const nonAscii = literals.match(/\P{ASCII}/gu) ?? [];
+process.stdout.write([...new Set([...ascii, ...dateChars, ...nonAscii])].toSorted().join(""));

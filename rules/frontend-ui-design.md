@@ -42,6 +42,8 @@
 
 フォントは Klee One (body で指定済み)。用途別に `global.css` のクラスを使う。CSS Modules からは `composes: t-title from global;` で取り込む。
 
+記事タイトル・プレビュー・入力欄など、データ由来の文字を出す要素には `font-family: var(--font-dynamic);` を付ける。body の既定はソース中の固定文字だけを含むサブセットで、それ以外の字は端末のフォントになる (adr/frontend/0005)。
+
 | 用途 | クラス | サイズ / ウェイト |
 |---|---|---|
 | 日付見出し | `.t-date` | 18px / 600 |

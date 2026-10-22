@@ -59,6 +59,7 @@
 .title {
   composes: t-title from global;
   color: var(--color-text);
+  font-family: var(--font-dynamic);
   text-decoration: none;
 }
 

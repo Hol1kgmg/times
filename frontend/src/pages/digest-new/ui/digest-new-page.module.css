@@ -35,6 +35,7 @@
   background-color: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+  font-family: var(--font-dynamic);
 }
 
 .rows {

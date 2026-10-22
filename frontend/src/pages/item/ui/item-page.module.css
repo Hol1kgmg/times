@@ -8,6 +8,7 @@
 .heading {
   composes: t-date from global;
   margin: 0;
+  font-family: var(--font-dynamic);
 }
 
 .body {

@@ -134,6 +134,23 @@ fe-format:
 fe-typecheck:
     pnpm -C frontend typecheck
 
+# Regenerate the Klee One subset for fixed UI text (adr/frontend/0005)
+fe-font-subset:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd frontend
+    out=src/app/styles/fonts
+    node scripts/fixed-chars.ts > "$out/fixed-chars.txt"
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    # 再生成で字形が変わらないよう google/fonts のコミットを固定する
+    base=https://raw.githubusercontent.com/google/fonts/130fcfb0ff422fec96b335616b2ca99f91914792/ofl/kleeone
+    for pair in 400:Regular 600:SemiBold; do
+        curl -fsSL "$base/KleeOne-${pair#*:}.ttf" -o "$tmp/font.ttf"
+        pyftsubset "$tmp/font.ttf" --text-file="$out/fixed-chars.txt" --flavor=woff2 \
+            --output-file="$out/klee-one-fixed-${pair%%:*}.woff2"
+    done
+
 # --- backend ---
 
 # Start the API server (needs `just db-up`)
