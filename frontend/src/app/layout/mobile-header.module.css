@@ -75,9 +75,14 @@
 }
 
 /* 半透明の地の上では --color-brand-faint が白に溶ける */
-.menuBody a:hover,
 .menuBody a[data-status="active"] {
   background-color: var(--color-fill-subtle);
+}
+
+@media (hover: hover) {
+  .menuBody a:hover {
+    background-color: var(--color-fill-subtle);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
