@@ -6,7 +6,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - var(--header-offset));
+  min-height: calc(100svh - var(--header-offset));
   background-color: var(--color-bg);
 }
 
@@ -33,8 +33,9 @@
   margin: 0 auto;
 }
 
+/* dvh はスクロール中のアドレスバーの出入りで変わり、ページ高が揺れて下端でスクロールが引っかかる */
 .fit:has(> [data-collapsed]) {
-  max-height: max(calc(100dvh - var(--header-offset) - 2 * var(--hero-padding)), 320px);
+  max-height: max(calc(100svh - var(--header-offset) - 2 * var(--hero-padding)), 320px);
 }
 
 .site {
