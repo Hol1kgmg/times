@@ -54,6 +54,13 @@ just fe-typecheck
 just fe-test-e2e       # 画面の遷移・フォーム・ログインに触れたとき
 ```
 
+- e2e は変更に関わる spec だけを回す (`just fe-test-e2e <ファイル名>`)。トップの Digest の表示 (並び・見出し・リンク・HOT) を変えたら `digest-new`、ログインなら `admin-login`、トップのそれ以外は `index`。見た目だけの変更では回さない
+- e2e は backend を切り替えて回す。開発用 (`just be-dev`、DB `times`) と e2e 用 (`just be-dev-e2e`、DB `times_e2e`) は同じ 8080 を使うため、同時には動かせない。
+  1. 開発用の backend が動いていたら止める (`lsof -iTCP:8080 -sTCP:LISTEN -P` で確認)。ユーザーが別のターミナルで動かしていて止められないときは、止めてもらうよう伝えて待つ
+  2. `just be-dev-e2e` をバックグラウンドで起動し、`/health` が返るのを待つ
+  3. `just fe-test-e2e`
+  4. 結果に関わらず `docker compose stop api` で e2e 用を止め、1 で止めた開発用を `just be-dev` で起動し直す
+
 - 新しい API 操作: `openapi.yaml` + sqlc クエリ + handler + router テスト 1 件 + `schemas.ts` のスキーマ。
 - 新しい画面: route + page + サーバー関数 (zod) + e2e 1 本。
 - 新しい業務ルール: DB 制約 (可能なら) + handler のエラー写像 + そのテスト。
