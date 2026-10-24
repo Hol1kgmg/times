@@ -58,6 +58,7 @@ just be-dev    # backend:  http://localhost:8080
 | gitleaks / lefthook | pre-commit でステージ済みの差分をシークレット走査する（[lefthook.yaml](lefthook.yaml)） |
 | gh / gh-dash | GitHub 操作 |
 | markserv | `just docs` で Markdown を http://localhost:8080 に配信する |
+| claude / codex | コーディングエージェント（`AGENTS.md` と `.agents/` を共有して参照する） |
 | go / gopls / sqlc / oapi-codegen | backend 開発（[docs/tech-stack.md](docs/tech-stack.md)）。Postgres と golang-migrate は Docker Compose で動かす |
 
 エージェント用スキルは `skills.nix` の宣言から devShell 起動時に `.agents/skills` へ同期されます

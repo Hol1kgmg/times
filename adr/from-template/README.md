@@ -17,6 +17,7 @@ ADR は決定そのものと、その背景・帰結を記録する。コード�
 |---|---|---|
 | 0001 | [テンプレート元の変更を手動のマージコミットで取り込む](0001-sync-template-via-merge-commit.md) | accepted |
 | 0002 | [書き込み権限を GitHub App の短命トークンで得る](0002-use-github-app-for-write-access.md) | superseded by 0003 |
-| 0003 | [skill / rules の取得元を flake input にして Dependabot で更新する](0003-update-skill-sources-via-dependabot.md) | accepted |
+| 0003 | [skill / rules の取得元を flake input にして Dependabot で更新する](0003-update-skill-sources-via-dependabot.md) | accepted (一部 0004 で置き換え) |
+| 0004 | [skill / rules 以外の Dependabot PR を auto-merge する](0004-auto-merge-non-skill-dependabot-prs.md) | accepted |
 
 lockfile 自動更新のセットアップ手順は [docs/lockfile-automation.md](../../docs/lockfile-automation.md) にある。

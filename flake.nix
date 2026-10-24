@@ -127,6 +127,7 @@
             nur-packages.packages.${system}.spec-kit
             # gh は上で別途入れているため同梱版 default ではなく minimal
             nix-claude-code.packages.${system}.claude-minimal
+            pkgs.codex
             # backend。golang-migrate は Nix 版 CLI が macOS で起動時に panic するため
             # compose の migrate/migrate イメージで実行する（just migrate）
             pkgs.go
