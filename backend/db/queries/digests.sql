@@ -6,7 +6,7 @@ SELECT * FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1;
 INSERT INTO digests (entry_date) VALUES ($1) RETURNING *;
 
 -- name: CreateArticle :one
-INSERT INTO articles (digest_id, position, category, title, url) VALUES ($1, $2, $3, $4, $5) RETURNING *;
+INSERT INTO articles (digest_id, position, category, title, url, is_hot) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 
 -- name: ListArticlesByDigest :many
 -- position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)

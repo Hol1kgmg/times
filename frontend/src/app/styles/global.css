@@ -28,6 +28,8 @@
   --color-fill-subtle: #eee;
   --color-fill-faint: #f7f7f7;
   --color-brand: #ff6b35;
+  /* ロゴのタイルの Z と同じく、橙の地に載せる文字。ダークでも変えない */
+  --color-on-brand: #fff;
   /* 白地で 2.8:1 と AA 未達だが、濃い橙 (#c2410c) は沈んで見えるためロゴ色に揃える (ADR frontend/0003) */
   --color-accent: var(--color-brand);
   /* この上の --color-text-faint は 4.5:1 を切るので、文字は --color-text-muted 以上を置く */

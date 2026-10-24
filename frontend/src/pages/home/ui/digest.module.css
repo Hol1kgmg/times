@@ -125,3 +125,48 @@
     }
   }
 }
+
+.hot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-half);
+  height: 1lh;
+  margin-left: var(--space-half);
+  color: var(--color-brand);
+  vertical-align: top;
+}
+
+/* ロゴのタイルと同じ「橙の地に白」の小さな印 */
+.hotLabel {
+  display: inline-flex;
+  transform-origin: left center;
+}
+
+.hotLabel text {
+  fill: var(--color-on-brand);
+  font-weight: 600;
+}
+
+/* タッチ端末はホバーできないので吹き出しを最初から出す (ロゴの variant="hover" と同じ扱い) */
+@media (hover: hover) {
+  /* 幅は普段から確保する。幅ごと伸ばすと長いタイトルの折り返しがホバーのたびに変わる */
+  .hotLabel {
+    opacity: 0;
+    transform: scale(0);
+    transition:
+      transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.1s ease-out;
+  }
+
+  .title:hover .hotLabel,
+  .title:focus-visible .hotLabel {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotLabel {
+    transition: none;
+  }
+}

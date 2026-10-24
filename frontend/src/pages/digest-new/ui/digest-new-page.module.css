@@ -23,6 +23,18 @@
   flex: 1;
 }
 
+.toggle {
+  display: flex;
+  gap: var(--space-half);
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.toggle > input {
+  /* ブラウザ既定の青はトークン外の有彩色になる */
+  accent-color: var(--color-accent);
+}
+
 .label {
   composes: t-label from global;
   color: var(--color-text-muted);

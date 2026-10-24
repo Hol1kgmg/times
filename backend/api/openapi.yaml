@@ -270,13 +270,16 @@ components:
             $ref: "#/components/schemas/Article"
     Article:
       type: object
-      required: [id, category, title, url, children]
+      required: [id, category, hot, title, url, children]
       properties:
         id:
           type: string
           format: uuid
         category:
           $ref: "#/components/schemas/Category"
+        hot:
+          type: boolean
+          description: ホットトピックかどうか。子記事は親に従うので ChildArticle には持たない
         title:
           type: string
         url:
@@ -323,6 +326,9 @@ components:
       properties:
         category:
           $ref: "#/components/schemas/Category"
+        hot:
+          type: boolean
+          default: false
         title:
           type: string
           minLength: 1
@@ -351,19 +357,18 @@ components:
           format: uri
           pattern: "^https?://"
           maxLength: 2000
-    # 固定 7 カテゴリ。表示順もこの順 (specs/001 FR-007)
+    # 固定 6 カテゴリ。表示順もこの順 (specs/001 FR-007、specs/004 FR-001)
     Category:
       type: string
       enum:
         - セキュリティ
-        - ホットトピック
         - IT系
         - UI系
         - AI系
         - 面白そうなツール・サービス
         - その他
       # 日本語値からは Go の定数名が作れないので明示する
-      x-enum-varnames: [CategorySecurity, CategoryHotTopic, CategoryIT, CategoryUI, CategoryAI, CategoryTools, CategoryOther]
+      x-enum-varnames: [CategorySecurity, CategoryIT, CategoryUI, CategoryAI, CategoryTools, CategoryOther]
     # RFC 9457 Problem Details。全エラー応答はこの形 (adr/backend/0002)
     Problem:
       type: object

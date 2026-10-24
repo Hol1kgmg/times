@@ -12,12 +12,15 @@ describe("schemas", () => {
   it("rejects a category outside the fixed set", () => {
     const base = {
       id: "b3b2b6e0-1c8e-4b6a-9f1e-3b8d0d0a1c2d",
+      hot: false,
       title: "t",
       url: "https://x.example",
       children: [],
     };
     expect(article.safeParse({ ...base, category: "その他" }).success).toBeTruthy();
     expect(article.safeParse({ ...base, category: "未知" }).success).toBeFalsy();
+    // ホットトピックはカテゴリではなく hot で表す (specs/004)
+    expect(article.safeParse({ ...base, category: "ホットトピック" }).success).toBeFalsy();
   });
 
   it("accepts only http(s) URLs for a new article", () => {

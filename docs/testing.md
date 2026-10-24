@@ -25,7 +25,7 @@ backend は 8080 を 1 つしか使えない。目的に合わせてどちらか
 | 画面を手で確認する (実 GitHub) | `just db-up` → `just be-dev` → `just fe-dev` |
 | e2e を回す (GitHub モック) | `just db-up` → `just be-dev-e2e` → `just fe-test-e2e` |
 
-- `just be-dev` は `backend/.env` の値で起動する。`just be-dev-e2e` は GitHub モックを向いた compose の `api` を起動する。
+- `just be-dev` は `backend/.env` の値で起動する。`just be-dev-e2e` は GitHub モックを向いた compose の `api` を起動する。DB は同じ Postgres の中の別の DB (`times_e2e`) を使うので、e2e で登録した Digest は開発用のトップに出ない。
 - 環境変数を書き換えたら `direnv reload` と、dev server / backend の再起動が要る。起動時の値が使われる。
 - 開発用の dev server (3000) は起動したままで e2e を回せる。e2e は 3001 に別の dev server を立てる。
 - 起動の確認は `http://localhost:8080/health` (backend) と `http://localhost:3000/health` (frontend から backend への疎通)。

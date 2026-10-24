@@ -22,7 +22,7 @@ services:
     volumes:
       # `just migrate-new` がここにファイルを作るので書き込み可
       - ./backend/db/migrations:/migrations
-    command: ["-path", "/migrations", "-database", "postgres://times:times@db:5432/times?sslmode=disable", "up"]
+    command: ["-path", "/migrations", "-database", "postgres://times:times@db:5432/${DB_NAME:-times}?sslmode=disable", "up"]
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +30,7 @@ services:
   api:
     build: ./backend
     environment:
-      DATABASE_URL: postgres://times:times@db:5432/times?sslmode=disable
+      DATABASE_URL: postgres://times:times@db:5432/${DB_NAME:-times}?sslmode=disable
       GIN_MODE: release
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}

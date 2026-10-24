@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// DB は開発用と共用で Digest の有無が定まらない。どちらの表示でも崩れないことを見る。
+// e2e の DB は使い回すので Digest の有無が定まらない。どちらの表示でも崩れないことを見る。
 // Digest の登録から表示までは digest-new.spec.ts が通す
 test("トップページにサイトの説明と、最新の Digest か「まだ記事がない」が出る", async ({ page }) => {
   await page.goto("/");
