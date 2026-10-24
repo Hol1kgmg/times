@@ -187,7 +187,10 @@ be-up:
 
 # Start the API in compose pointed at the e2e GitHub mock (frontend/e2e/github-mock.mjs). Linux CI needs `--add-host=host.docker.internal:host-gateway`
 be-dev-e2e:
-    GITHUB_CLIENT_ID=test GITHUB_CLIENT_SECRET=test ADMIN_GITHUB_LOGIN=octocat \
+    # 開発用の DB に書くとトップの「最新の Digest」が e2e のデータに置き換わるので、別の DB を使う
+    docker compose up -d --wait db
+    docker compose exec db sh -c "psql -U times -tAc \"SELECT 1 FROM pg_database WHERE datname = 'times_e2e'\" | grep -q 1 || createdb -U times times_e2e"
+    DB_NAME=times_e2e GITHUB_CLIENT_ID=test GITHUB_CLIENT_SECRET=test ADMIN_GITHUB_LOGIN=octocat \
         GITHUB_BASE_URL=http://host.docker.internal:3100 GITHUB_API_URL=http://host.docker.internal:3100 \
         docker compose up --build api
 
