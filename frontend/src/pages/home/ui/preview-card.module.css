@@ -16,6 +16,11 @@
   font-family: var(--font-dynamic);
 }
 
+.media {
+  position: relative;
+  border-bottom: 1px solid var(--color-border);
+}
+
 .text {
   display: flex;
   flex-direction: column;
@@ -23,19 +28,26 @@
 }
 
 .title {
-  composes: t-label from global;
-  display: -webkit-box;
-  margin: 0 0 var(--space-1);
+  composes: t-meta from global;
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-2);
+  max-width: calc(100% - var(--space-2) * 2);
+  margin: 0;
+  padding: var(--space-half) var(--space-1);
   overflow: hidden;
-  color: var(--color-text);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  color: var(--color-overlay-text);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: var(--radius-card);
+  background: var(--color-overlay-bg);
 }
 
 .body {
   composes: t-body from global;
   display: -webkit-box;
-  margin: 0;
+  margin: 0 0 var(--space-1);
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -51,17 +63,16 @@
 .image {
   display: block;
   width: 100%;
-  height: 136px;
-  border-top: 1px solid var(--color-border);
+  /* og:image の推奨比 (1200×630) */
+  aspect-ratio: 1.91 / 1;
+  height: auto;
   object-fit: cover;
   background: var(--color-fill-faint);
 }
 
 .noImage {
   composes: image;
-  composes: t-meta from global;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
 }
