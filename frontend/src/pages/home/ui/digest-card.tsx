@@ -26,9 +26,9 @@ export const DigestCard = ({ digest }: { digest: DigestData | null }) => (
             </span>
           </div>
           <article className={styles.post}>
-            <img alt="" className={styles.avatar} height={36} src="/favicon.svg" width={36} />
-            <div className={styles.content}>
-              <span className={styles.author}>z_times.dev</span>
+            <img alt="" height={36} src="/favicon.svg" width={36} />
+            <span className={styles.author}>z_times.dev</span>
+            <div className={styles.body}>
               <Digest items={digest.items} />
             </div>
           </article>

@@ -32,20 +32,11 @@
 }
 
 .post {
-  display: flex;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3) var(--space-2);
+  align-items: center;
   padding: var(--space-1) 0;
-}
-
-.avatar {
-  flex-shrink: 0;
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
 }
 
 .author {
@@ -53,20 +44,13 @@
   color: var(--color-text);
 }
 
+.body {
+  grid-column: 2;
+}
+
 /* アバターの列を記事の下まで伸ばすと、狭い幅でタイトルが折り返しすぎる */
 @media (--narrow) {
-  .post {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: var(--space-3) var(--space-2);
-    align-items: center;
-  }
-
-  .content {
-    display: contents;
-  }
-
-  .content > :last-child {
+  .body {
     grid-column: 1 / -1;
   }
 }
