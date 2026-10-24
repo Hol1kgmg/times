@@ -3,7 +3,7 @@ module github.com/Hol1kgmg/times/backend
 go 1.26.7
 
 require (
-	github.com/getkin/kin-openapi v0.150.0
+	github.com/getkin/kin-openapi v0.151.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
