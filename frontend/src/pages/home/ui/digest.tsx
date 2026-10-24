@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import type { Article, ChildArticle } from "#/shared/api/schemas";
 import { groupByCategory } from "../model/group-by-category";
 import styles from "./digest.module.css";
@@ -6,15 +6,30 @@ import { Favicon, PreviewCard } from "./preview-card";
 
 const ArticleLink = ({ article }: { article: ChildArticle }) => {
   const [hovered, setHovered] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const show = () => {
     setHovered(true);
+    setDismissed(false);
   };
+  // カードはリンクの下の行を覆うので、ポインターやフォーカスを動かさずに消せるようにする (WCAG 1.4.13)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDismissed(true);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
   return (
     <div className={styles.row}>
       <Favicon className={styles.favicon} url={article.url} />
       <span className={styles.text}>
         <a
           className={styles.title}
+          data-dismissed={dismissed ? "" : undefined}
           href={article.url}
           rel="noopener noreferrer"
           target="_blank"

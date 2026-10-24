@@ -94,19 +94,28 @@
     anchor-scope: --link;
   }
 
-  .text > a:hover + .preview,
-  .text > a:focus-visible + .preview {
+  /* 一覧の上を通り過ぎただけで出さないよう待つ。interestfor は Chrome だけなので使わない (adr/frontend/0006) */
+  .text > a:not([data-dismissed]):hover + .preview,
+  .text > a:not([data-dismissed]):focus-visible + .preview {
     position: absolute;
     top: 100%;
     left: var(--space-4);
     z-index: 1;
     display: flex;
+    transition:
+      opacity 0.15s ease-out 0.3s,
+      visibility 0s 0.3s;
+
+    @starting-style {
+      opacity: 0;
+      visibility: hidden;
+    }
   }
 
   /* カード下端で収まらなければリンクの上側に出す。fixed にしないと溢れ判定の基準が行の高さになり常に flip する */
   @supports (position-area: bottom span-right) {
-    .text > a:hover + .preview,
-    .text > a:focus-visible + .preview {
+    .text > a:not([data-dismissed]):hover + .preview,
+    .text > a:not([data-dismissed]):focus-visible + .preview {
       position: fixed;
       inset: auto;
       position-anchor: --link;
