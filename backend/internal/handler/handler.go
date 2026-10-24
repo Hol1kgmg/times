@@ -108,10 +108,10 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	}
 	var rows []db.Article
 	var links []db.ArticleLink
-	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category を引き継ぐ
-	insert := func(category, title, url string) (db.Article, error) {
+	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category と hot を引き継ぐ
+	insert := func(category, title, url string, hot bool) (db.Article, error) {
 		row, err := q.CreateArticle(ctx, db.CreateArticleParams{
-			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url,
+			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot,
 		})
 		if err != nil {
 			return row, constraintViolation(err)
@@ -120,7 +120,8 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 		return row, nil
 	}
 	for _, a := range req.Body.Items {
-		parent, err := insert(string(a.Category), a.Title, a.Url)
+		hot := a.Hot != nil && *a.Hot
+		parent, err := insert(string(a.Category), a.Title, a.Url, hot)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +129,7 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 			continue
 		}
 		for j, c := range *a.Children {
-			child, err := insert(string(a.Category), c.Title, c.Url)
+			child, err := insert(string(a.Category), c.Title, c.Url, hot)
 			if err != nil {
 				return nil, err
 			}
@@ -166,7 +167,7 @@ func toDigest(d db.Digest, rows []db.Article, links []db.ArticleLink) api.Digest
 			children[p] = append(children[p], api.ChildArticle{Id: r.ID, Title: r.Title, Url: r.Url, Description: r.Description})
 			continue
 		}
-		items = append(items, api.Article{Id: r.ID, Category: api.Category(r.Category), Title: r.Title, Url: r.Url, Description: r.Description})
+		items = append(items, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description})
 	}
 	for i := range items {
 		items[i].Children = children[items[i].Id]

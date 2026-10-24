@@ -2,14 +2,25 @@ import { Suspense, useEffect, useState } from "react";
 import type { Article, ChildArticle } from "#/shared/api/schemas";
 import { groupByCategory } from "../model/group-by-category";
 import styles from "./digest.module.css";
+import { Flame } from "./icons/flame";
+import { HotBubble } from "./icons/hot-bubble";
 import { Favicon, PreviewCard } from "./preview-card";
 
-const ArticleLink = ({ article }: { article: ChildArticle }) => {
+// タッチ端末はタップでも mouseenter / focus が来るので、ホバーできる環境かをその場で見る
+const canAnimate = () =>
+  window.matchMedia("(hover: hover) and (prefers-reduced-motion: no-preference)").matches;
+
+const ArticleLink = ({ article, hot = false }: { article: ChildArticle; hot?: boolean }) => {
   const [hovered, setHovered] = useState(false);
+  const [pointed, setPointed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const show = () => {
     setHovered(true);
     setDismissed(false);
+    setPointed(canAnimate());
+  };
+  const leave = () => {
+    setPointed(false);
   };
   // カードはリンクの下の行を覆うので、ポインターやフォーカスを動かさずに消せるようにする (WCAG 1.4.13)
   useEffect(() => {
@@ -33,10 +44,21 @@ const ArticleLink = ({ article }: { article: ChildArticle }) => {
           href={article.url}
           rel="noopener noreferrer"
           target="_blank"
+          onBlur={leave}
           onFocus={show}
           onMouseEnter={show}
+          onMouseLeave={leave}
         >
           {article.title}
+          {hot && (
+            <span className={styles.hot}>
+              <Flame animate={pointed} aria-hidden size={16} />
+              {/* SVG の <text> もリンク名に入るので、HOT の読み上げは吹き出しに任せる */}
+              <span className={styles.hotLabel}>
+                <HotBubble animate={pointed} />
+              </span>
+            </span>
+          )}
         </a>
         {hovered && (
           <Suspense fallback={null}>
@@ -51,7 +73,7 @@ const ArticleLink = ({ article }: { article: ChildArticle }) => {
 // <li> は呼び出し側に置く。markuplint はコンポーネントの中を追わず、<ul> 直下を不正と判定する
 const Entry = ({ article }: { article: Article }) => (
   <>
-    <ArticleLink article={article} />
+    <ArticleLink article={article} hot={article.hot} />
     {article.children.length > 0 && (
       <ul className={styles.children}>
         {article.children.map((c) => (

@@ -9,6 +9,7 @@ const latest = digest.parse({
     {
       id: "0b2a2f3e-0000-4000-8000-000000000002",
       category: "その他",
+      hot: false,
       title: "parent",
       url: "https://x.example/parent",
       children: [

@@ -1,7 +1,7 @@
 // seed は Markdown のダミーデータを開発 DB に入れる。`just db-seed` から呼ぶ。
 //
 // 形式: 「N日目」の行が digest の区切り、`- ` で始まらない行がカテゴリ、
-// `- [title](url)` が記事、2 スペース以上の字下げで子記事。
+// `- [title](url)` が記事 (`- 🔥 [title](url)` はホットトピック)、2 スペース以上の字下げで子記事。
 // 日付は実行日基準で、最後の日が 1 日前になるようにずらす。
 package main
 
@@ -23,6 +23,7 @@ import (
 
 type article struct {
 	title, url string
+	hot        bool
 	children   []article
 }
 
@@ -38,7 +39,7 @@ type day struct {
 
 var (
 	dayRe  = regexp.MustCompile(`^(\d+)日目$`)
-	linkRe = regexp.MustCompile(`^( *)- \[(.+)\]\((\S+)\)$`)
+	linkRe = regexp.MustCompile(`^( *)- (🔥 )?\[(.+)\]\((\S+)\)$`)
 )
 
 func main() {
@@ -89,8 +90,8 @@ func run() error {
 			return err
 		}
 		var pos int32
-		insert := func(cat string, a article) (db.Article, error) {
-			row, err := q.CreateArticle(ctx, db.CreateArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url})
+		insert := func(cat string, hot bool, a article) (db.Article, error) {
+			row, err := q.CreateArticle(ctx, db.CreateArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url, IsHot: hot})
 			if err != nil {
 				return row, fmt.Errorf("%d日目 %q: %w", dy.n, a.title, err)
 			}
@@ -99,12 +100,12 @@ func run() error {
 		}
 		for _, c := range dy.categories {
 			for _, a := range c.items {
-				parent, err := insert(c.name, a)
+				parent, err := insert(c.name, a.hot, a)
 				if err != nil {
 					return err
 				}
 				for j, ch := range a.children {
-					child, err := insert(c.name, ch)
+					child, err := insert(c.name, a.hot, ch)
 					if err != nil {
 						return err
 					}
@@ -145,7 +146,7 @@ func parse(r io.Reader) ([]day, error) {
 			return nil, fmt.Errorf("line %d: expected category before %q", ln, line)
 		}
 		cat := &cur.categories[len(cur.categories)-1]
-		a := article{title: m[2], url: m[3]}
+		a := article{title: m[3], url: m[4], hot: m[2] != ""}
 		if m[1] == "" {
 			cat.items = append(cat.items, a)
 			continue

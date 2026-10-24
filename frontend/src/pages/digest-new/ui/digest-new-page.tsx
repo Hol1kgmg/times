@@ -14,6 +14,7 @@ interface ChildRow {
 
 interface Row extends ChildRow {
   category: Category;
+  hot: boolean;
   children: ChildRow[];
 }
 
@@ -25,7 +26,12 @@ const noop = () => {
 };
 const subscribeNever = () => noop;
 const emptyChild = (key: number): ChildRow => ({ key, url: "", title: "" });
-const emptyRow = (key: number): Row => ({ ...emptyChild(key), category: "その他", children: [] });
+const emptyRow = (key: number): Row => ({
+  ...emptyChild(key),
+  category: "その他",
+  hot: false,
+  children: [],
+});
 
 export const DigestNewPage = () => {
   const submit = useServerFn(createDigest);
@@ -80,10 +86,11 @@ export const DigestNewPage = () => {
       await submit({
         data: {
           entryDate,
-          items: rows.map(({ url, title, category: c, children }) => ({
+          items: rows.map(({ url, title, category: c, hot, children }) => ({
             url,
             title,
             category: c,
+            hot,
             children: children.map((ch) => ({ url: ch.url, title: ch.title })),
           })),
         },
@@ -164,6 +171,17 @@ export const DigestNewPage = () => {
                       </option>
                     ))}
                   </select>
+                </label>
+                <label className={styles.toggle}>
+                  <input
+                    checked={row.hot}
+                    name={`hot-${i}`}
+                    type="checkbox"
+                    onChange={(e) => {
+                      update(row.key, { hot: e.target.checked });
+                    }}
+                  />
+                  <span className={styles.label}>ホット</span>
                 </label>
                 <button
                   className={styles.secondary}

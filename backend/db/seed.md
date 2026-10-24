@@ -1,7 +1,4 @@
 １日目
-ホットトピック
-
-- [今さら理解するウェブフォントver.2026](https://speakerdeck.com/takanorip/imasara-rikai-suru-ver-2026)
 IT系
 
 - [新API「HTML-in-Canvas」を紹介 - CanvasにHTMLを描くAPIは何を解決するのか？ - ICS MEDIA](https://ics.media/entry/260825/)
@@ -11,6 +8,7 @@ IT系
   - [【資料公開】2026年度 新卒研修「オンラインゲームのシステム全体像」を実施しました！ - COLOPL Tech Blog](https://blog.colopl.dev/entry/2026/10/06/110000)
 UI系
 
+- 🔥 [今さら理解するウェブフォントver.2026](https://speakerdeck.com/takanorip/imasara-rikai-suru-ver-2026)
 - [404s — A Curated Gallery of Creative Error Page Designs](https://www.404s.design/)
 AI系
 
@@ -31,16 +29,14 @@ AI系
 
 2日目
 
-ホットトピック
-
-- [TanStack Start | version.1.0公開](https://tanstack.com/start/latest)
-  - [TanStack Start の「型安全」が型にしている 5 つの場所 | ashunar0](https://ashunar0.dev/posts/tanstack-type-safety/)
 セキュリティ
 
 - [不正アクセスによる情報漏えい等の事案を踏まえた対応について （公開アプリの解析情報を悪用した攻撃への注意喚起）](https://www.soumu.go.jp/menu_kyotsuu/important/kinkyu02_000680.html)
 - [NICT：【注意喚起】相次ぐ情報漏洩、その原因の一つは 「アプリ解析からのサーバ攻撃」](https://cynex.nict.go.jp/pdf/library/lettice/261013-01.pdf)
 IT系
 
+- 🔥 [TanStack Start | version.1.0公開](https://tanstack.com/start/latest)
+  - [TanStack Start の「型安全」が型にしている 5 つの場所 | ashunar0](https://ashunar0.dev/posts/tanstack-type-safety/)
 - [フロントエンドのモデルに境界を引く](https://speakerdeck.com/babywkb/furonto-endo-no-moderu-ni-kyoukai-o-hiku)
 UI系
 

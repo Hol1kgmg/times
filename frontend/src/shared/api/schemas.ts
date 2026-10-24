@@ -18,7 +18,6 @@ export const item = z.object({
 
 export const category = z.enum([
   "セキュリティ",
-  "ホットトピック",
   "IT系",
   "UI系",
   "AI系",
@@ -37,6 +36,7 @@ export const childArticle = z.object({
 export const article = z.object({
   id: articleId,
   category,
+  hot: z.boolean(),
   title: z.string(),
   url: z.url(),
   description: z.string().optional(),
@@ -58,6 +58,8 @@ export const newChildArticle = z.object({
 
 export const newArticle = newChildArticle.extend({
   category,
+  // openapi.yaml の default: false で生成型は必須になるので、省略を false に埋めて型を合わせる
+  hot: z.boolean().default(false),
   children: newChildArticle.array().max(20),
 }) satisfies z.ZodType<Schemas["NewArticle"]>;
 

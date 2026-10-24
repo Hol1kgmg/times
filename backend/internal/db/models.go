@@ -18,6 +18,7 @@ type Article struct {
 	Title       string
 	Url         string
 	Description *string
+	IsHot       bool
 }
 
 type ArticleLink struct {

@@ -13,7 +13,7 @@ IT系
   - [a1](https://a.example/1)
   - [a2](https://a.example/2)
 UI系
-- [b](https://b.example)
+- 🔥 [b](https://b.example)
 
 2日目
 その他
@@ -33,6 +33,9 @@ UI系
 	a := d1.categories[0].items
 	if len(a) != 1 || a[0].url != "https://a.example" || len(a[0].children) != 2 || a[0].children[1].title != "a2" {
 		t.Fatalf("items = %+v", a)
+	}
+	if b := d1.categories[1].items[0]; a[0].hot || !b.hot || b.title != "b" {
+		t.Fatalf("hot: a = %+v, b = %+v", a[0], b)
 	}
 	if got := days[1].categories[0].items[0].title; got != "c [x]" {
 		t.Fatalf("title = %q", got)

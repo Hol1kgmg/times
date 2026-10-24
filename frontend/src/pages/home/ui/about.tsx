@@ -6,7 +6,6 @@ import type { Category } from "#/shared/api/schemas";
 import styles from "./about.module.css";
 import { Chevron } from "./chevron";
 import { Ellipsis } from "./icons/ellipsis";
-import { Flame } from "./icons/flame";
 import { Palette } from "./icons/palette";
 import { Rocket } from "./icons/rocket";
 import { ShieldCheck } from "./icons/shield-check";
@@ -14,7 +13,6 @@ import { Sparkles } from "./icons/sparkles";
 import { Terminal } from "./icons/terminal";
 
 const categoryDetails = {
-  ホットトピック: { Icon: Flame, text: "その日いちばん盛り上がってたもの" },
   セキュリティ: { Icon: ShieldCheck, text: "注意喚起とか脆弱性の話" },
   IT系: { Icon: Terminal, text: "設計や開発まわりの記事・スライド" },
   UI系: { Icon: Palette, text: "デザインやフロントエンドの表現" },
@@ -29,7 +27,7 @@ const categoryDetails = {
 const faqs = [
   {
     q: "どうやって見ればいい？",
-    a: "記事はカテゴリごとに並んでます。押すと元のページが別タブで開きます。",
+    a: "記事はカテゴリごとに並んでます。炎のアイコンが付いてるのは、その日いちばん盛り上がってたものです。押すと元のページが別タブで開きます。",
   },
   {
     q: "過去の分は見られる？",

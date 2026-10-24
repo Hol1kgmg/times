@@ -13,7 +13,7 @@ import (
 )
 
 const createArticle = `-- name: CreateArticle :one
-INSERT INTO articles (digest_id, position, category, title, url) VALUES ($1, $2, $3, $4, $5) RETURNING id, digest_id, position, category, title, url, description
+INSERT INTO articles (digest_id, position, category, title, url, is_hot) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, digest_id, position, category, title, url, description, is_hot
 `
 
 type CreateArticleParams struct {
@@ -22,6 +22,7 @@ type CreateArticleParams struct {
 	Category string
 	Title    string
 	Url      string
+	IsHot    bool
 }
 
 func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		arg.Category,
 		arg.Title,
 		arg.Url,
+		arg.IsHot,
 	)
 	var i Article
 	err := row.Scan(
@@ -41,6 +43,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		&i.Title,
 		&i.Url,
 		&i.Description,
+		&i.IsHot,
 	)
 	return i, err
 }
@@ -110,7 +113,7 @@ func (q *Queries) ListArticleLinksByDigest(ctx context.Context, digestID uuid.UU
 }
 
 const listArticlesByDigest = `-- name: ListArticlesByDigest :many
-SELECT id, digest_id, position, category, title, url, description FROM articles WHERE digest_id = $1 ORDER BY position
+SELECT id, digest_id, position, category, title, url, description, is_hot FROM articles WHERE digest_id = $1 ORDER BY position
 `
 
 // position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
@@ -131,6 +134,7 @@ func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) 
 			&i.Title,
 			&i.Url,
 			&i.Description,
+			&i.IsHot,
 		); err != nil {
 			return nil, err
 		}

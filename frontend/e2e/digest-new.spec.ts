@@ -31,7 +31,9 @@ test("未ログインでは登録ページは 404 で、サイドバーに管理
   await expect(nav.getByRole("link", { name: "item-1" })).toHaveCount(0);
 });
 
-test("日付・URL・タイトル・分類を登録するとトップに固定順で出る", async ({ browser }) => {
+test("日付・URL・タイトル・分類・ホットを登録すると、固定順で並び、ホットの記事にだけ HOT の印が付く", async ({
+  browser,
+}) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   // 同じ DB を使い回すので、実行ごとに URL を変えて重複 (400) を避ける
@@ -58,6 +60,11 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
   await page.locator('[name="add-child-1"]').click();
   await page.locator('[name="url-1-0"]').fill(`https://e2e.example/${run}/2/child`);
   await page.locator('[name="title-1-0"]').fill(`関連記事 ${run}`);
+  // 3 行目 (その他) をホットにし、関連記事も付ける。印は親にだけ付く
+  await page.locator('[name="hot-2"]').check();
+  await page.locator('[name="add-child-2"]').click();
+  await page.locator('[name="url-2-0"]').fill(`https://e2e.example/${run}/3/child`);
+  await page.locator('[name="title-2-0"]').fill(`ホットの関連記事 ${run}`);
 
   await page.getByRole("button", { name: "登録" }).click();
   await page.waitForURL((url) => url.pathname === "/");
@@ -70,8 +77,10 @@ test("日付・URL・タイトル・分類を登録するとトップに固定�
     `セキュリティの記事 ${run}`,
     `関連記事 ${run}`,
     `その他の記事 ${run}`,
-    `その他の記事 2 ${run}`,
+    `その他の記事 2 ${run}HOT`,
+    `ホットの関連記事 ${run}`,
   ]);
+  await expect(links.filter({ hasText: "HOT" })).toHaveText([`その他の記事 2 ${run}HOT`]);
   await expect(links.first()).toHaveAttribute("target", "_blank");
   await context.close();
 });
