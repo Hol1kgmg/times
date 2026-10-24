@@ -6,6 +6,8 @@ import type { Category } from "#/shared/api/schemas";
 import styles from "./about.module.css";
 import { Chevron } from "./chevron";
 import { Ellipsis } from "./icons/ellipsis";
+import { Flame } from "./icons/flame";
+import { HotBubble } from "./icons/hot-bubble";
 import { Palette } from "./icons/palette";
 import { Rocket } from "./icons/rocket";
 import { ShieldCheck } from "./icons/shield-check";
@@ -27,7 +29,7 @@ const categoryDetails = {
 const faqs = [
   {
     q: "どうやって見ればいい？",
-    a: "記事はカテゴリごとに並んでます。炎のアイコンが付いてるのは、その日いちばん盛り上がってたものです。押すと元のページが別タブで開きます。",
+    a: "記事はカテゴリごとに並んでます。押すと元のページが別タブで開きます。",
   },
   {
     q: "過去の分は見られる？",
@@ -104,6 +106,18 @@ export const About = () => (
           );
         })}
       </ul>
+    </div>
+    <div className={styles.block}>
+      <h3 className={styles.blockHeading}>ホットトピック</h3>
+      <AnimateIcon animateOnHover asChild>
+        <div className={styles.hot}>
+          <span aria-hidden className={styles.hotMark}>
+            <Flame size={18} />
+            <HotBubble animate={false} size={18} />
+          </span>
+          <p className={styles.hotText}>個人的にホットな話題の記事には炎を付けてます。</p>
+        </div>
+      </AnimateIcon>
     </div>
     <div className={styles.block}>
       <h3 className={styles.blockHeading}>気になりそうなこと</h3>
