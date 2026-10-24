@@ -27,9 +27,6 @@ export const HomePage = () => {
       <About />
       <footer className={styles.footer}>
         <Logo />
-        <a href="https://github.com/Hol1kgmg" rel="noopener noreferrer" target="_blank">
-          GitHub
-        </a>
       </footer>
     </div>
   );
