@@ -35,7 +35,7 @@ export const MobileHeader = ({ menuRef, navRef, open, onMenuClick, onNavigate }:
       </svg>
       <img alt="" height={32} src="/favicon.svg" width={32} />
     </button>
-    <div ref={navRef} className={styles.menu} inert={!open}>
+    <div ref={navRef} className={styles.menu}>
       <div className={styles.menuInner}>
         <div className={styles.menuBody}>
           <ChannelNav onNavigate={onNavigate} />

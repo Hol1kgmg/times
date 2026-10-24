@@ -71,7 +71,7 @@ const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: 
         {q}
         <Chevron className={styles.chevron} size={18} />
       </button>
-      <div className={styles.panel} id={panelId} inert={!open}>
+      <div className={styles.panel} id={panelId}>
         <div className={styles.panelInner}>
           <p className={styles.answer}>{a}</p>
         </div>

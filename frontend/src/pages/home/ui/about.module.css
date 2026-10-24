@@ -153,11 +153,16 @@
 .panel {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s ease-out;
+  /* inert だと Accessibility Visualizer が閉じた中のリンクまで警告するので、visibility で隠す */
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.2s ease-out,
+    visibility 0.2s;
 }
 
 .question[aria-expanded="true"] + .panel {
   grid-template-rows: 1fr;
+  visibility: visible;
 }
 
 .panelInner {

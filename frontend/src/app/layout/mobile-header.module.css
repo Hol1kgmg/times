@@ -53,11 +53,16 @@
 .menu {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s;
+  /* inert だと Accessibility Visualizer が閉じた中のリンクまで警告するので、visibility で隠す */
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.2s,
+    visibility 0.2s;
 }
 
 .header[data-open="true"] .menu {
   grid-template-rows: 1fr;
+  visibility: visible;
 }
 
 .menuInner {
