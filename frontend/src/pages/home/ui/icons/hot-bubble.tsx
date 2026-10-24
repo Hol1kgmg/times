@@ -26,10 +26,13 @@ const IconComponent = ({ size = 20, ...props }: HotBubbleProps) => {
 
   return (
     <motion.svg
+      aria-label="HOT"
       fill="none"
       height={size}
       // 回すと右端が枠の上に出る。svg は既定で枠の外を切るので描かせる
       overflow="visible"
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れず、motion で動かせない
+      role="img"
       viewBox="0 0 40 20"
       width={size * 2}
       xmlns="http://www.w3.org/2000/svg"

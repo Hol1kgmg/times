@@ -23,7 +23,7 @@ const categoryDetails = {
   その他: { Icon: Ellipsis, text: "どれにも入らなかったもの" },
 } satisfies Record<
   Category,
-  { Icon: ComponentType<{ className?: string; size?: number }>; text: string }
+  { Icon: ComponentType<{ className?: string; role?: string; size?: number }>; text: string }
 >;
 
 const faqs = [
@@ -97,7 +97,7 @@ export const About = () => (
             <AnimateIcon key={c} animateOnHover asChild>
               <li className={styles.category}>
                 <span className={styles.categoryName}>
-                  <Icon className={styles.categoryIcon} size={18} />
+                  <Icon className={styles.categoryIcon} role="none" size={18} />
                   {c}
                 </span>
                 {text}
@@ -111,8 +111,8 @@ export const About = () => (
       <h3 className={styles.blockHeading}>ホットトピック</h3>
       <AnimateIcon animateOnHover asChild>
         <div className={styles.hot}>
-          <span aria-hidden className={styles.hotMark}>
-            <Flame size={18} />
+          <span className={styles.hotMark}>
+            <Flame role="none" size={18} />
             <HotBubble animate={false} size={18} />
           </span>
           <p className={styles.hotText}>個人的にホットな話題の記事には炎を付けてます。</p>

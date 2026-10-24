@@ -52,8 +52,8 @@ const ArticleLink = ({ article, hot = false }: { article: ChildArticle; hot?: bo
           {article.title}
           {hot && (
             <span className={styles.hot}>
-              <Flame animate={pointed} aria-hidden size={16} />
-              {/* SVG の <text> もリンク名に入るので、HOT の読み上げは吹き出しに任せる */}
+              <Flame animate={pointed} role="none" size={16} />
+              {/* 炎にも名前を付けると HOT と二重に読まれるので、読み上げは吹き出しだけにする */}
               <span className={styles.hotLabel}>
                 <HotBubble animate={pointed} />
               </span>

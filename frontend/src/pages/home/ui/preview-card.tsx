@@ -7,9 +7,17 @@ import styles from "./preview-card.module.css";
 const faviconUrl = (url: string) =>
   `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`;
 
-export const Favicon = ({ url, className }: { url: string; className?: string }) => (
+export const Favicon = ({
+  url,
+  className,
+  alt,
+}: {
+  url: string;
+  className?: string;
+  alt?: string;
+}) => (
   <img
-    alt=""
+    alt={alt ?? new URL(url).hostname}
     className={className === undefined ? styles.favicon : `${styles.favicon} ${className}`}
     height={16}
     loading="lazy"
@@ -63,7 +71,7 @@ export const PreviewCard = ({
       <div className={styles.text}>
         {meta.description !== null && <p className={styles.body}>{meta.description}</p>}
         <span className={styles.source}>
-          <Favicon url={url} />
+          <Favicon alt="" url={url} />
           {new URL(url).hostname}
         </span>
       </div>

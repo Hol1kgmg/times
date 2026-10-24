@@ -1,7 +1,6 @@
 // lucide の chevron-down (ISC)
 export const Chevron = ({ className, size }: { className?: string; size: number }) => (
   <svg
-    aria-hidden="true"
     className={className}
     fill="none"
     height={size}
