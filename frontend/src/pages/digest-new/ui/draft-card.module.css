@@ -51,7 +51,15 @@
   color: var(--color-text);
   font-family: var(--font-dynamic);
   text-decoration: none;
-  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.titleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .title:focus-visible {
@@ -66,19 +74,28 @@
 
 .hot {
   display: inline-flex;
+  flex-shrink: 0;
   margin-left: var(--space-half);
   color: var(--color-brand);
-  vertical-align: -1px;
 }
 
 .meta {
   composes: t-meta from global;
+  display: flex;
+  min-width: 0;
   color: var(--color-text-faint);
   font-family: var(--font-dynamic);
+  white-space: nowrap;
+}
+
+.host {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loading,
 .warn {
+  flex-shrink: 0;
   margin-left: var(--space-1);
 }
 

@@ -161,7 +161,9 @@ const LinkRow = ({
         <>
           <span className={styles.text}>
             <a className={styles.title} href={link.url} rel="noopener noreferrer" target="_blank">
-              {link.title === "" ? host : link.title}
+              <span className={styles.titleText} title={link.title}>
+                {link.title === "" ? host : link.title}
+              </span>
               {hot && (
                 <span className={styles.hot}>
                   {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れない */}
@@ -170,7 +172,7 @@ const LinkRow = ({
               )}
             </a>
             <span className={styles.meta}>
-              {host}
+              <span className={styles.host}>{host}</span>
               {link.status === "loading" && (
                 <span className={styles.loading}>タイトルを取得してます</span>
               )}
