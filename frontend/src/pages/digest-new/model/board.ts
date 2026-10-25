@@ -76,6 +76,22 @@ const locate = (board: Board, id: string) => {
   return null;
 };
 
+// クエリごと消すと YouTube の ?v= のように記事を指すクエリまで消えるので、追跡用だけを消す
+const trackingParams = new Set(["fbclid", "gclid", "yclid", "mc_cid", "mc_eid", "ref_src", "si"]);
+
+export const stripTracking = (url: string): string => {
+  const u = new URL(url);
+  const kept = [...u.searchParams].filter(
+    ([key]) => !key.startsWith("utm_") && !trackingParams.has(key),
+  );
+  // URLSearchParams で組み直すと ?a が ?a= になるなど別の URL に変わるので、消すものが無ければ触らない
+  if (kept.length === u.searchParams.size) {
+    return url;
+  }
+  u.search = new URLSearchParams(kept).toString();
+  return u.toString();
+};
+
 const replaceBox = (board: Board, box: BoxId, items: Draft[]): Board => ({
   ...board,
   [box]: items,
@@ -113,8 +129,12 @@ export const editLink = (
   board: Board,
   id: string,
   next: { url: string; title: string },
-): Board | Rejected =>
-  findDuplicate(board, next.url, id) ? "duplicate" : mapLink(board, id, (l) => ({ ...l, ...next }));
+): Board | Rejected => {
+  const url = stripTracking(next.url);
+  return findDuplicate(board, url, id)
+    ? "duplicate"
+    : mapLink(board, id, (l) => ({ ...l, ...next, url }));
+};
 
 export const revert = (board: Board, id: string): Board =>
   mapLink(board, id, (l) => ({ ...l, url: l.initial.url, title: l.initial.title }));

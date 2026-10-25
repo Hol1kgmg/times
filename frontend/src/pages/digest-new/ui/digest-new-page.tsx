@@ -27,6 +27,7 @@ import {
   remove,
   revert,
   settleTitle,
+  stripTracking,
   toggleHot,
   toIds,
   toNewDigest,
@@ -184,11 +185,12 @@ export const DigestNewPage = () => {
     },
   };
 
-  const onAdd = async (link: string) => {
-    if (!newChildArticle.shape.url.safeParse(link).success) {
+  const onAdd = async (input: string) => {
+    if (!newChildArticle.shape.url.safeParse(input).success) {
       setAddError("http か https の URL を入れてください");
       return;
     }
+    const link = stripTracking(input);
     const id = crypto.randomUUID();
     const added = addDraft(board, link, id);
     if (typeof added === "string") {

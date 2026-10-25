@@ -10,6 +10,7 @@ import {
   moveToBoxEnd,
   revert,
   settleTitle,
+  stripTracking,
   toggleHot,
   toIds,
   toNewDigest,
@@ -40,6 +41,24 @@ const ok = (b: Board | string): Board => {
 };
 
 describe("集める", () => {
+  it("drops tracking parameters from an added URL", () => {
+    expect(stripTracking("https://example.com/a?utm_source=x&fbclid=y#h")).toBe(
+      "https://example.com/a#h",
+    );
+  });
+
+  it("keeps query parameters that point to the article", () => {
+    expect(stripTracking("https://www.youtube.com/watch?v=abc&si=xyz")).toBe(
+      "https://www.youtube.com/watch?v=abc",
+    );
+  });
+
+  it("leaves a URL without tracking parameters exactly as entered", () => {
+    expect(stripTracking("https://example.com/p?123&q=a%20b")).toBe(
+      "https://example.com/p?123&q=a%20b",
+    );
+  });
+
   it("rejects a URL already used by an article or a related article", () => {
     const b = board({ その他: [draft("a", { children: [link("b")] })] });
     expect(addDraft(b, "https://example.com/a", "x")).toBe("duplicate");
@@ -93,6 +112,13 @@ describe("手直し", () => {
   it("rejects editing a URL into one another candidate already uses", () => {
     const b = board({ その他: [draft("a"), draft("b")] });
     expect(editLink(b, "b", { url: "https://example.com/a", title: "t" })).toBe("duplicate");
+  });
+
+  it("rejects an edited URL that only differs from another candidate by tracking parameters", () => {
+    const b = board({ その他: [draft("a"), draft("b")] });
+    expect(editLink(b, "b", { url: "https://example.com/a?utm_source=x", title: "t" })).toBe(
+      "duplicate",
+    );
   });
 });
 
