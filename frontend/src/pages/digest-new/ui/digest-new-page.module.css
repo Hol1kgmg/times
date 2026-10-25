@@ -59,11 +59,18 @@
   gap: var(--space-1);
 }
 
+.urlField {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
 .urlInput {
   composes: input;
   flex: 1;
   min-width: 0;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) calc(var(--space-4) + var(--space-1)) var(--space-1) var(--space-2);
   font-family: var(--font-dynamic);
 }
 
@@ -99,6 +106,32 @@
   }
 }
 
+.fieldButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--space-4) + var(--space-1));
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-brand);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.fieldButton:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.fieldButton:disabled {
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
 .primary {
   composes: button;
   align-self: flex-end;
@@ -118,7 +151,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .button {
+  .button,
+  .fieldButton {
     transition: none;
   }
 }

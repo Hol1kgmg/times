@@ -45,6 +45,11 @@ const noop = () => {
 };
 const subscribeNever = () => noop;
 
+const clipboardIcon =
+  "M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" +
+  "M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2M9 12h6M9 16h6";
+const clearIcon = "M18 6l-12 12M6 6l12 12";
+
 const rejectedText: Record<Rejected, string> = {
   duplicate: "その URL はもう入ってます",
   limit: `記事は ${MAX_DRAFTS} 件までです`,
@@ -132,13 +137,13 @@ export const DigestNewPage = () => {
     },
   };
 
-  const onAdd = async () => {
-    if (!newChildArticle.shape.url.safeParse(url).success) {
+  const onAdd = async (link: string) => {
+    if (!newChildArticle.shape.url.safeParse(link).success) {
       setAddError("http か https の URL を入れてください");
       return;
     }
     const id = crypto.randomUUID();
-    const added = addDraft(board, url, id);
+    const added = addDraft(board, link, id);
     if (typeof added === "string") {
       setAddError(rejectedText[added]);
       return;
@@ -149,13 +154,32 @@ export const DigestNewPage = () => {
     setAdding(true);
     let title: string | null = null;
     try {
-      ({ title } = await getTitle({ data: url }));
+      ({ title } = await getTitle({ data: link }));
     } catch {
       // 取れなかったときはタイトル空の候補として残し、手で入れてもらう
     }
     // 取得を待つ間に他の操作で board が変わっているので、最新の state に反映する
     setBoard((b) => settleTitle(b, id, title));
     setAdding(false);
+    urlInput.current?.focus();
+  };
+
+  const onPaste = async () => {
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      setAddError("クリップボードを読めませんでした。入力欄に貼り付けてください");
+      return;
+    }
+    // 弾かれたときに何が貼られたか見えるよう、先に入力欄へ入れる
+    setUrl(text.trim());
+    await onAdd(text.trim());
+  };
+
+  const onClear = () => {
+    setUrl("");
+    setAddError(undefined);
     urlInput.current?.focus();
   };
 
@@ -229,23 +253,52 @@ export const DigestNewPage = () => {
             className={styles.add}
             onSubmit={(e) => {
               e.preventDefault();
-              void onAdd();
+              void onAdd(url);
             }}
           >
-            <input
-              ref={urlInput}
-              aria-label="記事の URL"
-              className={styles.urlInput}
-              disabled={adding}
-              maxLength={2000}
-              placeholder="https://example.com/article"
-              required
-              type="url"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-              }}
-            />
+            <div className={styles.urlField}>
+              <input
+                ref={urlInput}
+                aria-label="記事の URL"
+                className={styles.urlInput}
+                disabled={adding}
+                maxLength={2000}
+                placeholder="https://example.com/article"
+                required
+                type="url"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                }}
+              />
+              <button
+                aria-label={url === "" ? "クリップボードから追加" : "入力を消去"}
+                className={styles.fieldButton}
+                disabled={adding}
+                type="button"
+                onClick={() => {
+                  if (url === "") {
+                    void onPaste();
+                  } else {
+                    onClear();
+                  }
+                }}
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height={20}
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  width={20}
+                >
+                  <path d={url === "" ? clipboardIcon : clearIcon} />
+                </svg>
+              </button>
+            </div>
             <button className={styles.button} disabled={adding} type="submit">
               {adding ? "取得中" : "追加"}
             </button>
