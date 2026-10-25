@@ -23,7 +23,8 @@ decision-makers: 'Hol1kgmg'
 
 - body の既定は `--font-fixed` (`"Klee One Fixed", "Hiragino Sans", ...`)。データ由来の文字を出す要素 (記事タイトル、プレビューカード、入力欄) だけ `--font-dynamic` (`"Klee One Fixed", "Klee One", ...`) にする。書体は同じなので、遅れて届いても見た目は切り替わらない
   - 全体を `--font-dynamic` にしなかったのは、Chrome が書体指定・サイズ・太さの同じ文字をまとめて扱うため (2026-10-22)。記事タイトルと同じ 16px / 400 のサイドバーのリンクが、固定文字だけなのに記事用の Klee One の到着まで隠れていた。リンクだけ 15.5px にすると早く出ることで確かめた
-- Fixed に入れる文字は、`src/**/*.{ts,tsx}` のコメント以外に現れる非 ASCII 文字、ASCII 全体、日付の書式で使う `月日火水木金土`。`frontend/scripts/fixed-chars.ts` が抜き出し、`fixed-chars.txt` に書く
+- Fixed に入れる文字は、トップとシェルのソース (`src/app/**`・`src/pages/home/**`・`src/shared/**` の `*.{ts,tsx}`) のコメント以外に現れる非 ASCII 文字、ASCII 全体、日付の書式で使う `月日火水木金土`。`frontend/scripts/fixed-chars.ts` が抜き出し、`fixed-chars.txt` に書く
+  - 当初は `src/**` 全体を入れていたが、トップに出ない管理画面の文言まで preload することになるので絞った (2026-10-25)。トップ以外の画面 (`pages/*` の home 以外) は、ページの一番外側を `--font-dynamic` にして Fixed に無い字を Klee One から取る。管理画面なので、記事タイトルと同じく Klee One の到着を待つ遅れは許容する。1 ウェイト約 71KB → 約 56KB
 - 元のフォントは google/fonts の Klee One の TTF で、コミットを固定する。生成は `just fe-font-subset` (`pyftsubset`)。リポジトリには woff2 と文字の一覧だけを入れる
 - Fixed も `font-display: block` にする。1 ウェイト約 63KB で、HTML と同時に preload するので待ち時間は短い
 - `/assets/*` に `Cache-Control: public, max-age=31536000, immutable` を付ける (`public/_headers`)。ファイル名にハッシュが付くので、内容が変われば URL も変わる
@@ -33,7 +34,8 @@ decision-makers: 'Hol1kgmg'
 - Good, because 固定の文字は 2 ファイルを取得すれば出る。600 の文字はすべて Fixed に入るので、600 の分割ファイルは読まれなくなった
 - Good, because UI ルールの「フォントは Klee One」を変えずに済む
 - Good, because immutable にしたことで、2 回目以降の訪問はフォントを含めて往復しない
-- Bad, because UI の文言を変えたら `just fe-font-subset` が要る。忘れると Vitest (`fixed-chars.test.ts`) が落ちる。直さないまま出しても、増えた文字が遅れて出るだけで表示は崩れない
+- Bad, because トップ以外の画面を足すときに、ページの一番外側の `--font-dynamic` を付け忘れると、Fixed に無い字が端末のフォントで出る
+- Bad, because トップかシェルの文言を変えたら `just fe-font-subset` が要る。忘れると Vitest (`fixed-chars.test.ts`) が落ちる。直さないまま出しても、増えた文字が遅れて出るだけで表示は崩れない
 - Bad, because 記事タイトルは、Fixed にある英数字も含めて fontsource の到着まで空白になる。Chrome は読み込み中のフォントを使うテキストをまとめて隠すため
 - Bad, because データ由来の文字を出す要素を足すときに `--font-dynamic` を付け忘れると、Fixed に無い字が端末のフォントで出る。隠れはしないが書体が混ざる。UI ルールに書いて防ぐ
 - Bad, because ソース中の文字列を全部入れるので、画面に出ないエラー文の文字も含まれる。数十字の誤差なので構文解析まではしない

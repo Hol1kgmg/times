@@ -5,9 +5,13 @@ const ascii = Array.from({ length: 0x7f - 0x20 }, (_, i) => String.fromCodePoint
 // 日付は Intl が組み立てるのでソースに現れない
 const dateChars = ["月", "日", "火", "水", "木", "金", "土"];
 
-const sources = globSync("src/**/*.{ts,tsx}", {
-  exclude: (f) => /\.(?:test|gen)\.tsx?$/u.test(f),
-});
+// トップを速く出すためのものなので、トップとシェルに出る文字だけを入れる。ほかの画面は --font-dynamic で Klee One から取る
+const sources = globSync(
+  ["src/app/**/*.{ts,tsx}", "src/pages/home/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}"],
+  {
+    exclude: (f) => /\.(?:test|gen)\.tsx?$/u.test(f),
+  },
+);
 const literals = sources
   .map((f) => readFileSync(f, "utf-8"))
   .join("\n")

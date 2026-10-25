@@ -5,6 +5,8 @@
   justify-content: center;
   min-height: calc(100svh - var(--header-offset));
   padding: var(--space-4);
+  /* Fixed のサブセットはトップとシェルの文字だけなので、ほかの画面の字は Klee One から取る (adr/frontend/0005) */
+  font-family: var(--font-dynamic);
 }
 
 /* ログインカード: 白背景 + 1px 境界線、大枠パネルの角丸、浮上させる影 */
