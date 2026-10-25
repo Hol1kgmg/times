@@ -3,19 +3,57 @@
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   align-items: start;
   gap: var(--space-4);
-  padding: var(--space-4);
+  padding: 0 var(--space-4) var(--space-4);
   /* Fixed のサブセットはトップとシェルの文字だけなので、ほかの画面の字は Klee One から取る (adr/frontend/0005) */
   font-family: var(--font-dynamic);
 }
 
-/* 強調面 (この画面の主役は「集める」)。棚をスクロールしても入力欄と登録ボタンが見えるよう留める */
+/* 日付と登録はページ全体の操作なので、棚をスクロールしても見えるよう留める */
+.header {
+  position: sticky;
+  top: 0;
+  /* カードのプレビュー (z-index: 1) より手前に出す */
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+}
+
+.title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.submit {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.submit .message {
+  text-align: end;
+}
+
+/* 強調面 (この画面の主役は「集める」)。棚をスクロールしても入力欄が見えるよう留める */
 .collect {
   position: sticky;
-  top: var(--space-4);
+  top: calc(var(--page-header-height, 0px) + var(--space-4));
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  max-height: calc(100dvh - var(--space-4) * 2);
+  max-height: calc(100dvh - var(--page-header-height, 0px) - var(--space-4) * 2);
   overflow-y: auto;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
@@ -136,15 +174,22 @@
   cursor: default;
 }
 
-.primary {
-  composes: button;
-  align-self: flex-end;
+/* 幅はトップの投稿カードに揃え、見え方を同じにする */
+.dialog {
+  composes: dialog from "./draft-card.module.css";
+  width: 720px;
 }
 
-.submit {
+.dialogHeader {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.dialogHeading {
+  composes: t-label from global;
+  margin: 0;
 }
 
 .message {
@@ -163,6 +208,15 @@
 @media (--narrow) {
   .page {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* モバイルヘッダーが上端に重なっている */
+  .header {
+    position: static;
+  }
+
+  .submit {
+    flex-basis: 100%;
   }
 
   .collect {

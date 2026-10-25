@@ -2,11 +2,14 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
 import { isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useId, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 // barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
 import { category, newChildArticle } from "#/shared/api/schemas";
+import type { NewDigest } from "#/shared/api/schemas";
+import { DigestPost } from "#/shared/ui/digest-post";
 import { createDigest } from "../api/create-digest";
 import { fetchDraftPreview } from "../api/fetch-draft-preview";
+import { loadDraftPreview } from "../api/load-draft-preview";
 import {
   addDraft,
   blockers,
@@ -75,6 +78,33 @@ const blockerText = (b: Blocker) => {
   }
 };
 
+const PreviewDialog = ({ digest, onClose }: { digest: NewDigest; onClose: () => void }) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const headingId = useId();
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, []);
+  return (
+    <dialog ref={dialogRef} aria-labelledby={headingId} className={styles.dialog} onClose={onClose}>
+      <div className={styles.dialogHeader}>
+        <h2 className={styles.dialogHeading} id={headingId}>
+          プレビュー
+        </h2>
+        <button
+          className={styles.button}
+          type="button"
+          onClick={() => {
+            dialogRef.current?.close();
+          }}
+        >
+          閉じる
+        </button>
+      </div>
+      <DigestPost digest={digest} loadPreview={loadDraftPreview} />
+    </dialog>
+  );
+};
+
 export const DigestNewPage = () => {
   const submit = useServerFn(createDigest);
   const getPreview = useServerFn(fetchDraftPreview);
@@ -88,12 +118,29 @@ export const DigestNewPage = () => {
   const [addError, setAddError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
+  const [previewing, setPreviewing] = useState(false);
   // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
   const beforeDrag = useRef<Board>(undefined);
   const urlInput = useRef<HTMLInputElement>(null);
   const blockersId = useId();
+  const header = useRef<HTMLElement>(null);
+
+  // 登録できない理由とエラーで高さが変わるので、下の面を留める位置を CSS だけでは決められない
+  useEffect(() => {
+    const el = header.current;
+    const observer = new ResizeObserver(() => {
+      el?.parentElement?.style.setProperty("--page-header-height", `${el.offsetHeight}px`);
+    });
+    if (el !== null) {
+      observer.observe(el);
+    }
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const dirty = hasDrafts(board) && !submitting;
+  const entry = toNewDigest(board, entryDate);
   useBlocker({
     // oxlint-disable-next-line eslint/no-alert -- 確認はこの画面の 2 か所だけで、管理者 1 名の画面なので専用のダイアログは作らない
     shouldBlockFn: () => !window.confirm("登録してない記事があります。このページを離れますか？"),
@@ -189,7 +236,7 @@ export const DigestNewPage = () => {
     setSubmitError(undefined);
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が / へ遷移する
-      await submit({ data: toNewDigest(board, entryDate) });
+      await submit({ data: entry });
     } catch (error) {
       setSubmitError(
         isNotFound(error)
@@ -211,6 +258,60 @@ export const DigestNewPage = () => {
 
   return (
     <div className={styles.page}>
+      <header ref={header} className={styles.header}>
+        <div className={styles.title}>
+          <h1 className={styles.heading}>記事を登録</h1>
+          <label className={styles.date}>
+            <span className={styles.label}>日付</span>
+            <input
+              className={styles.input}
+              required
+              type="date"
+              value={entryDate}
+              onChange={(e) => {
+                setEditedDate(e.target.value);
+              }}
+            />
+          </label>
+        </div>
+        <div className={styles.submit}>
+          {reasons.length > 0 && (
+            <p className={styles.message} id={blockersId}>
+              {reasons.map(blockerText).join("。")}
+            </p>
+          )}
+          {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
+          <button
+            className={styles.button}
+            disabled={entry.items.length === 0 || entryDate === ""}
+            type="button"
+            onClick={() => {
+              setPreviewing(true);
+            }}
+          >
+            プレビュー
+          </button>
+          <button
+            aria-describedby={reasons.length > 0 ? blockersId : undefined}
+            className={styles.button}
+            disabled={reasons.length > 0 || submitting || entryDate === ""}
+            type="button"
+            onClick={() => {
+              void onSubmit();
+            }}
+          >
+            登録
+          </button>
+        </div>
+      </header>
+      {previewing && (
+        <PreviewDialog
+          digest={entry}
+          onClose={() => {
+            setPreviewing(false);
+          }}
+        />
+      )}
       <DragDropProvider
         plugins={plugins}
         onDragEnd={(e) => {
@@ -237,19 +338,6 @@ export const DigestNewPage = () => {
         }}
       >
         <div className={styles.collect}>
-          <h1 className={styles.heading}>記事を登録</h1>
-          <label className={styles.date}>
-            <span className={styles.label}>日付</span>
-            <input
-              className={styles.input}
-              required
-              type="date"
-              value={entryDate}
-              onChange={(e) => {
-                setEditedDate(e.target.value);
-              }}
-            />
-          </label>
           <form
             className={styles.add}
             onSubmit={(e) => {
@@ -286,7 +374,6 @@ export const DigestNewPage = () => {
                 }}
               >
                 <svg
-                  aria-hidden="true"
                   fill="none"
                   height={20}
                   stroke="currentColor"
@@ -306,25 +393,6 @@ export const DigestNewPage = () => {
           </form>
           {addError !== undefined && <p className={styles.message}>{addError}</p>}
           {renderBox(UNSORTED)}
-          <div className={styles.submit}>
-            {reasons.length > 0 && (
-              <p className={styles.message} id={blockersId}>
-                {reasons.map(blockerText).join("。")}
-              </p>
-            )}
-            <button
-              aria-describedby={reasons.length > 0 ? blockersId : undefined}
-              className={styles.primary}
-              disabled={reasons.length > 0 || submitting || entryDate === ""}
-              type="button"
-              onClick={() => {
-                void onSubmit();
-              }}
-            >
-              登録
-            </button>
-            {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
-          </div>
         </div>
         <div className={styles.shelf}>{category.options.map(renderBox)}</div>
       </DragDropProvider>
