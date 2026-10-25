@@ -7,7 +7,7 @@ import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
 import { Ellipsis } from "./icons/ellipsis";
-import { HotBubble } from "./icons/hot-bubble";
+import { HotBubble } from "#/shared/ui/icons/hot-bubble";
 import { Palette } from "./icons/palette";
 import { Rocket } from "./icons/rocket";
 import { ShieldCheck } from "./icons/shield-check";
