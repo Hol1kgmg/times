@@ -6,7 +6,7 @@ import { useId, useRef, useState, useSyncExternalStore } from "react";
 // barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
 import { category, newChildArticle } from "#/shared/api/schemas";
 import { createDigest } from "../api/create-digest";
-import { fetchDraftTitle } from "../api/fetch-draft-title";
+import { fetchDraftPreview } from "../api/fetch-draft-preview";
 import {
   addDraft,
   blockers,
@@ -77,7 +77,7 @@ const blockerText = (b: Blocker) => {
 
 export const DigestNewPage = () => {
   const submit = useServerFn(createDigest);
-  const getTitle = useServerFn(fetchDraftTitle);
+  const getPreview = useServerFn(fetchDraftPreview);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
   const [editedDate, setEditedDate] = useState<string>();
@@ -154,7 +154,8 @@ export const DigestNewPage = () => {
     setAdding(true);
     let title: string | null = null;
     try {
-      ({ title } = await getTitle({ data: link }));
+      const preview = await getPreview({ data: link });
+      title = preview?.title ?? null;
     } catch {
       // 取れなかったときはタイトル空の候補として残し、手で入れてもらう
     }

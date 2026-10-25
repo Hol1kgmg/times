@@ -14,8 +14,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  /* メニューの位置を各行の ··· に結ぶ。名前を行内に閉じないと最後の行に寄る */
-  anchor-scope: --menu;
+  /* メニューとプレビューの位置を各行に結ぶ。名前を行内に閉じないと最後の行に寄る */
+  anchor-scope: --menu, --link;
 }
 
 .handle {
@@ -69,6 +69,38 @@
 @media (hover: hover) {
   .title:hover {
     color: var(--color-accent);
+  }
+}
+
+/* ホバーできる環境 (PC) でだけ出す */
+.preview {
+  display: none;
+}
+
+@media (hover: hover) {
+  .title {
+    anchor-name: --link;
+  }
+
+  /* 一覧の上を通り過ぎただけで出さないよう待つ。ドラッグ中は並べ替えの邪魔になるので出さない */
+  .card:not([data-dragging]) .text > a:not([data-dismissed]):hover + .preview,
+  .card:not([data-dragging]) .text > a:not([data-dismissed]):focus-visible + .preview {
+    position: fixed;
+    inset: auto;
+    z-index: 1;
+    display: flex;
+    margin-top: var(--space-half);
+    position-anchor: --link;
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block;
+    transition:
+      opacity 0.15s ease-out 0.3s,
+      visibility 0s 0.3s;
+
+    @starting-style {
+      opacity: 0;
+      visibility: hidden;
+    }
   }
 }
 

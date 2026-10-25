@@ -2,10 +2,11 @@ import { Suspense, useEffect, useState } from "react";
 import type { Article, ChildArticle } from "#/shared/api/schemas";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
+import { PreviewCard } from "#/shared/ui/preview-card";
+import { loadLinkPreview } from "../api/load-link-preview";
 import { groupByCategory } from "../model/group-by-category";
 import styles from "./digest.module.css";
 import { HotBubble } from "./icons/hot-bubble";
-import { PreviewCard } from "./preview-card";
 
 // タッチ端末はタップでも mouseenter / focus が来るので、ホバーできる環境かをその場で見る
 const canAnimate = () =>
@@ -63,7 +64,12 @@ const ArticleLink = ({ article, hot = false }: { article: ChildArticle; hot?: bo
         </a>
         {hovered && (
           <Suspense fallback={null}>
-            <PreviewCard className={styles.preview} title={article.title} url={article.url} />
+            <PreviewCard
+              className={styles.preview}
+              preview={loadLinkPreview(article.url)}
+              title={article.title}
+              url={article.url}
+            />
           </Suspense>
         )}
       </span>
