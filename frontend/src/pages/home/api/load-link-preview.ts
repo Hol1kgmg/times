@@ -1,4 +1,4 @@
-import type { LinkPreview } from "../model/parse-link-preview";
+import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { getLinkPreview } from "./get-link-preview";
 
 // use() は reject を throw するので、失敗は「プレビューなし」に畳む

@@ -1,10 +1,11 @@
 import { Suspense, useEffect, useState } from "react";
 import type { Article, ChildArticle } from "#/shared/api/schemas";
+import { Favicon } from "#/shared/ui/favicon";
+import { Flame } from "#/shared/ui/icons/flame";
 import { groupByCategory } from "../model/group-by-category";
 import styles from "./digest.module.css";
-import { Flame } from "./icons/flame";
 import { HotBubble } from "./icons/hot-bubble";
-import { Favicon, PreviewCard } from "./preview-card";
+import { PreviewCard } from "./preview-card";
 
 // タッチ端末はタップでも mouseenter / focus が来るので、ホバーできる環境かをその場で見る
 const canAnimate = () =>

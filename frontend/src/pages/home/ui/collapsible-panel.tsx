@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Chevron } from "./chevron";
+import { Chevron } from "#/shared/ui/chevron";
 import styles from "./collapsible-panel.module.css";
 
 // 高さの上限は親が [data-collapsed] を見て決める (home-page.module.css の .fit)
