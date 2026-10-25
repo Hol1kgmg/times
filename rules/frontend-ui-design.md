@@ -25,7 +25,7 @@
 - **浮かせたカード**: `--color-surface` の地 + 境界線 + `--radius-panel` + `--shadow-raised`。主役の内容を強調面から浮かせるときに使う。帯は付けない。
 - **透かして浮かせる面**: 半透明の地 `--color-surface-floating` + `--backdrop-floating` + `--shadow-floating`、境界線なし。本文の上に重なって追従する面 (モバイルヘッダー) にだけ使う。
 - **枠のグリッド**: 1 つずつ境界線 + `--radius-control` の枠に入れ、幅に合わせて折り返すグリッドに並べる。
-- **ボタン**: `--color-surface` の地 + 境界線 + `--radius-control`、文字は `.t-body` の muted。
+- **ボタン**: `--color-surface-raised` の地 + 境界線 + `--radius-control` + `--shadow-menu`、文字は `.t-body` の `--color-text`。押せないときは `--color-surface` の地に戻して影を消し、文字を `--color-text-faint` にする。枠やカードと同じ見た目だと押せるか分からないため。
 - **アイコン**: animate-ui の単色アイコン (`--color-brand`)。枠や行のホバーで 1 回だけ動かす。
 - **開閉**: button (`aria-expanded`) + grid の高さ補間。`<details>` は閉じる側をアニメーションできないので使わない。
 - **長い一覧の折りたたみ**: 内部スクロールは使わない (入れ子のスクロールは操作しづらい)。高さで切って下端をフェードさせ、展開ボタンを出す。
@@ -37,11 +37,12 @@
 |---|---|
 | 主テキスト (タイトル・本文・操作ラベル) | `--color-text` |
 | カード本文・説明文 | `--color-text-secondary` |
-| 見出しラベル・ボタンの文字・プレースホルダー | `--color-text-muted` |
+| 見出しラベル・プレースホルダー | `--color-text-muted` |
 | メタ情報・補助ラベル | `--color-text-faint` |
 | 境界線 | `--color-border` |
 | 通常面の地 | `--color-bg` |
-| カード・枠・ボタンの地 | `--color-surface` |
+| カード・枠・押せないボタンの地 | `--color-surface` |
+| 押せるボタンの地 | `--color-surface-raised` |
 | セカンダリ操作の背景 (ログアウト等) | `--color-fill-subtle` |
 | 帯・薄い面 (注記ボックス等) | `--color-fill-faint` |
 | ロゴ・bot アバター・`.dev`・アイコン | `--color-brand` |
@@ -52,7 +53,7 @@
 | サイドバー背景 / ホバー・選択中 | `--color-sidebar-bg` / `--color-sidebar-active` |
 | サイドバー文字 / 補助文字 | `--color-sidebar-text` / `--color-sidebar-text-muted` |
 | 浮かせたカード | `--shadow-raised` |
-| ドロップダウンメニュー | `--shadow-menu` |
+| ドロップダウンメニュー・押せるボタン | `--shadow-menu` |
 | モバイルヘッダー (透かして浮かせる面) | `--color-surface-floating` + `--shadow-floating` + `--backdrop-floating` |
 | 小さなカード (記事プレビュー等) | `--radius-card` |
 | 入力欄・ボタン・枠・メニュー | `--radius-control` |
@@ -87,6 +88,7 @@
 - `--color-text-faint` は、文字を置く面でいちばん明るい `--color-surface` の上で 4.5:1 を満たす値にする。`--color-fill-subtle` はそれより明るく 4.5:1 を切るので、faint の文字を置かない。
 - 強調面は地と同じ色にし (`--color-brand-faint` を `--color-bg` の別名にする)、1px 線だけで区切る。暗い地で橙を薄めると泥色になり、グレーを敷くとカードが沈むため。
 - サイドバーは帯と同じ `--color-fill-faint` の地にし、ライトと同じく右端の 1px 線で区切る。ホバー・選択中は `--color-fill-subtle` にする。`--color-brand-faint` (= `--color-bg`) はサイドバーの地より暗く、選択中が沈むため。
+- 押せるボタンの地 `--color-surface-raised` は `--color-fill-subtle` の別名にする (ライトでは `--color-surface`)。暗い地では影がほぼ見えず、カードと見分けられないため。押せないボタンは faint の文字を置くので `--color-surface` に戻す。
 
 ## 画面ごとの決まり
 

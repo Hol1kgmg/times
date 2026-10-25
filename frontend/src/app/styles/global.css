@@ -44,6 +44,7 @@
   /* 画像の上に重ねる文字の地。画像の色を問わず読めるよう、ダークでも変えない */
   --color-overlay-bg: rgb(0 0 0 / 0.75);
   --color-overlay-text: #fff;
+  --color-surface-raised: var(--color-surface);
   --color-shadow: rgb(0 0 0 / 0.12);
   --color-shadow-soft: rgb(0 0 0 / 0.2);
   --shadow-raised: 0 4px 6px var(--color-shadow);
@@ -91,6 +92,8 @@
     --color-sidebar-bg: var(--color-fill-faint);
     /* ダークの --color-brand-faint はサイドバーの地より暗く、選択中が沈んで見える */
     --color-sidebar-active: var(--color-fill-subtle);
+    /* 暗い地では影がほぼ見えないので、押せるボタンは地を 1 段明るくして浮かせる */
+    --color-surface-raised: var(--color-fill-subtle);
     --color-skeleton-base: #35373c;
     --color-skeleton-highlight: #3f4147;
     --color-shadow: rgb(0 0 0 / 0.4);

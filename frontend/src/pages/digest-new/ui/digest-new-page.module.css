@@ -84,8 +84,10 @@
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background-color: var(--color-surface);
-  color: var(--color-text-muted);
+  background-color: var(--color-surface-raised);
+  /* 箱と同じ枠と地なので、押せることは影で示す */
+  box-shadow: var(--shadow-menu);
+  color: var(--color-text);
   font-family: inherit;
   cursor: pointer;
   transition: transform 0.1s ease-out;
@@ -96,6 +98,8 @@
 }
 
 .button:disabled {
+  background-color: var(--color-surface);
+  box-shadow: none;
   color: var(--color-text-faint);
   cursor: default;
 }
@@ -135,7 +139,6 @@
 .primary {
   composes: button;
   align-self: flex-end;
-  color: var(--color-text);
 }
 
 .submit {
