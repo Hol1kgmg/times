@@ -1,0 +1,223 @@
+.card {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background-color: var(--color-surface);
+  transition: box-shadow 0.15s ease-out;
+}
+
+.card[data-dragging] {
+  box-shadow: var(--shadow-menu);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  /* メニューの位置を各行の ··· に結ぶ。名前を行内に閉じないと最後の行に寄る */
+  anchor-scope: --menu;
+}
+
+.handle {
+  display: flex;
+  flex-shrink: 0;
+  padding: var(--space-half) 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text-faint);
+  cursor: grab;
+  /* タッチでドラッグを始めたときにページのスクロールが先に動かないようにする */
+  touch-action: none;
+}
+
+.handle:focus-visible {
+  color: var(--color-accent);
+}
+
+.favicon {
+  align-self: center;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  composes: t-title from global;
+  color: var(--color-text);
+  font-family: var(--font-dynamic);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.title:focus-visible {
+  color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .title:hover {
+    color: var(--color-accent);
+  }
+}
+
+.hot {
+  display: inline-flex;
+  margin-left: var(--space-half);
+  color: var(--color-brand);
+  vertical-align: -1px;
+}
+
+.meta {
+  composes: t-meta from global;
+  color: var(--color-text-faint);
+  font-family: var(--font-dynamic);
+}
+
+.loading,
+.warn {
+  margin-left: var(--space-1);
+}
+
+.warn {
+  color: var(--color-text-muted);
+}
+
+.more {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  cursor: pointer;
+  anchor-name: --menu;
+}
+
+@media (hover: hover) {
+  .more:hover {
+    background-color: var(--color-fill-subtle);
+  }
+}
+
+.menu {
+  margin: 0;
+  padding: var(--space-half);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+  color: var(--color-text);
+  inset: auto;
+  position-anchor: --menu;
+  position-area: bottom span-left;
+  position-try-fallbacks: flip-block;
+}
+
+.menu:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  composes: t-body from global;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.item:disabled {
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .item:not(:disabled):hover {
+    background-color: var(--color-fill-subtle);
+  }
+}
+
+.children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  margin: var(--space-half) 0 0 var(--space-4);
+  padding: 0 0 0 var(--space-2);
+  border-left: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-half) 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+}
+
+.label {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
+}
+
+.input {
+  composes: t-body from global;
+  padding: var(--space-half) var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-dynamic);
+}
+
+.note {
+  composes: t-body from global;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.button {
+  composes: t-body from global;
+  padding: var(--space-half) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.button:active {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .button {
+    transition: none;
+  }
+}

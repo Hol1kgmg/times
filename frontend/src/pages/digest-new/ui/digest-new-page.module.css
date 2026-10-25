@@ -1,8 +1,32 @@
 .page {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: start;
   gap: var(--space-4);
   padding: var(--space-4);
+  /* Fixed のサブセットはトップとシェルの文字だけなので、ほかの画面の字は Klee One から取る (adr/frontend/0005) */
+  font-family: var(--font-dynamic);
+}
+
+/* 強調面 (この画面の主役は「集める」)。棚をスクロールしても入力欄と登録ボタンが見えるよう留める */
+.collect {
+  position: sticky;
+  top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: calc(100dvh - var(--space-4) * 2);
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-brand-faint);
+}
+
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .heading {
@@ -10,29 +34,10 @@
   margin: 0;
 }
 
-.form {
+.date {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-}
-
-.toggle {
-  display: flex;
-  gap: var(--space-half);
   align-items: center;
-  padding: var(--space-1) 0;
-}
-
-.toggle > input {
-  /* ブラウザ既定の青はトークン外の有彩色になる */
-  accent-color: var(--color-accent);
+  gap: var(--space-1);
 }
 
 .label {
@@ -41,77 +46,69 @@
 }
 
 .input {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-half) var(--space-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background-color: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+}
+
+.add {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.urlInput {
+  composes: input;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
   font-family: var(--font-dynamic);
 }
 
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  align-items: flex-start;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background-color: var(--color-surface);
-}
-
-.row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-  align-self: stretch;
-}
-
-.children {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  align-self: stretch;
-  margin: 0;
-  padding: 0 0 0 var(--space-4);
-  list-style: none;
-  border-left: 1px solid var(--color-border);
-}
-
-.actions {
-  display: flex;
-  gap: var(--space-2);
+.urlInput::placeholder {
+  color: var(--color-text-muted);
 }
 
 .button {
-  composes: t-title from global;
+  composes: t-body from global;
+  flex-shrink: 0;
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background-color: var(--color-surface);
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font-family: inherit;
   cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(1.05);
 }
 
 .button:disabled {
-  cursor: default;
   color: var(--color-text-faint);
+  cursor: default;
 }
 
-.secondary {
+@media (hover: hover) {
+  .button:not(:disabled):hover {
+    color: var(--color-accent);
+  }
+}
+
+.primary {
   composes: button;
-  background-color: var(--color-fill-subtle);
+  align-self: flex-end;
+  color: var(--color-text);
+}
+
+.submit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .message {
@@ -120,9 +117,20 @@
   color: var(--color-text-muted);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}
+
 @media (--narrow) {
-  .row {
-    flex-direction: column;
-    align-items: stretch;
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .collect {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 }

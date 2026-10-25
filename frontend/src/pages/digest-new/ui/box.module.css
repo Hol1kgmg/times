@@ -1,0 +1,91 @@
+.box {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  transition: border-color 0.15s ease-out;
+}
+
+.box[data-drop-target] {
+  border-color: var(--color-accent);
+}
+
+.heading {
+  margin: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.name {
+  composes: t-label from global;
+}
+
+.count {
+  composes: t-meta from global;
+  flex: 1;
+  color: var(--color-text-muted);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-faint);
+  transition: transform 0.2s ease-out;
+}
+
+.toggle[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/* height: auto は transition できないので grid の 0fr → 1fr で高さを補間する */
+.panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.2s ease-out,
+    visibility 0.2s;
+}
+
+.heading:has(> .toggle[aria-expanded="true"]) + .panel {
+  grid-template-rows: 1fr;
+  visibility: visible;
+}
+
+.panelInner {
+  overflow: hidden;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-2);
+  list-style: none;
+}
+
+.empty {
+  composes: t-body from global;
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--color-text-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box,
+  .chevron,
+  .panel {
+    transition: none;
+  }
+}

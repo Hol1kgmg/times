@@ -1,0 +1,159 @@
+import { describe, expect, it } from "vitest";
+import {
+  addDraft,
+  blockers,
+  canMakeChild,
+  editLink,
+  emptyBoard,
+  fromIds,
+  makeChild,
+  moveToBoxEnd,
+  revert,
+  settleTitle,
+  toggleHot,
+  toIds,
+  toNewDigest,
+  unmakeChild,
+  UNSORTED,
+} from "./board";
+import type { Board, BoxId, Draft, Link } from "./board";
+
+const link = (id: string, title = `title ${id}`): Link => ({
+  id,
+  url: `https://example.com/${id}`,
+  title,
+  initial: { url: `https://example.com/${id}`, title },
+  status: "done",
+});
+const draft = (id: string, extra: Partial<Draft> = {}): Draft => ({
+  ...link(id),
+  hot: false,
+  children: [],
+  ...extra,
+});
+const board = (boxes: Partial<Board>): Board => ({ ...emptyBoard(), ...boxes });
+const ok = (b: Board | string): Board => {
+  if (typeof b === "string") {
+    throw new TypeError(`rejected: ${b}`);
+  }
+  return b;
+};
+
+describe("集める", () => {
+  it("rejects a URL already used by an article or a related article", () => {
+    const b = board({ その他: [draft("a", { children: [link("b")] })] });
+    expect(addDraft(b, "https://example.com/a", "x")).toBe("duplicate");
+    expect(addDraft(b, "https://example.com/b", "x")).toBe("duplicate");
+  });
+
+  it("rejects the 101st article", () => {
+    const b = board({ その他: Array.from({ length: 100 }, (_, i) => draft(String(i))) });
+    expect(addDraft(b, "https://example.com/new", "x")).toBe("limit");
+  });
+
+  it("keeps the title empty but settles the initial state when fetching fails", () => {
+    const b = settleTitle(ok(addDraft(emptyBoard(), "https://example.com/a", "a")), "a", null);
+    expect(b[UNSORTED][0]).toMatchObject({
+      title: "",
+      status: "failed",
+      initial: { url: "https://example.com/a", title: "" },
+    });
+  });
+});
+
+describe("振り分ける", () => {
+  it("keeps the hot flag and related articles when an article moves across boxes", () => {
+    const a = draft("a", { hot: true, children: [link("c")] });
+    const b = board({ [UNSORTED]: [a], その他: [draft("b")] });
+    const next = fromIds(b, { ...toIds(b), [UNSORTED]: [], その他: ["b", "a"] });
+    expect(next.その他[1]).toBe(a);
+  });
+
+  it("puts an article at the end of a box when dropped on the box itself", () => {
+    const b = board({ [UNSORTED]: [draft("a")], その他: [draft("b"), draft("c")] });
+    expect(moveToBoxEnd(b, "a", "その他").その他.map((d) => d.id)).toStrictEqual(["b", "c", "a"]);
+  });
+
+  it("reuses the array of a box whose content did not change", () => {
+    const b = board({ [UNSORTED]: [draft("a")], その他: [draft("b")], IT系: [draft("c")] });
+    const ids: Record<BoxId, string[]> = { ...toIds(b), [UNSORTED]: [], その他: ["b", "a"] };
+    expect(fromIds(b, ids).IT系).toBe(b.IT系);
+  });
+});
+
+describe("手直し", () => {
+  it("restores the fetched title and URL but keeps the hot flag, related articles and position", () => {
+    const b = board({ その他: [draft("x"), draft("a", { hot: true, children: [link("c")] })] });
+    const edited = ok(editLink(b, "a", { url: "https://example.com/z", title: "直した" }));
+    const [, reverted] = revert(edited, "a").その他;
+    expect(reverted).toMatchObject({ url: "https://example.com/a", title: "title a", hot: true });
+    expect(reverted?.children).toHaveLength(1);
+  });
+
+  it("rejects editing a URL into one another candidate already uses", () => {
+    const b = board({ その他: [draft("a"), draft("b")] });
+    expect(editLink(b, "b", { url: "https://example.com/a", title: "t" })).toBe("duplicate");
+  });
+});
+
+describe("登録", () => {
+  it("sends categories in the fixed order, then box order, then related article order, without unsorted", () => {
+    const b = board({
+      その他: [draft("o")],
+      セキュリティ: [draft("s1", { children: [link("c1"), link("c2")] }), draft("s2")],
+    });
+    const urls = toNewDigest(b, "2026-10-25").items.map((i) => [
+      i.category,
+      i.url,
+      i.children.map((c) => c.url),
+    ]);
+    expect(urls).toStrictEqual([
+      [
+        "セキュリティ",
+        "https://example.com/s1",
+        ["https://example.com/c1", "https://example.com/c2"],
+      ],
+      ["セキュリティ", "https://example.com/s2", []],
+      ["その他", "https://example.com/o", []],
+    ]);
+  });
+
+  it("blocks registration on unsorted articles, untitled related articles and pending fetches", () => {
+    const loading: Draft = { ...draft("l"), status: "loading", title: "" };
+    const b = board({
+      [UNSORTED]: [loading],
+      その他: [draft("a", { children: [link("c", " ")] })],
+    });
+    expect(blockers(b)).toStrictEqual([
+      { kind: "unsorted", count: 1 },
+      { kind: "untitled", ids: ["c"] },
+      { kind: "loading" },
+    ]);
+  });
+});
+
+describe("関連記事", () => {
+  it("cannot nest the first article, an article with related articles, or under a full parent", () => {
+    const full = draft("p", { children: Array.from({ length: 20 }, (_, i) => link(`c${i}`)) });
+    const b = board({
+      その他: [draft("first"), draft("withChild", { children: [link("k")] })],
+      IT系: [full, draft("next")],
+    });
+    expect(canMakeChild(b, "first")).toBeFalsy();
+    expect(canMakeChild(b, "withChild")).toBeFalsy();
+    expect(canMakeChild(b, "next")).toBeFalsy();
+  });
+
+  it("drops the hot flag when nested and returns right after the parent when unnested", () => {
+    const b = board({ その他: [draft("a"), draft("b", { hot: true }), draft("z")] });
+    const nested = makeChild(toggleHot(b, "a"), "b");
+    expect(nested.その他.map((d) => d.id)).toStrictEqual(["a", "z"]);
+    expect(nested.その他[0]?.children[0]).not.toHaveProperty("hot");
+    const back = ok(unmakeChild(nested, "a", "b"));
+    expect(back.その他.map((d) => [d.id, d.hot])).toStrictEqual([
+      ["a", true],
+      ["b", false],
+      ["z", false],
+    ]);
+  });
+});

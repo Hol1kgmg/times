@@ -1,22 +1,41 @@
+import { DragDropProvider } from "@dnd-kit/react";
+import { move } from "@dnd-kit/helpers";
+import { isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useSyncExternalStore } from "react";
+import { useId, useRef, useState, useSyncExternalStore } from "react";
 // barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
-import { category } from "#/shared/api/schemas";
-import type { Category } from "#/shared/api/schemas";
+import { category, newChildArticle } from "#/shared/api/schemas";
 import { createDigest } from "../api/create-digest";
+import { fetchDraftTitle } from "../api/fetch-draft-title";
+import {
+  addDraft,
+  blockers,
+  canMakeChild,
+  draftCount,
+  editLink,
+  emptyBoard,
+  fromIds,
+  hasDrafts,
+  isBoxId,
+  makeChild,
+  MAX_DRAFTS,
+  moveChild,
+  moveToBoxEnd,
+  remove,
+  revert,
+  settleTitle,
+  toggleHot,
+  toIds,
+  toNewDigest,
+  unmakeChild,
+  UNSORTED,
+} from "../model/board";
+import type { Blocker, Board, BoxId, Rejected } from "../model/board";
+import { plugins } from "./announcements";
+import { Box } from "./box";
+import { DraftCard } from "./draft-card";
+import type { CardActions } from "./draft-card";
 import styles from "./digest-new-page.module.css";
-
-interface ChildRow {
-  key: number;
-  url: string;
-  title: string;
-}
-
-interface Row extends ChildRow {
-  category: Category;
-  hot: boolean;
-  children: ChildRow[];
-}
 
 // toISOString は UTC 日付になり JST の 0〜9 時に前日を返す。sv-SE ロケールはローカル日付を YYYY-MM-DD で出す
 const today = () => new Date().toLocaleDateString("sv-SE");
@@ -25,253 +44,236 @@ const noop = () => {
   /* 何もしない */
 };
 const subscribeNever = () => noop;
-const emptyChild = (key: number): ChildRow => ({ key, url: "", title: "" });
-const emptyRow = (key: number): Row => ({
-  ...emptyChild(key),
-  category: "その他",
-  hot: false,
-  children: [],
-});
+
+const rejectedText: Record<Rejected, string> = {
+  duplicate: "その URL はもう入ってます",
+  limit: `記事は ${MAX_DRAFTS} 件までです`,
+};
+
+const blockerText = (b: Blocker) => {
+  switch (b.kind) {
+    case "empty": {
+      return "カテゴリに記事を入れると登録できます";
+    }
+    case "unsorted": {
+      return `未分類が ${b.count} 件残ってます`;
+    }
+    case "untitled": {
+      return `タイトルが空の記事が ${b.ids.length} 件あります`;
+    }
+    case "loading": {
+      return "タイトルを取得してます";
+    }
+    default: {
+      return b satisfies never;
+    }
+  }
+};
 
 export const DigestNewPage = () => {
   const submit = useServerFn(createDigest);
+  const getTitle = useServerFn(fetchDraftTitle);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
   const [editedDate, setEditedDate] = useState<string>();
   const entryDate = editedDate ?? defaultDate;
-  const [rows, setRows] = useState<Row[]>([emptyRow(0)]);
-  const [nextKey, setNextKey] = useState(1);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [board, setBoard] = useState<Board>(emptyBoard);
+  const [url, setUrl] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
+  // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
+  const beforeDrag = useRef<Board>(undefined);
+  const urlInput = useRef<HTMLInputElement>(null);
+  const blockersId = useId();
 
-  const update = (key: number, patch: Partial<Row>) => {
-    setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  const dirty = hasDrafts(board) && !submitting;
+  useBlocker({
+    // oxlint-disable-next-line eslint/no-alert -- 確認はこの画面の 2 か所だけで、管理者 1 名の画面なので専用のダイアログは作らない
+    shouldBlockFn: () => !window.confirm("登録してない記事があります。このページを離れますか？"),
+    enableBeforeUnload: dirty,
+    disabled: !dirty,
+  });
+
+  const apply = (next: Board | Rejected): Rejected | null => {
+    if (typeof next === "string") {
+      return next;
+    }
+    setBoard(next);
+    return null;
   };
-  const addRow = () => {
-    setRows((prev) => [...prev, emptyRow(nextKey)]);
-    setNextKey(nextKey + 1);
+
+  const actions: CardActions = {
+    atLimit: draftCount(board) >= MAX_DRAFTS,
+    edit: (id, next) => apply(editLink(board, id, next)),
+    revert: (id) => {
+      setBoard(revert(board, id));
+    },
+    toggleHot: (id) => {
+      setBoard(toggleHot(board, id));
+    },
+    remove: (id, childCount) => {
+      const message = `関連記事 ${childCount} 件も消えます。削除しますか？`;
+      // oxlint-disable-next-line eslint/no-alert -- 上の useBlocker と同じ理由
+      if (childCount === 0 || window.confirm(message)) {
+        setBoard(remove(board, id));
+      }
+    },
+    canMakeChild: (id) => canMakeChild(board, id),
+    makeChild: (id) => {
+      setBoard(makeChild(board, id));
+    },
+    unmakeChild: (parentId, childId) => {
+      apply(unmakeChild(board, parentId, childId));
+    },
+    moveChild: (parentId, childId, step) => {
+      setBoard(moveChild(board, parentId, childId, step));
+    },
   };
-  const removeRow = (key: number) => {
-    setRows((prev) => prev.filter((r) => r.key !== key));
+
+  const onAdd = async () => {
+    if (!newChildArticle.shape.url.safeParse(url).success) {
+      setAddError("http か https の URL を入れてください");
+      return;
+    }
+    const id = crypto.randomUUID();
+    const added = addDraft(board, url, id);
+    if (typeof added === "string") {
+      setAddError(rejectedText[added]);
+      return;
+    }
+    setBoard(added);
+    setUrl("");
+    setAddError(undefined);
+    setAdding(true);
+    let title: string | null = null;
+    try {
+      ({ title } = await getTitle({ data: url }));
+    } catch {
+      // 取れなかったときはタイトル空の候補として残し、手で入れてもらう
+    }
+    // 取得を待つ間に他の操作で board が変わっているので、最新の state に反映する
+    setBoard((b) => settleTitle(b, id, title));
+    setAdding(false);
+    urlInput.current?.focus();
   };
-  const updateChild = (rowKey: number, key: number, patch: Partial<ChildRow>) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.key === rowKey
-          ? { ...r, children: r.children.map((c) => (c.key === key ? { ...c, ...patch } : c)) }
-          : r,
-      ),
-    );
-  };
-  const addChild = (rowKey: number) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.key === rowKey ? { ...r, children: [...r.children, emptyChild(nextKey)] } : r,
-      ),
-    );
-    setNextKey(nextKey + 1);
-  };
-  const removeChild = (rowKey: number, key: number) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.key === rowKey ? { ...r, children: r.children.filter((c) => c.key !== key) } : r,
-      ),
-    );
-  };
+
   const onSubmit = async () => {
-    setBusy(true);
-    setFailed(false);
+    setSubmitting(true);
+    setSubmitError(undefined);
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が / へ遷移する
-      await submit({
-        data: {
-          entryDate,
-          items: rows.map(({ url, title, category: c, hot, children }) => ({
-            url,
-            title,
-            category: c,
-            hot,
-            children: children.map((ch) => ({ url: ch.url, title: ch.title })),
-          })),
-        },
-      });
-    } catch {
-      setFailed(true);
-      setBusy(false);
+      await submit({ data: toNewDigest(board, entryDate) });
+    } catch (error) {
+      setSubmitError(
+        isNotFound(error)
+          ? "ログインが切れました。別のタブでログインし直してから、もう一度登録してください"
+          : "登録できませんでした。同じ URL が重複していないか確認してください",
+      );
+      setSubmitting(false);
     }
   };
 
+  const reasons = blockers(board);
+  const renderBox = (box: BoxId) => (
+    <Box key={box} count={board[box].length} id={box}>
+      {board[box].map((draft, i) => (
+        <DraftCard key={draft.id} actions={actions} box={box} draft={draft} index={i} />
+      ))}
+    </Box>
+  );
+
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>記事を登録</h1>
-      <form
-        className={styles.form}
-        onSubmit={(e) => {
-          e.preventDefault();
-          void onSubmit();
+      <DragDropProvider
+        plugins={plugins}
+        onDragEnd={(e) => {
+          if (e.canceled && beforeDrag.current !== undefined) {
+            setBoard(beforeDrag.current);
+          }
+          beforeDrag.current = undefined;
+        }}
+        onDragOver={(e) => {
+          const { source, target } = e.operation;
+          if (source !== null && target !== null && isBoxId(target.id)) {
+            setBoard(moveToBoxEnd(board, String(source.id), target.id));
+            return;
+          }
+          const ids = toIds(board);
+          const next = move(ids, e);
+          // ポインター移動の大半は並びが変わらないので、ここで打ち切って再描画を避ける
+          if (next !== ids) {
+            setBoard(fromIds(board, next));
+          }
+        }}
+        onDragStart={() => {
+          beforeDrag.current = board;
         }}
       >
-        <label className={styles.field}>
-          <span className={styles.label}>日付</span>
-          <input
-            className={styles.input}
-            required
-            type="date"
-            value={entryDate}
-            onChange={(e) => {
-              setEditedDate(e.target.value);
+        <div className={styles.collect}>
+          <h1 className={styles.heading}>記事を登録</h1>
+          <label className={styles.date}>
+            <span className={styles.label}>日付</span>
+            <input
+              className={styles.input}
+              required
+              type="date"
+              value={entryDate}
+              onChange={(e) => {
+                setEditedDate(e.target.value);
+              }}
+            />
+          </label>
+          <form
+            className={styles.add}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onAdd();
             }}
-          />
-        </label>
-        <ul className={styles.rows}>
-          {rows.map((row, i) => (
-            <li key={row.key} className={styles.card}>
-              <div className={styles.row}>
-                <label className={styles.field}>
-                  <span className={styles.label}>URL</span>
-                  <input
-                    className={styles.input}
-                    maxLength={2000}
-                    name={`url-${i}`}
-                    required
-                    type="url"
-                    value={row.url}
-                    onChange={(e) => {
-                      update(row.key, { url: e.target.value });
-                    }}
-                  />
-                </label>
-                <label className={styles.field}>
-                  <span className={styles.label}>タイトル</span>
-                  <input
-                    className={styles.input}
-                    maxLength={300}
-                    name={`title-${i}`}
-                    required
-                    type="text"
-                    value={row.title}
-                    onChange={(e) => {
-                      update(row.key, { title: e.target.value });
-                    }}
-                  />
-                </label>
-                <label className={styles.field}>
-                  <span className={styles.label}>分類</span>
-                  <select
-                    className={styles.input}
-                    name={`category-${i}`}
-                    value={row.category}
-                    onChange={(e) => {
-                      update(row.key, { category: category.parse(e.target.value) });
-                    }}
-                  >
-                    {category.options.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={styles.toggle}>
-                  <input
-                    checked={row.hot}
-                    name={`hot-${i}`}
-                    type="checkbox"
-                    onChange={(e) => {
-                      update(row.key, { hot: e.target.checked });
-                    }}
-                  />
-                  <span className={styles.label}>ホット</span>
-                </label>
-                <button
-                  className={styles.secondary}
-                  disabled={rows.length === 1}
-                  type="button"
-                  onClick={() => {
-                    removeRow(row.key);
-                  }}
-                >
-                  削除
-                </button>
-              </div>
-              {row.children.length > 0 && (
-                <ul className={styles.children}>
-                  {row.children.map((child, j) => (
-                    <li key={child.key} className={styles.row}>
-                      <label className={styles.field}>
-                        <span className={styles.label}>関連 URL</span>
-                        <input
-                          className={styles.input}
-                          maxLength={2000}
-                          name={`url-${i}-${j}`}
-                          required
-                          type="url"
-                          value={child.url}
-                          onChange={(e) => {
-                            updateChild(row.key, child.key, { url: e.target.value });
-                          }}
-                        />
-                      </label>
-                      <label className={styles.field}>
-                        <span className={styles.label}>関連タイトル</span>
-                        <input
-                          className={styles.input}
-                          maxLength={300}
-                          name={`title-${i}-${j}`}
-                          required
-                          type="text"
-                          value={child.title}
-                          onChange={(e) => {
-                            updateChild(row.key, child.key, { title: e.target.value });
-                          }}
-                        />
-                      </label>
-                      <button
-                        className={styles.secondary}
-                        type="button"
-                        onClick={() => {
-                          removeChild(row.key, child.key);
-                        }}
-                      >
-                        削除
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <button
-                className={styles.secondary}
-                disabled={row.children.length >= 20}
-                name={`add-child-${i}`}
-                type="button"
-                onClick={() => {
-                  addChild(row.key);
-                }}
-              >
-                関連記事を追加
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className={styles.actions}>
-          <button
-            className={styles.secondary}
-            disabled={rows.length >= 100}
-            type="button"
-            onClick={addRow}
           >
-            行を追加
-          </button>
-          <button className={styles.button} disabled={busy} type="submit">
-            登録
-          </button>
+            <input
+              ref={urlInput}
+              aria-label="記事の URL"
+              className={styles.urlInput}
+              disabled={adding}
+              maxLength={2000}
+              placeholder="https://example.com/article"
+              required
+              type="url"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+              }}
+            />
+            <button className={styles.button} disabled={adding} type="submit">
+              {adding ? "取得中" : "追加"}
+            </button>
+          </form>
+          {addError !== undefined && <p className={styles.message}>{addError}</p>}
+          {renderBox(UNSORTED)}
+          <div className={styles.submit}>
+            {reasons.length > 0 && (
+              <p className={styles.message} id={blockersId}>
+                {reasons.map(blockerText).join("。")}
+              </p>
+            )}
+            <button
+              aria-describedby={reasons.length > 0 ? blockersId : undefined}
+              className={styles.primary}
+              disabled={reasons.length > 0 || submitting || entryDate === ""}
+              type="button"
+              onClick={() => {
+                void onSubmit();
+              }}
+            >
+              登録
+            </button>
+            {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
+          </div>
         </div>
-        {failed && (
-          <p className={styles.message}>
-            登録に失敗しました。同じ URL が重複していないか確認してください
-          </p>
-        )}
-      </form>
+        <div className={styles.shelf}>{category.options.map(renderBox)}</div>
+      </DragDropProvider>
     </div>
   );
 };
