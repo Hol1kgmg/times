@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import type { NewArticle, NewChildArticle, NewDigest } from "#/shared/api/schemas";
 import { groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
@@ -120,9 +121,11 @@ const Entry = ({ article, loadPreview }: { article: NewArticle; loadPreview: Loa
 export const DigestPost = ({
   digest,
   loadPreview,
+  action,
 }: {
   digest: NewDigest;
   loadPreview: LoadPreview;
+  action?: ReactNode;
 }) => (
   <>
     <div className={styles.divider}>
@@ -132,6 +135,7 @@ export const DigestPost = ({
       <span className={styles.count}>
         {digest.items.reduce((n, a) => n + 1 + a.children.length, 0)} 件
       </span>
+      {action !== undefined && <span className={styles.action}>{action}</span>}
     </div>
     <article className={styles.post}>
       <img alt="" height={36} src="/favicon.svg" width={36} />

@@ -203,6 +203,12 @@
   color: var(--color-text-muted);
 }
 
+/* ::after の線より後ろ (右端) に置くため、DOM 順ではなく order で並べる */
+.action {
+  display: flex;
+  order: 1;
+}
+
 .post {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
