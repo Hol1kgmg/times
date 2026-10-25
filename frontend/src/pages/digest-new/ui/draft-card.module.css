@@ -206,13 +206,32 @@
   list-style: none;
 }
 
+.dialog {
+  width: 480px;
+  max-width: calc(100% - var(--space-4) * 2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text);
+  font-family: var(--font-dynamic);
+}
+
+.dialog::backdrop {
+  background: none;
+  backdrop-filter: var(--backdrop-floating);
+}
+
 .form {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
-  padding: var(--space-half) 0;
+  gap: var(--space-2);
+}
+
+.heading {
+  composes: t-label from global;
+  margin: 0;
 }
 
 .field {
@@ -260,13 +279,22 @@
   transition: transform 0.1s ease-out;
 }
 
-.button:active {
+.button:active,
+.submit:active {
   transform: scale(1.05);
+}
+
+.submit {
+  composes: button;
+  background-color: var(--color-surface-raised);
+  box-shadow: var(--shadow-menu);
+  color: var(--color-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .button {
+  .button,
+  .submit {
     transition: none;
   }
 }

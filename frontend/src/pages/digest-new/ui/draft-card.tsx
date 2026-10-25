@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import { Suspense, useCallback, useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { PreviewCard } from "#/shared/ui/preview-card";
@@ -54,7 +54,7 @@ const Menu = ({ items }: { items: MenuItem[] }) => {
   );
 };
 
-const EditForm = ({
+const EditDialog = ({
   link,
   onEdit,
   onClose,
@@ -63,71 +63,75 @@ const EditForm = ({
   onEdit: (next: { url: string; title: string }) => Rejected | null;
   onClose: () => void;
 }) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const headingId = useId();
   const [title, setTitle] = useState(link.title);
   const [url, setUrl] = useState(link.url);
   const [duplicate, setDuplicate] = useState(false);
-  const focusOnMount = useCallback((el: HTMLInputElement | null) => {
-    el?.focus();
+  useEffect(() => {
+    dialogRef.current?.showModal();
   }, []);
-  const closeOnEscape = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
-      onClose();
-    }
-  };
   return (
-    <form
-      className={styles.form}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (onEdit({ title: title.trim(), url }) === null) {
-          onClose();
-        } else {
-          setDuplicate(true);
-        }
-      }}
-    >
-      <label className={styles.field}>
-        <span className={styles.label}>タイトル</span>
-        <input
-          // メニューの「編集」を選んだ続きで打ち始められるようにする。autoFocus はダイアログの外では使えない (markuplint)
-          ref={focusOnMount}
-          className={styles.input}
-          maxLength={300}
-          required
-          type="text"
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-          }}
-          onKeyDown={closeOnEscape}
-        />
-      </label>
-      <label className={styles.field}>
-        <span className={styles.label}>URL</span>
-        <input
-          className={styles.input}
-          maxLength={2000}
-          pattern="https?://.+"
-          required
-          title="http か https で始まる URL"
-          type="url"
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-          }}
-          onKeyDown={closeOnEscape}
-        />
-      </label>
-      {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
-      <div className={styles.formActions}>
-        <button className={styles.button} type="button" onClick={onClose}>
-          やめる
-        </button>
-        <button className={styles.button} type="submit">
-          確定
-        </button>
-      </div>
-    </form>
+    <dialog ref={dialogRef} aria-labelledby={headingId} className={styles.dialog} onClose={onClose}>
+      <form
+        className={styles.form}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (onEdit({ title: title.trim(), url }) === null) {
+            dialogRef.current?.close();
+          } else {
+            setDuplicate(true);
+          }
+        }}
+      >
+        <h2 className={styles.heading} id={headingId}>
+          記事を編集
+        </h2>
+        <label className={styles.field}>
+          <span className={styles.label}>タイトル</span>
+          <input
+            className={styles.input}
+            maxLength={300}
+            required
+            type="text"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+            }}
+          />
+        </label>
+        <label className={styles.field}>
+          <span className={styles.label}>URL</span>
+          <input
+            className={styles.input}
+            maxLength={2000}
+            pattern="https?://.+"
+            required
+            title="http か https で始まる URL"
+            type="url"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+            }}
+          />
+        </label>
+        {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
+        <div className={styles.formActions}>
+          <button
+            className={styles.button}
+            type="button"
+            onClick={() => {
+              dialogRef.current?.close();
+            }}
+          >
+            やめる
+          </button>
+          <button className={styles.submit} type="submit">
+            確定
+          </button>
+        </div>
+      </form>
+    </dialog>
   );
 };
 
@@ -169,66 +173,63 @@ const LinkRow = ({
     <div className={styles.row}>
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
-      {editing ? (
-        <EditForm
+      <span className={styles.text}>
+        <a
+          className={styles.title}
+          data-dismissed={dismissed ? "" : undefined}
+          href={link.url}
+          rel="noopener noreferrer"
+          target="_blank"
+          onFocus={show}
+          onMouseEnter={show}
+        >
+          <span className={styles.titleText} title={link.title}>
+            {link.title === "" ? host : link.title}
+          </span>
+          {hot && (
+            <span className={styles.hot}>
+              {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れない */}
+              <Flame aria-label="ホット" role="img" size={14} />
+            </span>
+          )}
+        </a>
+        {hovered && (
+          <Suspense fallback={null}>
+            <PreviewCard
+              className={styles.preview}
+              preview={loadDraftPreview(link.url)}
+              title={link.title === "" ? host : link.title}
+              url={link.url}
+            />
+          </Suspense>
+        )}
+        <span className={styles.meta}>
+          <span className={styles.host}>{host}</span>
+          {link.status === "loading" && (
+            <span className={styles.loading}>タイトルを取得してます</span>
+          )}
+          {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
+        </span>
+      </span>
+      <Menu
+        items={[
+          {
+            label: "編集",
+            onSelect: () => {
+              setEditing(true);
+            },
+          },
+          ...menu,
+        ]}
+      />
+      {editing && (
+        <EditDialog
           link={link}
           onClose={() => {
             setEditing(false);
           }}
           onEdit={onEdit}
         />
-      ) : (
-        <>
-          <span className={styles.text}>
-            <a
-              className={styles.title}
-              data-dismissed={dismissed ? "" : undefined}
-              href={link.url}
-              rel="noopener noreferrer"
-              target="_blank"
-              onFocus={show}
-              onMouseEnter={show}
-            >
-              <span className={styles.titleText} title={link.title}>
-                {link.title === "" ? host : link.title}
-              </span>
-              {hot && (
-                <span className={styles.hot}>
-                  {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れない */}
-                  <Flame aria-label="ホット" role="img" size={14} />
-                </span>
-              )}
-            </a>
-            {hovered && (
-              <Suspense fallback={null}>
-                <PreviewCard
-                  className={styles.preview}
-                  preview={loadDraftPreview(link.url)}
-                  title={link.title === "" ? host : link.title}
-                  url={link.url}
-                />
-              </Suspense>
-            )}
-            <span className={styles.meta}>
-              <span className={styles.host}>{host}</span>
-              {link.status === "loading" && (
-                <span className={styles.loading}>タイトルを取得してます</span>
-              )}
-              {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
-            </span>
-          </span>
-          <Menu
-            items={[
-              {
-                label: "編集",
-                onSelect: () => {
-                  setEditing(true);
-                },
-              },
-              ...menu,
-            ]}
-          />
-        </>
       )}
     </div>
   );
