@@ -151,6 +151,10 @@ fe-font-subset:
             --output-file="$out/klee-one-fixed-${pair%%:*}.woff2"
     done
 
+# Regenerate the OG image (public/og.png) from docs/logo.svg
+fe-og-image:
+    cd frontend && node scripts/og-image.ts
+
 # --- backend ---
 
 # Start the API server (needs `just db-up`)
