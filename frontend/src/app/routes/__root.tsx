@@ -6,6 +6,7 @@ import kleeOneFixed400 from "../styles/fonts/klee-one-fixed-400.woff2?url";
 import kleeOneFixed600 from "../styles/fonts/klee-one-fixed-600.woff2?url";
 // barrel (#/shared/auth) は .server.ts を再 export しており、クライアントで走る beforeLoad から import すると build が落ちる
 import { getCurrentAdmin } from "#/shared/auth/get-current-admin";
+import { SITE_NAME, SITE_URL } from "#/shared/config/site";
 import appCss from "../styles/global.css?url";
 
 const description = "見かけて気になった技術や趣味の記事を、日ごとにゆるくまとめてます。";
@@ -20,17 +21,17 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       // meta は CSS 変数を読めないので、ダークの --color-bg を直書きする。ライトはブラウザが地の色から取る
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#1e1f22" },
-      { title: "z_times.dev" },
+      { title: SITE_NAME },
       { name: "description", content: description },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "z_times.dev" },
-      { property: "og:title", content: "z_times.dev" },
+      { property: "og:site_name", content: SITE_NAME },
+      { property: "og:title", content: SITE_NAME },
       { property: "og:description", content: description },
       // クローラーは相対 URL の og:image を解決しない
-      { property: "og:image", content: "https://z-times.dev/og.png" },
+      { property: "og:image", content: `${SITE_URL}/og.png` },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { property: "og:image:alt", content: "z_times.dev のロゴ" },
+      { property: "og:image:alt", content: `${SITE_NAME} のロゴ` },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
