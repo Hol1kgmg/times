@@ -18,7 +18,7 @@ export const Favicon = ({
     alt={alt ?? new URL(url).hostname}
     className={className === undefined ? styles.favicon : `${styles.favicon} ${className}`}
     height={16}
-    loading="lazy"
+    // lazy にすると、折りたたみで読まれずに残った画像を Chrome が待ち続け、load イベントが来ないことがある
     src={faviconUrl(url)}
     width={16}
     onError={(e) => {
