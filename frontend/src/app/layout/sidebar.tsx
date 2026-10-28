@@ -19,6 +19,9 @@ export const ChannelNav = ({ onNavigate }: Props) => {
           <Link className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
             <span className={styles.hash}>+</span>記事を登録
           </Link>
+          <Link className={styles.link} to="/admin/digests" onClick={onNavigate}>
+            <span className={styles.hash}>#</span>記事を編集
+          </Link>
           {loginPath !== undefined && (
             <Link
               className={styles.link}

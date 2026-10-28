@@ -1,5 +1,5 @@
 import { category } from "#/shared/api/schemas";
-import type { Category, NewDigest } from "#/shared/api/schemas";
+import type { Category, Digest, NewDigest } from "#/shared/api/schemas";
 
 export const UNSORTED = "未分類";
 export type BoxId = typeof UNSORTED | Category;
@@ -278,6 +278,22 @@ export const blockers = (board: Board): Blocker[] => {
     out.push({ kind: "loading" });
   }
   return out;
+};
+
+const savedLink = ({ id, url, title }: { id: string; url: string; title: string }): Link => ({
+  id,
+  url,
+  title,
+  initial: { url, title },
+  status: "done",
+});
+
+export const fromDigest = (digest: Digest): Board => {
+  const board = emptyBoard();
+  for (const a of digest.items) {
+    board[a.category].push({ ...savedLink(a), hot: a.hot, children: a.children.map(savedLink) });
+  }
+  return board;
 };
 
 export const toNewDigest = (board: Board, entryDate: string): NewDigest => ({

@@ -137,6 +137,17 @@ type Digest struct {
 	Items     []Article          `json:"items"`
 }
 
+// DigestList defines model for DigestList.
+type DigestList struct {
+	Items []DigestSummary `json:"items"`
+}
+
+// DigestSummary defines model for DigestSummary.
+type DigestSummary struct {
+	EntryDate openapi_types.Date `json:"entryDate"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
 // Item defines model for Item.
 type Item struct {
 	CreatedAt time.Time          `json:"createdAt"`
@@ -213,6 +224,9 @@ type CreateSessionJSONRequestBody = NewSession
 // CreateDigestJSONRequestBody defines body for CreateDigest for application/json ContentType.
 type CreateDigestJSONRequestBody = NewDigest
 
+// UpdateDigestJSONRequestBody defines body for UpdateDigest for application/json ContentType.
+type UpdateDigestJSONRequestBody = NewDigest
+
 // CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
 type CreateItemJSONRequestBody = NewItem
 
@@ -227,12 +241,21 @@ type ServerInterface interface {
 	// GetCurrentSession Bearer の session を照合し、管理者を返す
 	// (GET /auth/sessions/current)
 	GetCurrentSession(c *gin.Context)
+	// ListDigests 登録済みの Digest の日付を新しい順に返す。記事は含まない
+	// (GET /digests)
+	ListDigests(c *gin.Context)
 	// CreateDigest 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
 	// (POST /digests)
 	CreateDigest(c *gin.Context)
 
 	// (GET /digests/latest)
 	GetLatestDigest(c *gin.Context)
+
+	// (GET /digests/{entryDate})
+	GetDigestByDate(c *gin.Context, entryDate openapi_types.Date)
+	// UpdateDigest その日付の Digest の日付と記事一式を置き換える。日付を変えるときは body の entryDate に新しい日付を入れる
+	// (PUT /digests/{entryDate})
+	UpdateDigest(c *gin.Context, entryDate openapi_types.Date)
 
 	// (GET /health)
 	Health(c *gin.Context)
@@ -295,6 +318,19 @@ func (siw *ServerInterfaceWrapper) GetCurrentSession(c *gin.Context) {
 	siw.Handler.GetCurrentSession(c)
 }
 
+// ListDigests operation middleware
+func (siw *ServerInterfaceWrapper) ListDigests(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListDigests(c)
+}
+
 // CreateDigest operation middleware
 func (siw *ServerInterfaceWrapper) CreateDigest(c *gin.Context) {
 
@@ -319,6 +355,56 @@ func (siw *ServerInterfaceWrapper) GetLatestDigest(c *gin.Context) {
 	}
 
 	siw.Handler.GetLatestDigest(c)
+}
+
+// GetDigestByDate operation middleware
+func (siw *ServerInterfaceWrapper) GetDigestByDate(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "entryDate" -------------
+	var entryDate openapi_types.Date
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryDate", c.Param("entryDate"), &entryDate, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter entryDate: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetDigestByDate(c, entryDate)
+}
+
+// UpdateDigest operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDigest(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "entryDate" -------------
+	var entryDate openapi_types.Date
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryDate", c.Param("entryDate"), &entryDate, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter entryDate: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateDigest(c, entryDate)
 }
 
 // Health operation middleware
@@ -416,8 +502,11 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/items", wrapper.ListItems)
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
 	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
+	router.GET(options.BaseURL+"/digests", wrapper.ListDigests)
 	router.POST(options.BaseURL+"/digests", wrapper.CreateDigest)
 	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
+	router.GET(options.BaseURL+"/digests/:entryDate", wrapper.GetDigestByDate)
+	router.PUT(options.BaseURL+"/digests/:entryDate", wrapper.UpdateDigest)
 	router.POST(options.BaseURL+"/auth/sessions", wrapper.CreateSession)
 	router.DELETE(options.BaseURL+"/auth/sessions/current", wrapper.DeleteCurrentSession)
 	router.GET(options.BaseURL+"/auth/sessions/current", wrapper.GetCurrentSession)
@@ -561,6 +650,27 @@ func (response GetCurrentSession401ApplicationProblemPlusJSONResponse) VisitGetC
 	return err
 }
 
+type ListDigestsRequestObject struct {
+}
+
+type ListDigestsResponseObject interface {
+	VisitListDigestsResponse(w http.ResponseWriter) error
+}
+
+type ListDigests200JSONResponse DigestList
+
+func (response ListDigests200JSONResponse) VisitListDigestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateDigestRequestObject struct {
 	Body *CreateDigestJSONRequestBody
 }
@@ -637,6 +747,125 @@ func (response GetLatestDigest200JSONResponse) VisitGetLatestDigestResponse(w ht
 type GetLatestDigest404ApplicationProblemPlusJSONResponse Problem
 
 func (response GetLatestDigest404ApplicationProblemPlusJSONResponse) VisitGetLatestDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDigestByDateRequestObject struct {
+	EntryDate openapi_types.Date `json:"entryDate"`
+}
+
+type GetDigestByDateResponseObject interface {
+	VisitGetDigestByDateResponse(w http.ResponseWriter) error
+}
+
+type GetDigestByDate200JSONResponse Digest
+
+func (response GetDigestByDate200JSONResponse) VisitGetDigestByDateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDigestByDate400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetDigestByDate400ApplicationProblemPlusJSONResponse) VisitGetDigestByDateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDigestByDate404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetDigestByDate404ApplicationProblemPlusJSONResponse) VisitGetDigestByDateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDigestRequestObject struct {
+	EntryDate openapi_types.Date `json:"entryDate"`
+	Body      *UpdateDigestJSONRequestBody
+}
+
+type UpdateDigestResponseObject interface {
+	VisitUpdateDigestResponse(w http.ResponseWriter) error
+}
+
+type UpdateDigest200JSONResponse Digest
+
+func (response UpdateDigest200JSONResponse) VisitUpdateDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDigest400ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDigest400ApplicationProblemPlusJSONResponse) VisitUpdateDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDigest401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateDigest401ApplicationProblemPlusJSONResponse) VisitUpdateDigestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDigest404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDigest404ApplicationProblemPlusJSONResponse) VisitUpdateDigestResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -795,12 +1024,21 @@ type StrictServerInterface interface {
 	// GetCurrentSession Bearer の session を照合し、管理者を返す
 	// (GET /auth/sessions/current)
 	GetCurrentSession(ctx context.Context, request GetCurrentSessionRequestObject) (GetCurrentSessionResponseObject, error)
+	// ListDigests 登録済みの Digest の日付を新しい順に返す。記事は含まない
+	// (GET /digests)
+	ListDigests(ctx context.Context, request ListDigestsRequestObject) (ListDigestsResponseObject, error)
 	// CreateDigest 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
 	// (POST /digests)
 	CreateDigest(ctx context.Context, request CreateDigestRequestObject) (CreateDigestResponseObject, error)
 
 	// (GET /digests/latest)
 	GetLatestDigest(ctx context.Context, request GetLatestDigestRequestObject) (GetLatestDigestResponseObject, error)
+
+	// (GET /digests/{entryDate})
+	GetDigestByDate(ctx context.Context, request GetDigestByDateRequestObject) (GetDigestByDateResponseObject, error)
+	// UpdateDigest その日付の Digest の日付と記事一式を置き換える。日付を変えるときは body の entryDate に新しい日付を入れる
+	// (PUT /digests/{entryDate})
+	UpdateDigest(ctx context.Context, request UpdateDigestRequestObject) (UpdateDigestResponseObject, error)
 
 	// (GET /health)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
@@ -951,6 +1189,30 @@ func (sh *strictHandler) GetCurrentSession(ctx *gin.Context) {
 	}
 }
 
+// ListDigests operation middleware
+func (sh *strictHandler) ListDigests(ctx *gin.Context) {
+	var request ListDigestsRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDigests(ctx, request.(ListDigestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDigests")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListDigestsResponseObject); ok {
+		if err := validResponse.VisitListDigestsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CreateDigest operation middleware
 func (sh *strictHandler) CreateDigest(ctx *gin.Context) {
 	var request CreateDigestRequestObject
@@ -999,6 +1261,65 @@ func (sh *strictHandler) GetLatestDigest(ctx *gin.Context) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(GetLatestDigestResponseObject); ok {
 		if err := validResponse.VisitGetLatestDigestResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetDigestByDate operation middleware
+func (sh *strictHandler) GetDigestByDate(ctx *gin.Context, entryDate openapi_types.Date) {
+	var request GetDigestByDateRequestObject
+
+	request.EntryDate = entryDate
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDigestByDate(ctx, request.(GetDigestByDateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDigestByDate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetDigestByDateResponseObject); ok {
+		if err := validResponse.VisitGetDigestByDateResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateDigest operation middleware
+func (sh *strictHandler) UpdateDigest(ctx *gin.Context, entryDate openapi_types.Date) {
+	var request UpdateDigestRequestObject
+
+	request.EntryDate = entryDate
+
+	var body UpdateDigestJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateDigest(ctx, request.(UpdateDigestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateDigest")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(UpdateDigestResponseObject); ok {
+		if err := validResponse.VisitUpdateDigestResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -1116,44 +1437,48 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

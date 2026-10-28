@@ -36,6 +36,10 @@ func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject)
 	return nil, s.getItem
 }
 
+func (s stub) ListDigests(context.Context, api.ListDigestsRequestObject) (api.ListDigestsResponseObject, error) {
+	return api.ListDigests200JSONResponse{Items: []api.DigestSummary{}}, nil
+}
+
 // DeleteCurrentSession は DB を触るので差し替える。Principal が載っていることだけ確認する
 func (s stub) DeleteCurrentSession(ctx context.Context, _ api.DeleteCurrentSessionRequestObject) (api.DeleteCurrentSessionResponseObject, error) {
 	if _, ok := auth.PrincipalFrom(ctx); !ok {
@@ -77,7 +81,10 @@ func TestRouter(t *testing.T) {
 		{"GET", "/items/not-a-uuid", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/items", `{"title":"` + strings.Repeat("a", maxBodyBytes) + `"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", id, "", http.StatusNotFound, api.ProblemsnotFound},
-		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound},
+		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound}, // /digests/{entryDate} より静的な経路が先
+		{"GET", "/digests", "", http.StatusOK, ""},
+		{"GET", "/digests/not-a-date", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
+		{"PUT", "/digests/2026-10-17", `{"entryDate":"2026-10-17","items":[]}`, http.StatusUnauthorized, api.Problemsunauthorized},
 		{"POST", "/digests", `{"entryDate":"2026-10-17","items":[]}`, http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
 		{"POST", "/auth/sessions", `{"code":"","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/auth/sessions", `{"code":"x"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},

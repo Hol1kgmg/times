@@ -49,6 +49,15 @@ export const digest = z.object({
   items: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
 
+export const digestSummary = z.object({
+  id: digestId,
+  entryDate: z.iso.date(),
+}) satisfies z.ZodType<Schemas["DigestSummary"]>;
+
+export const digestList = z.object({
+  items: digestSummary.array(),
+}) satisfies z.ZodType<Schemas["DigestList"]>;
+
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
 export const newChildArticle = z.object({
   title: z.string().trim().min(1).max(300),
@@ -90,6 +99,7 @@ export type Category = z.infer<typeof category>;
 export type ChildArticle = z.infer<typeof childArticle>;
 export type Article = z.infer<typeof article>;
 export type Digest = z.infer<typeof digest>;
+export type DigestSummary = z.infer<typeof digestSummary>;
 export type NewChildArticle = z.infer<typeof newChildArticle>;
 export type NewArticle = z.infer<typeof newArticle>;
 export type NewDigest = z.infer<typeof newDigest>;

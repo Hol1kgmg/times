@@ -87,6 +87,32 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 	return i, err
 }
 
+const deleteArticlesByDigest = `-- name: DeleteArticlesByDigest :exec
+DELETE FROM articles WHERE digest_id = $1
+`
+
+func (q *Queries) DeleteArticlesByDigest(ctx context.Context, digestID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteArticlesByDigest, digestID)
+	return err
+}
+
+const getDigestByDate = `-- name: GetDigestByDate :one
+SELECT id, entry_date, created_at, created_by FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1
+`
+
+// ponytail: 管理者 1 人の前提で created_by を見ない。複数になったら条件を足す
+func (q *Queries) GetDigestByDate(ctx context.Context, entryDate time.Time) (Digest, error) {
+	row := q.db.QueryRow(ctx, getDigestByDate, entryDate)
+	var i Digest
+	err := row.Scan(
+		&i.ID,
+		&i.EntryDate,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
 const getLatestDigest = `-- name: GetLatestDigest :one
 SELECT id, entry_date, created_at, created_by FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1
 `
@@ -165,6 +191,35 @@ func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) 
 	return items, nil
 }
 
+const listDigests = `-- name: ListDigests :many
+SELECT id, entry_date FROM digests ORDER BY entry_date DESC, created_at DESC
+`
+
+type ListDigestsRow struct {
+	ID        uuid.UUID
+	EntryDate time.Time
+}
+
+func (q *Queries) ListDigests(ctx context.Context) ([]ListDigestsRow, error) {
+	rows, err := q.db.Query(ctx, listDigests)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDigestsRow
+	for rows.Next() {
+		var i ListDigestsRow
+		if err := rows.Scan(&i.ID, &i.EntryDate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRegisteredURLs = `-- name: ListRegisteredURLs :many
 SELECT url FROM articles WHERE created_by = $1 AND url = ANY($2::text[])
 `
@@ -193,4 +248,26 @@ func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLs
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateDigestDate = `-- name: UpdateDigestDate :one
+UPDATE digests SET entry_date = $1 WHERE created_by = $2 AND entry_date = $3 RETURNING id, entry_date, created_at, created_by
+`
+
+type UpdateDigestDateParams struct {
+	NewDate   time.Time
+	CreatedBy int64
+	OldDate   time.Time
+}
+
+func (q *Queries) UpdateDigestDate(ctx context.Context, arg UpdateDigestDateParams) (Digest, error) {
+	row := q.db.QueryRow(ctx, updateDigestDate, arg.NewDate, arg.CreatedBy, arg.OldDate)
+	var i Digest
+	err := row.Scan(
+		&i.ID,
+		&i.EntryDate,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
+	return i, err
 }
