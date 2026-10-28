@@ -119,6 +119,8 @@ export const DigestNewPage = () => {
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
   const [registered, setRegistered] = useState<ReadonlySet<string>>(new Set());
+  // 登録済みと断られた日付。日付を変えれば印も消える
+  const [takenDate, setTakenDate] = useState<string>();
   const [previewing, setPreviewing] = useState(false);
   // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
   const beforeDrag = useRef<Board>(undefined);
@@ -145,6 +147,7 @@ export const DigestNewPage = () => {
   const registeredLeft = entry.items
     .flatMap((a) => [a.url, ...a.children.map((c) => c.url)])
     .filter((u) => registered.has(u)).length;
+  const dateTaken = entryDate !== "" && entryDate === takenDate;
   useBlocker({
     // oxlint-disable-next-line eslint/no-alert -- 確認はこの画面の 2 か所だけで、管理者 1 名の画面なので専用のダイアログは作らない
     shouldBlockFn: () => !window.confirm("登録してない記事があります。このページを離れますか？"),
@@ -243,7 +246,11 @@ export const DigestNewPage = () => {
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が / へ遷移する
       const rejected = await submit({ data: entry });
-      setRegistered(new Set(rejected.duplicateUrls));
+      if (rejected.reason === "digest-already-exists") {
+        setTakenDate(entry.entryDate);
+      } else {
+        setRegistered(new Set(rejected.duplicateUrls));
+      }
       setSubmitting(false);
     } catch (error) {
       setSubmitError(
@@ -272,6 +279,7 @@ export const DigestNewPage = () => {
           <label className={styles.date}>
             <span className={styles.label}>日付</span>
             <input
+              aria-invalid={dateTaken}
               className={styles.input}
               required
               type="date"
@@ -289,6 +297,11 @@ export const DigestNewPage = () => {
             </p>
           )}
           {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
+          {dateTaken && (
+            <p className={styles.error} role="alert">
+              その日の Digest は登録済みです。日付を変えてください
+            </p>
+          )}
           {registeredLeft > 0 && (
             <p className={styles.error} role="alert">
               過去に登録したリンクが含まれてます。重複して登録はできないので削除してください

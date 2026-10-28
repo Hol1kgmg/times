@@ -96,7 +96,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Digest"
         "400":
-          description: 形式違反 (validation-failed) か、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)
+          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)。日付と URL が両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -389,6 +389,7 @@ components:
             - /problems/forbidden
             - /problems/upstream-failed
             - /problems/url-already-registered
+            - /problems/digest-already-exists
         title:
           type: string
         status:

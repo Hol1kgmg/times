@@ -74,6 +74,7 @@ export const problem = z.object({
     "/problems/validation-failed",
     "/problems/not-found",
     "/problems/url-already-registered",
+    "/problems/digest-already-exists",
   ]),
   title: z.string(),
   status: z.number().int(),

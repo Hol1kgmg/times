@@ -87,21 +87,6 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 	return i, err
 }
 
-const deleteDigestsByDate = `-- name: DeleteDigestsByDate :exec
-DELETE FROM digests WHERE entry_date = $1 AND created_by = $2
-`
-
-type DeleteDigestsByDateParams struct {
-	EntryDate time.Time
-	CreatedBy int64
-}
-
-// 同じ日付の再登録は訂正。前の登録を残すと URL の unique に掛かって入れ直せない
-func (q *Queries) DeleteDigestsByDate(ctx context.Context, arg DeleteDigestsByDateParams) error {
-	_, err := q.db.Exec(ctx, deleteDigestsByDate, arg.EntryDate, arg.CreatedBy)
-	return err
-}
-
 const getLatestDigest = `-- name: GetLatestDigest :one
 SELECT id, entry_date, created_at, created_by FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1
 `

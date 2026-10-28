@@ -93,6 +93,10 @@
   font: inherit;
 }
 
+.input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
 .add {
   display: flex;
   gap: var(--space-1);

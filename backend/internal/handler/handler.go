@@ -106,9 +106,10 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := s.q.WithTx(tx)
-	date := req.Body.EntryDate.Time
-	if err := q.DeleteDigestsByDate(ctx, db.DeleteDigestsByDateParams{EntryDate: date, CreatedBy: p.UserID}); err != nil {
-		return nil, err
+	// 日付がぶつかるならリクエスト全体が成り立たないので、URL より先に確かめる
+	d, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: req.Body.EntryDate.Time, CreatedBy: p.UserID})
+	if err != nil {
+		return nil, constraintViolation(err)
 	}
 	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: p.UserID, Urls: urlsOf(req.Body.Items)})
 	if err != nil {
@@ -116,10 +117,6 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	}
 	if len(registered) > 0 {
 		return nil, apperr.URLAlreadyRegistered(registered)
-	}
-	d, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: date, CreatedBy: p.UserID})
-	if err != nil {
-		return nil, err
 	}
 	var rows []db.Article
 	var links []db.ArticleLink
@@ -161,9 +158,12 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
 }
 
-// 過去に載せた URL・同じ登録内の重複 (unique) と空文字 (check) は入力の誤りなので 400 にする
+// 登録済みの日付・URL (unique) と空文字 (check) は入力の誤りなので 400 にする
 func constraintViolation(err error) error {
 	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.ConstraintName == "digests_created_by_entry_date_key" {
+		return apperr.DigestAlreadyExists("digest for the entry date already exists")
+	}
 	if errors.As(err, &pg) && (pg.Code == pgerrcode.UniqueViolation || pg.Code == pgerrcode.CheckViolation) {
 		return apperr.ValidationFailed(pg.ConstraintName + " violated")
 	}

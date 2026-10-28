@@ -1,0 +1,1 @@
+ALTER TABLE digests DROP CONSTRAINT digests_created_by_entry_date_key;

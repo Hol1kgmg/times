@@ -28,6 +28,7 @@ var Types = map[string]int{
 	"/problems/upstream-failed":   http.StatusBadGateway,
 	// 業務ルール違反だが、入力を直せば通るので 409 ではなく 400 に揃える
 	"/problems/url-already-registered": http.StatusBadRequest,
+	"/problems/digest-already-exists":  http.StatusBadRequest,
 }
 
 func newError(typ, detail string) error {
@@ -39,6 +40,9 @@ func NotFound(detail string) error         { return newError("/problems/not-foun
 func Unauthorized(detail string) error     { return newError("/problems/unauthorized", detail) }
 func Forbidden(detail string) error        { return newError("/problems/forbidden", detail) }
 func UpstreamFailed(detail string) error   { return newError("/problems/upstream-failed", detail) }
+func DigestAlreadyExists(detail string) error {
+	return newError("/problems/digest-already-exists", detail)
+}
 
 func URLAlreadyRegistered(urls []string) error {
 	typ := "/problems/url-already-registered"

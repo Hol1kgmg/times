@@ -23,6 +23,11 @@ func TestConstraintViolation(t *testing.T) {
 	if err := constraintViolation(fmt.Errorf("wrap: %w", unique)); !errors.As(err, &e) || e.Status != 400 {
 		t.Errorf("unique: got %v", err)
 	}
+	// 作成からの同じ日付への追記は、画面が日付欄を示せるよう専用の type にする
+	date := &pgconn.PgError{Code: pgerrcode.UniqueViolation, ConstraintName: "digests_created_by_entry_date_key"}
+	if err := constraintViolation(date); !errors.As(err, &e) || e.Type != "/problems/digest-already-exists" {
+		t.Errorf("date: got %v", err)
+	}
 	other := &pgconn.PgError{Code: pgerrcode.ConnectionFailure}
 	if err := constraintViolation(other); errors.As(err, &e) || err != other {
 		t.Errorf("other: got %v", err)
