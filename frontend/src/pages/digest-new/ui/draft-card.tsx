@@ -306,7 +306,7 @@ export const DraftCard = ({
             },
           },
           {
-            label: "取得直後に戻す",
+            label: "変更を戻す",
             onSelect: () => {
               actions.revert(draft.id);
             },
@@ -350,7 +350,7 @@ export const DraftCard = ({
                     },
                   },
                   {
-                    label: "取得直後に戻す",
+                    label: "変更を戻す",
                     onSelect: () => {
                       actions.revert(child.id);
                     },

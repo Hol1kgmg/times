@@ -83,15 +83,82 @@ func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestReque
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.q.ListArticlesByDigest(ctx, d.ID)
+	out, err := s.withArticles(ctx, d)
 	if err != nil {
 		return nil, err
+	}
+	return api.GetLatestDigest200JSONResponse(out), nil
+}
+
+func (s *Server) ListDigests(ctx context.Context, _ api.ListDigestsRequestObject) (api.ListDigestsResponseObject, error) {
+	rows, err := s.q.ListDigests(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]api.DigestSummary, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, api.DigestSummary{Id: r.ID, EntryDate: openapi_types.Date{Time: r.EntryDate}})
+	}
+	return api.ListDigests200JSONResponse{Items: items}, nil
+}
+
+func (s *Server) GetDigestByDate(ctx context.Context, req api.GetDigestByDateRequestObject) (api.GetDigestByDateResponseObject, error) {
+	d, err := s.q.GetDigestByDate(ctx, req.EntryDate.Time)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.NotFound("no digest for the entry date")
+	}
+	if err != nil {
+		return nil, err
+	}
+	out, err := s.withArticles(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	return api.GetDigestByDate200JSONResponse(out), nil
+}
+
+func (s *Server) withArticles(ctx context.Context, d db.Digest) (api.Digest, error) {
+	rows, err := s.q.ListArticlesByDigest(ctx, d.ID)
+	if err != nil {
+		return api.Digest{}, err
 	}
 	links, err := s.q.ListArticleLinksByDigest(ctx, d.ID)
 	if err != nil {
+		return api.Digest{}, err
+	}
+	return toDigest(d, rows, links), nil
+}
+
+// 記事を消してから URL を判定するので、この Digest 自身の URL は登録済みに数えない
+func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestObject) (api.UpdateDigestResponseObject, error) {
+	p, ok := auth.PrincipalFrom(ctx)
+	if !ok {
+		return nil, apperr.Unauthorized("no session in context")
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return api.GetLatestDigest200JSONResponse(toDigest(d, rows, links)), nil
+	defer func() { _ = tx.Rollback(ctx) }()
+	q := s.q.WithTx(tx)
+	d, err := q.UpdateDigestDate(ctx, db.UpdateDigestDateParams{NewDate: req.Body.EntryDate.Time, CreatedBy: p.UserID, OldDate: req.EntryDate.Time})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.NotFound("no digest for the entry date")
+	}
+	if err != nil {
+		return nil, constraintViolation(err)
+	}
+	if err := q.DeleteArticlesByDigest(ctx, d.ID); err != nil {
+		return nil, err
+	}
+	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Items)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return api.UpdateDigest200JSONResponse(toDigest(d, rows, links)), nil
 }
 
 // digest と articles を 1 トランザクションで入れる。途中で失敗したら digest も残さない
@@ -111,19 +178,30 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	if err != nil {
 		return nil, constraintViolation(err)
 	}
-	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: p.UserID, Urls: urlsOf(req.Body.Items)})
+	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Items)
 	if err != nil {
 		return nil, err
 	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
+}
+
+func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, items []api.NewArticle) ([]db.Article, []db.ArticleLink, error) {
+	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, Urls: urlsOf(items)})
+	if err != nil {
+		return nil, nil, err
+	}
 	if len(registered) > 0 {
-		return nil, apperr.URLAlreadyRegistered(registered)
+		return nil, nil, apperr.URLAlreadyRegistered(registered)
 	}
 	var rows []db.Article
 	var links []db.ArticleLink
 	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category と hot を引き継ぐ
 	insert := func(category, title, url string, hot bool) (db.Article, error) {
 		row, err := q.CreateArticle(ctx, db.CreateArticleParams{
-			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot, CreatedBy: p.UserID,
+			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot, CreatedBy: userID,
 		})
 		if err != nil {
 			return row, constraintViolation(err)
@@ -131,11 +209,11 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 		rows = append(rows, row)
 		return row, nil
 	}
-	for _, a := range req.Body.Items {
+	for _, a := range items {
 		hot := a.Hot != nil && *a.Hot
 		parent, err := insert(string(a.Category), a.Title, a.Url, hot)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if a.Children == nil {
 			continue
@@ -143,19 +221,16 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 		for j, c := range *a.Children {
 			child, err := insert(string(a.Category), c.Title, c.Url, hot)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			link := db.ArticleLink{ParentID: parent.ID, ChildID: child.ID, Position: int32(j)}
 			if err := q.CreateArticleLink(ctx, db.CreateArticleLinkParams(link)); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			links = append(links, link)
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
+	return rows, links, nil
 }
 
 // 登録済みの日付・URL (unique) と空文字 (check) は入力の誤りなので 400 にする

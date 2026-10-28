@@ -1,6 +1,6 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
-import { isNotFound, useBlocker } from "@tanstack/react-router";
+import { getRouteApi, isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 // barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
@@ -11,6 +11,8 @@ import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { createDigest } from "../api/create-digest";
 import { fetchDraftPreview } from "../api/fetch-draft-preview";
 import { loadDraftPreview } from "../api/load-draft-preview";
+import type { Rejection } from "../api/rejection-of";
+import { updateDigest } from "../api/update-digest";
 import {
   addDraft,
   blockers,
@@ -18,6 +20,7 @@ import {
   draftCount,
   editLink,
   emptyBoard,
+  fromDigest,
   fromIds,
   hasDrafts,
   isBoxId,
@@ -104,14 +107,31 @@ const PreviewDialog = ({ digest, onClose }: { digest: NewDigest; onClose: () => 
   );
 };
 
-export const DigestNewPage = () => {
-  const submit = useServerFn(createDigest);
+interface FormProps {
+  heading: string;
+  initialDate?: string;
+  initialBoard: Board;
+  submitLabel: string;
+  leaveMessage: string;
+  save: (entry: NewDigest) => Promise<Rejection>;
+  isDirty: (entry: NewDigest, board: Board) => boolean;
+}
+
+const DigestForm = ({
+  heading,
+  initialDate,
+  initialBoard,
+  submitLabel,
+  leaveMessage,
+  save,
+  isDirty,
+}: FormProps) => {
   const getPreview = useServerFn(fetchDraftPreview);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
   const [editedDate, setEditedDate] = useState<string>();
-  const entryDate = editedDate ?? defaultDate;
-  const [board, setBoard] = useState<Board>(emptyBoard);
+  const entryDate = editedDate ?? initialDate ?? defaultDate;
+  const [board, setBoard] = useState<Board>(initialBoard);
   const [url, setUrl] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string>();
@@ -142,15 +162,15 @@ export const DigestNewPage = () => {
     };
   }, []);
 
-  const dirty = hasDrafts(board) && !submitting;
   const entry = toNewDigest(board, entryDate);
+  const dirty = isDirty(entry, board) && !submitting;
   const registeredLeft = entry.items
     .flatMap((a) => [a.url, ...a.children.map((c) => c.url)])
     .filter((u) => registered.has(u)).length;
   const dateTaken = entryDate !== "" && entryDate === takenDate;
   useBlocker({
     // oxlint-disable-next-line eslint/no-alert -- 確認はこの画面の 2 か所だけで、管理者 1 名の画面なので専用のダイアログは作らない
-    shouldBlockFn: () => !window.confirm("登録してない記事があります。このページを離れますか？"),
+    shouldBlockFn: () => !window.confirm(leaveMessage),
     enableBeforeUnload: dirty,
     disabled: !dirty,
   });
@@ -244,8 +264,8 @@ export const DigestNewPage = () => {
     setSubmitting(true);
     setSubmitError(undefined);
     try {
-      // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が / へ遷移する
-      const rejected = await submit({ data: entry });
+      // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が遷移する
+      const rejected = await save(entry);
       if (rejected.reason === "digest-already-exists") {
         setTakenDate(entry.entryDate);
       } else {
@@ -255,8 +275,8 @@ export const DigestNewPage = () => {
     } catch (error) {
       setSubmitError(
         isNotFound(error)
-          ? "ログインが切れました。別のタブでログインし直してから、もう一度登録してください"
-          : "登録できませんでした。時間をおいてもう一度試してください",
+          ? `ログインが切れました。別のタブでログインし直してから、もう一度${submitLabel}してください`
+          : `${submitLabel}できませんでした。時間をおいてもう一度試してください`,
       );
       setSubmitting(false);
     }
@@ -275,7 +295,7 @@ export const DigestNewPage = () => {
     <div className={styles.page}>
       <header ref={header} className={styles.header}>
         <div className={styles.title}>
-          <h1 className={styles.heading}>記事を登録</h1>
+          <h1 className={styles.heading}>{heading}</h1>
           <label className={styles.date}>
             <span className={styles.label}>日付</span>
             <input
@@ -326,7 +346,7 @@ export const DigestNewPage = () => {
               void onSubmit();
             }}
           >
-            登録
+            {submitLabel}
           </button>
         </div>
       </header>
@@ -423,5 +443,40 @@ export const DigestNewPage = () => {
         <div className={styles.shelf}>{category.options.map(renderBox)}</div>
       </DragDropProvider>
     </div>
+  );
+};
+
+export const DigestNewPage = () => {
+  const create = useServerFn(createDigest);
+  return (
+    <DigestForm
+      heading="記事を登録"
+      initialBoard={emptyBoard()}
+      isDirty={(_, board) => hasDrafts(board)}
+      leaveMessage="登録してない記事があります。このページを離れますか？"
+      save={async (entry) => await create({ data: entry })}
+      submitLabel="登録"
+    />
+  );
+};
+
+const editRoute = getRouteApi("/_shell/admin/digests/$date/edit");
+
+export const DigestEditPage = () => {
+  const digest = editRoute.useLoaderData();
+  const update = useServerFn(updateDigest);
+  const saved = JSON.stringify(toNewDigest(fromDigest(digest), digest.entryDate));
+  return (
+    // 別の日付の編集画面へ移っても同じ component が使い回されるので、state を Digest ごとに作り直す
+    <DigestForm
+      key={digest.id}
+      heading="記事を編集"
+      initialBoard={fromDigest(digest)}
+      initialDate={digest.entryDate}
+      isDirty={(entry) => JSON.stringify(entry) !== saved}
+      leaveMessage="保存してない変更があります。このページを離れますか？"
+      save={async (entry) => await update({ data: { date: digest.entryDate, digest: entry } })}
+      submitLabel="保存"
+    />
   );
 };

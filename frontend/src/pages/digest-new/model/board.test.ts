@@ -5,6 +5,7 @@ import {
   canMakeChild,
   editLink,
   emptyBoard,
+  fromDigest,
   fromIds,
   makeChild,
   moveToBoxEnd,
@@ -17,6 +18,7 @@ import {
   unmakeChild,
   UNSORTED,
 } from "./board";
+import { digest } from "#/shared/api/schemas";
 import type { Board, BoxId, Draft, Link } from "./board";
 
 const link = (id: string, title = `title ${id}`): Link => ({
@@ -181,5 +183,60 @@ describe("関連記事", () => {
       ["b", false],
       ["z", false],
     ]);
+  });
+});
+
+const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
+describe("保存済みの Digest を開く", () => {
+  const article = (n: number, extra: object = {}) => ({
+    id: uuid(n),
+    category: "その他",
+    hot: false,
+    title: `title ${n}`,
+    url: `https://example.com/${n}`,
+    children: [],
+    ...extra,
+  });
+  const saved = digest.parse({
+    id: uuid(0),
+    entryDate: "2026-10-20",
+    items: [
+      article(1, { category: "IT系", hot: true }),
+      article(2, { category: "IT系" }),
+      article(3, {
+        children: [
+          { id: uuid(31), title: "title 31", url: "https://example.com/31" },
+          { id: uuid(32), title: "title 32", url: "https://example.com/32" },
+        ],
+      }),
+    ],
+  });
+
+  it("reopens a saved digest with the same categories, order, hot flags and related articles", () => {
+    const b = fromDigest(saved);
+    expect(b[UNSORTED]).toHaveLength(0);
+    expect(toNewDigest(b, saved.entryDate)).toStrictEqual({
+      entryDate: saved.entryDate,
+      items: saved.items.map(({ category, hot, title, url, children }) => ({
+        category,
+        hot,
+        title,
+        url,
+        children: children.map((c) => ({ title: c.title, url: c.url })),
+      })),
+    });
+  });
+
+  it("reverts a saved article to its saved title and URL, keeping its hot flag", () => {
+    const edited = toggleHot(
+      ok(editLink(fromDigest(saved), uuid(2), { url: "https://example.com/x", title: "x" })),
+      uuid(2),
+    );
+    expect(revert(edited, uuid(2)).IT系[1]).toMatchObject({
+      url: "https://example.com/2",
+      title: "title 2",
+      hot: true,
+    });
   });
 });

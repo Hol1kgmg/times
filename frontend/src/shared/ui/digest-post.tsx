@@ -13,7 +13,7 @@ import styles from "./digest-post.module.css";
 type LoadPreview = (url: string) => Promise<LinkPreview | null>;
 
 // entryDate は日付だけの ISO で UTC の 0 時として読まれるため、UTC で書式化しないと前日になりうる
-const dateFormat = new Intl.DateTimeFormat("ja-JP", {
+export const dateFormat = new Intl.DateTimeFormat("ja-JP", {
   month: "long",
   day: "numeric",
   weekday: "short",
