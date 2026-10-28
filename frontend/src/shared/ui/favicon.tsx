@@ -18,15 +18,18 @@ export const Favicon = ({
     alt={alt ?? new URL(url).hostname}
     className={className === undefined ? styles.favicon : `${styles.favicon} ${className}`}
     height={16}
-    // lazy にすると、折りたたみで読まれずに残った画像を Chrome が待ち続け、load イベントが来ないことがある
+    loading="lazy"
     src={faviconUrl(url)}
     width={16}
     onError={(e) => {
       e.currentTarget.src = fallbackFavicon;
     }}
-    // Google は favicon 無しのドメインに 200 で 16px の既定画像を返すため、実寸で判定する
+    // Google は favicon 無しに 16px の既定画像を返す。代替 SVG も 16px なので除かないと差し替えが無限に続く
     onLoad={(e) => {
-      if (e.currentTarget.naturalWidth < 32) {
+      if (
+        e.currentTarget.naturalWidth < 32 &&
+        e.currentTarget.getAttribute("src") !== fallbackFavicon
+      ) {
         e.currentTarget.src = fallbackFavicon;
       }
     }}

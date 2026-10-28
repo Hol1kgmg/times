@@ -12,8 +12,7 @@ export const loggedInState = async (browser: Browser) => {
   await page.getByRole("button", { name: "GitHub でログイン" }).click();
   await page.waitForURL(/\/login\/oauth\/authorize/u);
   await page.getByRole("link", { name: "管理者として承認" }).click();
-  // / は Chromium で load が来ないことがある (原因は未確定)。ここでは Cookie が付けば足りる
-  await page.waitForURL((url) => url.pathname === "/", { waitUntil: "domcontentloaded" });
+  await page.waitForURL((url) => url.pathname === "/");
   const state = await context.storageState();
   await context.close();
   return state;
