@@ -2,6 +2,6 @@
 useDefault = true
 
 [[allowlists]]
-description = "oapi-codegen が埋め込む OpenAPI 仕様 (gzip + base64) が generic-api-key に誤検知される"
-# ponytail: 生成物をコミットしている間の例外。Docker / CI で生成する構成に移したら消す
-paths = ['''^backend/internal/api/gen\.go$''']
+# 生成元 (openapi.yaml, db/) は検査されるので、写しの誤検知を毎回除外しない
+description = "oapi-codegen / sqlc の生成物"
+paths = ['''^backend/internal/(api|db)/''']
