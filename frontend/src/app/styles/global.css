@@ -35,6 +35,8 @@
   /* この上の --color-text-faint は 4.5:1 を切るので、文字は --color-text-muted 以上を置く */
   --color-brand-faint: #fff4ee;
   --color-status: var(--color-accent);
+  /* エラー文にも使うので白地で 4.5:1 を満たす (4.98:1) */
+  --color-danger: #d32f2f;
   --color-sidebar-bg: var(--color-bg);
   --color-sidebar-active: var(--color-brand-faint);
   --color-sidebar-text: var(--color-text);
@@ -89,6 +91,8 @@
     --color-fill-faint: #26272b;
     /* 暗地で橙を薄めると泥色になり、グレーを敷くとカードが沈むため地と揃える */
     --color-brand-faint: var(--color-bg);
+    /* --color-surface の上で 4.5:1 を満たす (5.47:1) */
+    --color-danger: #ff7b72;
     --color-sidebar-bg: var(--color-fill-faint);
     /* ダークの --color-brand-faint はサイドバーの地より暗く、選択中が沈んで見える */
     --color-sidebar-active: var(--color-fill-subtle);

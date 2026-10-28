@@ -204,6 +204,19 @@ func TestCreateDigestRejectsNonHTTPURL(t *testing.T) {
 	}
 }
 
+// 登録済み URL の 400 は、画面が印を付けられるよう該当 URL をすべて duplicateUrls で返す
+func TestURLAlreadyRegisteredProblem(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/digests", nil)
+	writeProblem(c, apperr.URLAlreadyRegistered([]string{"https://a.example", "https://b.example"}))
+	p := problem(t, w)
+	if w.Code != 400 || p.Type != api.ProblemsurlAlreadyRegistered || p.DuplicateUrls == nil || len(*p.DuplicateUrls) != 2 {
+		t.Errorf("got %d: %s", w.Code, w.Body)
+	}
+}
+
 // openapi.yaml の Problem.type enum と apperr.Types が一致する
 func TestProblemTypesMatchSpec(t *testing.T) {
 	spec, err := api.GetSwagger()

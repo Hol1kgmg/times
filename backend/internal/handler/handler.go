@@ -96,13 +96,28 @@ func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestReque
 
 // digest と articles を 1 トランザクションで入れる。途中で失敗したら digest も残さない
 func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestObject) (api.CreateDigestResponseObject, error) {
+	p, ok := auth.PrincipalFrom(ctx)
+	if !ok {
+		return nil, apperr.Unauthorized("no session in context")
+	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := s.q.WithTx(tx)
-	d, err := q.CreateDigest(ctx, req.Body.EntryDate.Time)
+	date := req.Body.EntryDate.Time
+	if err := q.DeleteDigestsByDate(ctx, db.DeleteDigestsByDateParams{EntryDate: date, CreatedBy: p.UserID}); err != nil {
+		return nil, err
+	}
+	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: p.UserID, Urls: urlsOf(req.Body.Items)})
+	if err != nil {
+		return nil, err
+	}
+	if len(registered) > 0 {
+		return nil, apperr.URLAlreadyRegistered(registered)
+	}
+	d, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: date, CreatedBy: p.UserID})
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +126,7 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category と hot を引き継ぐ
 	insert := func(category, title, url string, hot bool) (db.Article, error) {
 		row, err := q.CreateArticle(ctx, db.CreateArticleParams{
-			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot,
+			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot, CreatedBy: p.UserID,
 		})
 		if err != nil {
 			return row, constraintViolation(err)
@@ -146,13 +161,26 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
 }
 
-// 同じ digest 内の URL 重複 (unique) と空文字 (check) は入力の誤りなので 400 にする
+// 過去に載せた URL・同じ登録内の重複 (unique) と空文字 (check) は入力の誤りなので 400 にする
 func constraintViolation(err error) error {
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && (pg.Code == pgerrcode.UniqueViolation || pg.Code == pgerrcode.CheckViolation) {
 		return apperr.ValidationFailed(pg.ConstraintName + " violated")
 	}
 	return err
+}
+
+func urlsOf(items []api.NewArticle) []string {
+	var urls []string
+	for _, a := range items {
+		urls = append(urls, a.Url)
+		if a.Children != nil {
+			for _, c := range *a.Children {
+				urls = append(urls, c.Url)
+			}
+		}
+	}
+	return urls
 }
 
 func toDigest(d db.Digest, rows []db.Article, links []db.ArticleLink) api.Digest {

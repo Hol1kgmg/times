@@ -27,34 +27,36 @@ export const backendFetchRaw = createServerOnlyFn(
   },
 );
 
-const isUnauthorizedProblem = async (res: Response) => {
+const problemBody = async (res: Response): Promise<unknown> => {
   if (!(res.headers.get("content-type") ?? "").includes("application/problem+json")) {
-    return false;
+    return undefined;
   }
   try {
-    const body: unknown = await res.json();
-    return (
-      typeof body === "object" &&
-      body !== null &&
-      "type" in body &&
-      body.type === "/problems/unauthorized"
-    );
+    return await res.json();
   } catch {
-    return false;
+    return undefined;
   }
 };
 
+const isUnauthorized = (body: unknown) =>
+  typeof body === "object" &&
+  body !== null &&
+  "type" in body &&
+  body.type === "/problems/unauthorized";
+
 // 2xx 以外は例外。トークン付きの要求が 401 (unauthorized) なら notFound(SESSION_EXPIRED) に写す。
 // 呼び出し側は isNotFound(e) && e.data.reason === SESSION_EXPIRED で期限切れ・失効を判別する
+// それ以外は Problem の本文を未検証のまま cause に載せる。使う側が problem.safeParse で読む
 export const backendFetch = createServerOnlyFn(
   async (path: string, init?: RequestInit, auth?: Auth) => {
     const res = await backendFetchRaw(path, init, auth);
     if (res.ok) {
       return res;
     }
-    if (auth?.token !== undefined && res.status === 401 && (await isUnauthorizedProblem(res))) {
+    const body = await problemBody(res);
+    if (auth?.token !== undefined && res.status === 401 && isUnauthorized(body)) {
       throw notFound({ data: { reason: SESSION_EXPIRED } });
     }
-    throw new Error(`backend ${res.status}: ${init?.method ?? "GET"} ${path}`);
+    throw new Error(`backend ${res.status}: ${init?.method ?? "GET"} ${path}`, { cause: body });
   },
 );

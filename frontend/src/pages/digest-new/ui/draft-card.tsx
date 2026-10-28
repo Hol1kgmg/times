@@ -10,6 +10,7 @@ import styles from "./draft-card.module.css";
 
 export interface CardActions {
   atLimit: boolean;
+  registered: ReadonlySet<string>;
   edit: (id: string, next: { url: string; title: string }) => Rejected | null;
   revert: (id: string) => void;
   toggleHot: (id: string) => void;
@@ -138,12 +139,14 @@ const EditDialog = ({
 const LinkRow = ({
   link,
   hot = false,
+  registered,
   handle,
   menu,
   onEdit,
 }: {
   link: Link;
   hot?: boolean;
+  registered: boolean;
   handle?: ReactNode;
   menu: MenuItem[];
   onEdit: (next: { url: string; title: string }) => Rejected | null;
@@ -170,7 +173,7 @@ const LinkRow = ({
   const host = new URL(link.url).hostname;
   const untitled = link.status !== "loading" && link.title.trim() === "";
   return (
-    <div className={styles.row}>
+    <div className={styles.row} data-registered={registered ? "" : undefined}>
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
       <span className={styles.text}>
@@ -209,6 +212,7 @@ const LinkRow = ({
             <span className={styles.loading}>タイトルを取得してます</span>
           )}
           {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
+          {registered && <span className={styles.error}>既に登録済みです</span>}
         </span>
       </span>
       <Menu
@@ -314,6 +318,7 @@ export const DraftCard = ({
             },
           },
         ]}
+        registered={actions.registered.has(draft.url)}
         onEdit={(next) => actions.edit(draft.id, next)}
       />
       {draft.children.length > 0 && (
@@ -357,6 +362,7 @@ export const DraftCard = ({
                     },
                   },
                 ]}
+                registered={actions.registered.has(child.url)}
                 onEdit={(next) => actions.edit(child.id, next)}
               />
             </li>

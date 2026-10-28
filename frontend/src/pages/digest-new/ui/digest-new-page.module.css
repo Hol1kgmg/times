@@ -42,7 +42,8 @@
   min-width: 0;
 }
 
-.submit .message {
+.submit .message,
+.submit .error {
   text-align: end;
 }
 
@@ -196,6 +197,11 @@
   composes: t-body from global;
   margin: 0;
   color: var(--color-text-muted);
+}
+
+.error {
+  composes: message;
+  color: var(--color-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,13 +3,18 @@
 // ADR: adr/backend/0002-return-errors-as-rfc9457-problem-details.md
 package apperr
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 // title は持たない。status の reason phrase を writeProblem が導出する。
 type Error struct {
 	Status int
 	Type   string
 	Detail string
+	// url-already-registered のときだけ。Problem の拡張メンバー duplicateUrls になる
+	DuplicateURLs []string
 }
 
 func (e *Error) Error() string { return e.Type + ": " + e.Detail }
@@ -21,6 +26,8 @@ var Types = map[string]int{
 	"/problems/unauthorized":      http.StatusUnauthorized,
 	"/problems/forbidden":         http.StatusForbidden,
 	"/problems/upstream-failed":   http.StatusBadGateway,
+	// 業務ルール違反だが、入力を直せば通るので 409 ではなく 400 に揃える
+	"/problems/url-already-registered": http.StatusBadRequest,
 }
 
 func newError(typ, detail string) error {
@@ -32,3 +39,8 @@ func NotFound(detail string) error         { return newError("/problems/not-foun
 func Unauthorized(detail string) error     { return newError("/problems/unauthorized", detail) }
 func Forbidden(detail string) error        { return newError("/problems/forbidden", detail) }
 func UpstreamFailed(detail string) error   { return newError("/problems/upstream-failed", detail) }
+
+func URLAlreadyRegistered(urls []string) error {
+	typ := "/problems/url-already-registered"
+	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d urls already registered", len(urls)), DuplicateURLs: urls}
+}

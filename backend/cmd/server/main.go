@@ -194,6 +194,9 @@ func writeProblem(c *gin.Context, err error) {
 	var e *apperr.Error
 	if errors.As(err, &e) {
 		p = api.Problem{Type: api.ProblemType(e.Type), Status: e.Status, Detail: &e.Detail}
+		if e.DuplicateURLs != nil {
+			p.DuplicateUrls = &e.DuplicateURLs
+		}
 	} else {
 		slog.Error("handler error", "err", err, "method", c.Request.Method, "path", c.Request.URL.Path)
 	}

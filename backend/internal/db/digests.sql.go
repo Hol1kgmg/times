@@ -13,16 +13,17 @@ import (
 )
 
 const createArticle = `-- name: CreateArticle :one
-INSERT INTO articles (digest_id, position, category, title, url, is_hot) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, digest_id, position, category, title, url, description, is_hot
+INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, digest_id, position, category, title, url, description, is_hot, created_by
 `
 
 type CreateArticleParams struct {
-	DigestID uuid.UUID
-	Position int32
-	Category string
-	Title    string
-	Url      string
-	IsHot    bool
+	DigestID  uuid.UUID
+	Position  int32
+	Category  string
+	Title     string
+	Url       string
+	IsHot     bool
+	CreatedBy int64
 }
 
 func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error) {
@@ -33,6 +34,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		arg.Title,
 		arg.Url,
 		arg.IsHot,
+		arg.CreatedBy,
 	)
 	var i Article
 	err := row.Scan(
@@ -44,6 +46,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		&i.Url,
 		&i.Description,
 		&i.IsHot,
+		&i.CreatedBy,
 	)
 	return i, err
 }
@@ -64,25 +67,55 @@ func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkPa
 }
 
 const createDigest = `-- name: CreateDigest :one
-INSERT INTO digests (entry_date) VALUES ($1) RETURNING id, entry_date, created_at
+INSERT INTO digests (entry_date, created_by) VALUES ($1, $2) RETURNING id, entry_date, created_at, created_by
 `
 
-func (q *Queries) CreateDigest(ctx context.Context, entryDate time.Time) (Digest, error) {
-	row := q.db.QueryRow(ctx, createDigest, entryDate)
+type CreateDigestParams struct {
+	EntryDate time.Time
+	CreatedBy int64
+}
+
+func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Digest, error) {
+	row := q.db.QueryRow(ctx, createDigest, arg.EntryDate, arg.CreatedBy)
 	var i Digest
-	err := row.Scan(&i.ID, &i.EntryDate, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.EntryDate,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
 	return i, err
 }
 
+const deleteDigestsByDate = `-- name: DeleteDigestsByDate :exec
+DELETE FROM digests WHERE entry_date = $1 AND created_by = $2
+`
+
+type DeleteDigestsByDateParams struct {
+	EntryDate time.Time
+	CreatedBy int64
+}
+
+// 同じ日付の再登録は訂正。前の登録を残すと URL の unique に掛かって入れ直せない
+func (q *Queries) DeleteDigestsByDate(ctx context.Context, arg DeleteDigestsByDateParams) error {
+	_, err := q.db.Exec(ctx, deleteDigestsByDate, arg.EntryDate, arg.CreatedBy)
+	return err
+}
+
 const getLatestDigest = `-- name: GetLatestDigest :one
-SELECT id, entry_date, created_at FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1
+SELECT id, entry_date, created_at, created_by FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1
 `
 
 // 同じ日付が複数あれば後に登録したものを採用する (specs/002 Edge Cases)
 func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 	row := q.db.QueryRow(ctx, getLatestDigest)
 	var i Digest
-	err := row.Scan(&i.ID, &i.EntryDate, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.EntryDate,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
 	return i, err
 }
 
@@ -113,7 +146,7 @@ func (q *Queries) ListArticleLinksByDigest(ctx context.Context, digestID uuid.UU
 }
 
 const listArticlesByDigest = `-- name: ListArticlesByDigest :many
-SELECT id, digest_id, position, category, title, url, description, is_hot FROM articles WHERE digest_id = $1 ORDER BY position
+SELECT id, digest_id, position, category, title, url, description, is_hot, created_by FROM articles WHERE digest_id = $1 ORDER BY position
 `
 
 // position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
@@ -135,10 +168,41 @@ func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) 
 			&i.Url,
 			&i.Description,
 			&i.IsHot,
+			&i.CreatedBy,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRegisteredURLs = `-- name: ListRegisteredURLs :many
+SELECT url FROM articles WHERE created_by = $1 AND url = ANY($2::text[])
+`
+
+type ListRegisteredURLsParams struct {
+	CreatedBy int64
+	Urls      []string
+}
+
+// unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
+func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, listRegisteredURLs, arg.CreatedBy, arg.Urls)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		items = append(items, url)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

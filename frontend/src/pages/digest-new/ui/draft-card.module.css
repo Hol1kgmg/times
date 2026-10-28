@@ -10,6 +10,10 @@
   box-shadow: var(--shadow-menu);
 }
 
+.card:has([data-registered]) {
+  border-color: var(--color-danger);
+}
+
 .row {
   display: flex;
   align-items: center;
@@ -126,13 +130,18 @@
 }
 
 .loading,
-.warn {
+.warn,
+.error {
   flex-shrink: 0;
   margin-left: var(--space-1);
 }
 
 .warn {
   color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger);
 }
 
 .more {

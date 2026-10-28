@@ -69,10 +69,16 @@ export const newDigest = z.object({
 }) satisfies z.ZodType<Schemas["NewDigest"]>;
 
 export const problem = z.object({
-  type: z.enum(["about:blank", "/problems/validation-failed", "/problems/not-found"]),
+  type: z.enum([
+    "about:blank",
+    "/problems/validation-failed",
+    "/problems/not-found",
+    "/problems/url-already-registered",
+  ]),
   title: z.string(),
   status: z.number().int(),
   detail: z.string().optional(),
+  duplicateUrls: z.string().array().optional(),
 }) satisfies z.ZodType<Schemas["Problem"]>;
 
 export type ItemId = z.infer<typeof itemId>;

@@ -96,7 +96,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Digest"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: 形式違反 (validation-failed) か、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "401":
           $ref: "#/components/responses/Unauthorized"
   /digests/latest:
@@ -384,9 +388,15 @@ components:
             - /problems/unauthorized
             - /problems/forbidden
             - /problems/upstream-failed
+            - /problems/url-already-registered
         title:
           type: string
         status:
           type: integer
         detail:
           type: string
+        duplicateUrls:
+          type: array
+          items:
+            type: string
+          description: url-already-registered のときだけ入る。同じ管理者が前の Digest で登録済みの URL (送った items と children のうち該当するものすべて)

@@ -75,6 +75,11 @@ func run() error {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := db.New(pool).WithTx(tx)
+	// GitHub の ID は 1 始まりなので 0 は実在の管理者と衝突しない
+	seeder, err := q.UpsertUser(ctx, db.UpsertUserParams{ID: 0, Login: "seed"})
+	if err != nil {
+		return err
+	}
 
 	y, m, d := time.Now().Date()
 	today := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
@@ -85,13 +90,13 @@ func run() error {
 		if _, err := tx.Exec(ctx, "DELETE FROM digests WHERE entry_date = $1", date); err != nil {
 			return err
 		}
-		dg, err := q.CreateDigest(ctx, date)
+		dg, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: date, CreatedBy: seeder.ID})
 		if err != nil {
 			return err
 		}
 		var pos int32
 		insert := func(cat string, hot bool, a article) (db.Article, error) {
-			row, err := q.CreateArticle(ctx, db.CreateArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url, IsHot: hot})
+			row, err := q.CreateArticle(ctx, db.CreateArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url, IsHot: hot, CreatedBy: seeder.ID})
 			if err != nil {
 				return row, fmt.Errorf("%d日目 %q: %w", dy.n, a.title, err)
 			}

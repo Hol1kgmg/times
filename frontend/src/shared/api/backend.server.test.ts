@@ -31,6 +31,25 @@ describe(backendFetch, () => {
     await expect(backendFetch("/auth/sessions/current")).rejects.toThrow("backend 401");
   });
 
+  it("keeps the problem body as the cause so callers can read extension members", async () => {
+    stubFetch(
+      Response.json(
+        {
+          type: "/problems/url-already-registered",
+          status: 400,
+          duplicateUrls: ["https://a.example"],
+        },
+        { status: 400, headers: { "content-type": "application/problem+json" } },
+      ),
+    );
+    const err: unknown = await backendFetch("/digests", { method: "POST" }, { token: "t" }).catch(
+      (error: unknown) => error,
+    );
+    expect(err instanceof Error && err.cause).toMatchObject({
+      duplicateUrls: ["https://a.example"],
+    });
+  });
+
   it("throws a plain Error on 403 forbidden", async () => {
     stubFetch(problem(403, "/problems/forbidden"));
     await expect(

@@ -117,6 +117,8 @@ export const DigestNewPage = () => {
   const [addError, setAddError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
+  // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
+  const [registered, setRegistered] = useState<ReadonlySet<string>>(new Set());
   const [previewing, setPreviewing] = useState(false);
   // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
   const beforeDrag = useRef<Board>(undefined);
@@ -140,6 +142,9 @@ export const DigestNewPage = () => {
 
   const dirty = hasDrafts(board) && !submitting;
   const entry = toNewDigest(board, entryDate);
+  const registeredLeft = entry.items
+    .flatMap((a) => [a.url, ...a.children.map((c) => c.url)])
+    .filter((u) => registered.has(u)).length;
   useBlocker({
     // oxlint-disable-next-line eslint/no-alert -- 確認はこの画面の 2 か所だけで、管理者 1 名の画面なので専用のダイアログは作らない
     shouldBlockFn: () => !window.confirm("登録してない記事があります。このページを離れますか？"),
@@ -157,6 +162,7 @@ export const DigestNewPage = () => {
 
   const actions: CardActions = {
     atLimit: draftCount(board) >= MAX_DRAFTS,
+    registered,
     edit: (id, next) => apply(editLink(board, id, next)),
     revert: (id) => {
       setBoard(revert(board, id));
@@ -236,12 +242,14 @@ export const DigestNewPage = () => {
     setSubmitError(undefined);
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が / へ遷移する
-      await submit({ data: entry });
+      const rejected = await submit({ data: entry });
+      setRegistered(new Set(rejected.duplicateUrls));
+      setSubmitting(false);
     } catch (error) {
       setSubmitError(
         isNotFound(error)
           ? "ログインが切れました。別のタブでログインし直してから、もう一度登録してください"
-          : "登録できませんでした。同じ URL が重複していないか確認してください",
+          : "登録できませんでした。時間をおいてもう一度試してください",
       );
       setSubmitting(false);
     }
@@ -281,6 +289,11 @@ export const DigestNewPage = () => {
             </p>
           )}
           {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
+          {registeredLeft > 0 && (
+            <p className={styles.error} role="alert">
+              過去に登録したリンクが含まれてます。重複して登録はできないので削除してください
+            </p>
+          )}
           <button
             className={styles.button}
             disabled={entry.items.length === 0 || entryDate === ""}

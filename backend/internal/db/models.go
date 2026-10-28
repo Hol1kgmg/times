@@ -19,6 +19,7 @@ type Article struct {
 	Url         string
 	Description *string
 	IsHot       bool
+	CreatedBy   int64
 }
 
 type ArticleLink struct {
@@ -31,6 +32,7 @@ type Digest struct {
 	ID        uuid.UUID
 	EntryDate time.Time
 	CreatedAt time.Time
+	CreatedBy int64
 }
 
 type Item struct {
