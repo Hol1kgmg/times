@@ -8,7 +8,12 @@
   },
   "rules": {
     "case-sensitive-attr-name": false,
-    "security/no-event-handler-attr": false
+    "security/no-event-handler-attr": false,
+    "no-unknown-attr": {
+      "options": {
+        "allowAttrs": ["onPointerDown"]
+      }
+    }
   },
   "overrides": {
     "src/app/routes/__root.tsx": {

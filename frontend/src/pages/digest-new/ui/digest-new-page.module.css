@@ -73,7 +73,7 @@
   margin: 0;
 }
 
-.date {
+.dateField {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -84,17 +84,35 @@
   color: var(--color-text-muted);
 }
 
-.input {
-  padding: var(--space-half) var(--space-1);
+.dateBox {
+  display: flex;
+  align-items: stretch;
+  overflow: clip;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background-color: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
 }
 
-.input[aria-invalid="true"] {
+.dateBox:has(.input:focus-visible) {
+  border-color: var(--color-accent);
+}
+
+.dateBox:has(.input[aria-invalid="true"]) {
   border-color: var(--color-danger);
+}
+
+.input {
+  padding: var(--space-half) var(--space-1);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+/* 既定のピッカーを残すとカレンダーのボタンが 2 つ並ぶ。Firefox は隠す手段がなく残る */
+.input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 
 .add {
@@ -144,7 +162,7 @@
   background-color: var(--color-surface);
   box-shadow: none;
   color: var(--color-text-faint);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 @media (hover: hover) {
@@ -176,12 +194,12 @@
 
 .fieldButton:disabled {
   color: var(--color-text-faint);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 /* 幅はトップの投稿カードに揃え、見え方を同じにする */
 .dialog {
-  composes: dialog from "./draft-card.module.css";
+  composes: modal from global;
   width: 720px;
 }
 
@@ -208,10 +226,30 @@
   color: var(--color-danger);
 }
 
+.calendarButton {
+  display: inline-flex;
+  padding: var(--space-half) var(--space-1);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-brand);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.calendarButton:active {
+  transform: scale(1.1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .button,
-  .fieldButton {
+  .fieldButton,
+  .calendarButton {
     transition: none;
+  }
+
+  .calendarButton:active {
+    transform: none;
   }
 }
 

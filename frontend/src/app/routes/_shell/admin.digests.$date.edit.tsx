@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { DigestEditPage, getDigest, resolveDigestNewPage } from "#/pages/digest-new";
+import { listDigests } from "#/shared/api/list-digests";
 
 export const Route = createFileRoute("/_shell/admin/digests/$date/edit")({
   beforeLoad: async () => await resolveDigestNewPage(),
@@ -8,7 +9,8 @@ export const Route = createFileRoute("/_shell/admin/digests/$date/edit")({
     if (!z.iso.date().safeParse(params.date).success) {
       throw notFound();
     }
-    return await getDigest({ data: params.date });
+    const [digest, list] = await Promise.all([getDigest({ data: params.date }), listDigests()]);
+    return { digest, list };
   },
   component: DigestEditPage,
 });

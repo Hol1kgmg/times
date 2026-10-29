@@ -38,7 +38,8 @@
   /* エラー文にも使うので白地で 4.5:1 を満たす (4.98:1) */
   --color-danger: #d32f2f;
   --color-sidebar-bg: var(--color-bg);
-  --color-sidebar-active: var(--color-brand-faint);
+  --color-selected: var(--color-brand-faint);
+  --color-sidebar-active: var(--color-selected);
   --color-sidebar-text: var(--color-text);
   --color-sidebar-text-muted: var(--color-text-muted);
   --color-skeleton-base: #eee;
@@ -64,6 +65,10 @@
   --space-4: 24px;
   --z-menu-overlay: 10;
   --z-header: 20;
+  /* view transition の中だけの重なり順。ページの重なり順とは別の重ね合わせ文脈で比べる */
+  --z-transition-backdrop: 1;
+  --z-transition-panel: 2;
+  --z-transition-text: 3;
   --header-offset: 0px;
   /* Chrome は書体指定・サイズ・太さが同じ文字をまとめて隠すので、Klee One を待つ指定は動的な文字にだけ付ける (adr/frontend/0005) */
   /* 代替を cursive にしないのは、Klee One との字形差が大きくチラつくため */
@@ -94,8 +99,8 @@
     /* --color-surface の上で 4.5:1 を満たす (5.47:1) */
     --color-danger: #ff7b72;
     --color-sidebar-bg: var(--color-fill-faint);
-    /* ダークの --color-brand-faint はサイドバーの地より暗く、選択中が沈んで見える */
-    --color-sidebar-active: var(--color-fill-subtle);
+    /* ダークの --color-brand-faint はサイドバーやカードの地より暗く、選択中が沈んで見える */
+    --color-selected: var(--color-fill-subtle);
     /* 暗い地では影がほぼ見えないので、押せるボタンは地を 1 段明るくして浮かせる */
     --color-surface-raised: var(--color-fill-subtle);
     --color-skeleton-base: #35373c;
@@ -153,4 +158,61 @@ button {
 .t-meta {
   font-size: 11px;
   color: var(--color-text-faint);
+}
+
+.modal {
+  width: 480px;
+  max-width: calc(100% - var(--space-4) * 2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text);
+  font-family: var(--font-dynamic);
+  opacity: 0;
+  scale: 0.96;
+  /* display と overlay も遷移させないと、閉じた瞬間に top layer から外れてフェードアウトが見えない */
+  transition:
+    opacity 0.2s ease-out,
+    scale 0.2s ease-out,
+    display 0.2s allow-discrete,
+    overlay 0.2s allow-discrete;
+}
+
+.modal[open] {
+  opacity: 1;
+  scale: 1;
+}
+
+.modal::backdrop {
+  background: none;
+  backdrop-filter: var(--backdrop-floating);
+  opacity: 0;
+  transition:
+    opacity 0.2s ease-out,
+    display 0.2s allow-discrete,
+    overlay 0.2s allow-discrete;
+}
+
+.modal[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .modal[open],
+  .modal[open]::backdrop {
+    opacity: 0;
+  }
+
+  .modal[open] {
+    scale: 0.96;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .modal::backdrop {
+    transition: none;
+  }
 }

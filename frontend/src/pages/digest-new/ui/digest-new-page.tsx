@@ -2,12 +2,14 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
 import { getRouteApi, isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 // barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
 import { category, newChildArticle } from "#/shared/api/schemas";
 import type { NewDigest } from "#/shared/api/schemas";
 import { DigestPost } from "#/shared/ui/digest-post";
+import { calendarIcon } from "#/shared/ui/icons/calendar";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
+import { afterFadeOut } from "#/shared/ui/modal";
 import { createDigest } from "../api/create-digest";
 import { fetchDraftPreview } from "../api/fetch-draft-preview";
 import { loadDraftPreview } from "../api/load-draft-preview";
@@ -44,6 +46,12 @@ import { Box } from "./box";
 import { DraftCard } from "./draft-card";
 import type { CardActions } from "./draft-card";
 import styles from "./digest-new-page.module.css";
+
+// Temporal の polyfill が重いので、カレンダーを開くまで読まない
+const DatePickerDialog = lazy(async () => {
+  const { DatePickerDialog: Picker } = await import("#/shared/ui/date-picker");
+  return { default: Picker };
+});
 
 // toISOString は UTC 日付になり JST の 0〜9 時に前日を返す。sv-SE ロケールはローカル日付を YYYY-MM-DD で出す
 const today = () => new Date().toLocaleDateString("sv-SE");
@@ -87,7 +95,12 @@ const PreviewDialog = ({ digest, onClose }: { digest: NewDigest; onClose: () => 
     dialogRef.current?.showModal();
   }, []);
   return (
-    <dialog ref={dialogRef} aria-labelledby={headingId} className={styles.dialog} onClose={onClose}>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={headingId}
+      className={styles.dialog}
+      onClose={afterFadeOut(onClose)}
+    >
       <div className={styles.dialogHeader}>
         <h2 className={styles.dialogHeading} id={headingId}>
           プレビュー
@@ -115,6 +128,7 @@ interface FormProps {
   leaveMessage: string;
   save: (entry: NewDigest) => Promise<Rejection>;
   isDirty: (entry: NewDigest, board: Board) => boolean;
+  taken: ReadonlySet<string>;
 }
 
 const DigestForm = ({
@@ -125,6 +139,7 @@ const DigestForm = ({
   leaveMessage,
   save,
   isDirty,
+  taken,
 }: FormProps) => {
   const getPreview = useServerFn(fetchDraftPreview);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
@@ -142,10 +157,12 @@ const DigestForm = ({
   // 登録済みと断られた日付。日付を変えれば印も消える
   const [takenDate, setTakenDate] = useState<string>();
   const [previewing, setPreviewing] = useState(false);
+  const [picking, setPicking] = useState(false);
   // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
   const beforeDrag = useRef<Board>(undefined);
   const urlInput = useRef<HTMLInputElement>(null);
   const blockersId = useId();
+  const dateId = useId();
   const header = useRef<HTMLElement>(null);
 
   // 登録できない理由とエラーで高さが変わるので、下の面を留める位置を CSS だけでは決められない
@@ -296,19 +313,58 @@ const DigestForm = ({
       <header ref={header} className={styles.header}>
         <div className={styles.title}>
           <h1 className={styles.heading}>{heading}</h1>
-          <label className={styles.date}>
-            <span className={styles.label}>日付</span>
-            <input
-              aria-invalid={dateTaken}
-              className={styles.input}
-              required
-              type="date"
-              value={entryDate}
-              onChange={(e) => {
-                setEditedDate(e.target.value);
-              }}
-            />
-          </label>
+          <div className={styles.dateField}>
+            {/* ボタンを label の中に入れると labelable な要素が 2 つになり不正なので、htmlFor で結ぶ */}
+            <label className={styles.label} htmlFor={dateId}>
+              日付
+            </label>
+            <div className={styles.dateBox}>
+              <input
+                aria-invalid={dateTaken}
+                className={styles.input}
+                id={dateId}
+                required
+                type="date"
+                value={entryDate}
+                onChange={(e) => {
+                  setEditedDate(e.target.value);
+                }}
+              />
+              <button
+                aria-label="カレンダーから選ぶ"
+                className={styles.calendarButton}
+                type="button"
+                onClick={() => {
+                  setPicking(true);
+                }}
+              >
+                <svg
+                  fill="none"
+                  height={20}
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  width={20}
+                >
+                  <path d={calendarIcon} />
+                </svg>
+              </button>
+            </div>
+            {picking && (
+              <Suspense>
+                <DatePickerDialog
+                  disabled={{ dates: taken, label: "登録済み" }}
+                  value={entryDate}
+                  onClose={() => {
+                    setPicking(false);
+                  }}
+                  onPick={setEditedDate}
+                />
+              </Suspense>
+            )}
+          </div>
         </div>
         <div className={styles.submit}>
           {reasons.length > 0 && (
@@ -446,7 +502,10 @@ const DigestForm = ({
   );
 };
 
+const newRoute = getRouteApi("/_shell/admin/digests/new");
+
 export const DigestNewPage = () => {
+  const { items } = newRoute.useLoaderData();
   const create = useServerFn(createDigest);
   return (
     <DigestForm
@@ -456,6 +515,7 @@ export const DigestNewPage = () => {
       leaveMessage="登録してない記事があります。このページを離れますか？"
       save={async (entry) => await create({ data: entry })}
       submitLabel="登録"
+      taken={new Set(items.map((d) => d.entryDate))}
     />
   );
 };
@@ -463,8 +523,10 @@ export const DigestNewPage = () => {
 const editRoute = getRouteApi("/_shell/admin/digests/$date/edit");
 
 export const DigestEditPage = () => {
-  const digest = editRoute.useLoaderData();
+  const { digest, list } = editRoute.useLoaderData();
   const update = useServerFn(updateDigest);
+  // 編集中の Digest 自身の日付は、そのまま保存できるので選べるようにする
+  const taken = new Set(list.items.map((d) => d.entryDate).filter((d) => d !== digest.entryDate));
   const saved = JSON.stringify(toNewDigest(fromDigest(digest), digest.entryDate));
   return (
     // 別の日付の編集画面へ移っても同じ component が使い回されるので、state を Digest ごとに作り直す
@@ -477,6 +539,7 @@ export const DigestEditPage = () => {
       leaveMessage="保存してない変更があります。このページを離れますか？"
       save={async (entry) => await update({ data: { date: digest.entryDate, digest: entry } })}
       submitLabel="保存"
+      taken={taken}
     />
   );
 };

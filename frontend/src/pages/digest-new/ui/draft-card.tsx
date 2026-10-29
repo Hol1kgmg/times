@@ -3,6 +3,7 @@ import { Suspense, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
+import { afterFadeOut } from "#/shared/ui/modal";
 import { PreviewCard } from "#/shared/ui/preview-card";
 import { loadDraftPreview } from "../api/load-draft-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
@@ -73,7 +74,12 @@ const EditDialog = ({
     dialogRef.current?.showModal();
   }, []);
   return (
-    <dialog ref={dialogRef} aria-labelledby={headingId} className={styles.dialog} onClose={onClose}>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={headingId}
+      className={styles.dialog}
+      onClose={afterFadeOut(onClose)}
+    >
       <form
         className={styles.form}
         onSubmit={(e) => {

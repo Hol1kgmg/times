@@ -196,7 +196,7 @@
 
 .item:disabled {
   color: var(--color-text-faint);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 @media (hover: hover) {
@@ -216,20 +216,7 @@
 }
 
 .dialog {
-  width: 480px;
-  max-width: calc(100% - var(--space-4) * 2);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow-raised);
-  color: var(--color-text);
-  font-family: var(--font-dynamic);
-}
-
-.dialog::backdrop {
-  background: none;
-  backdrop-filter: var(--backdrop-floating);
+  composes: modal from global;
 }
 
 .form {

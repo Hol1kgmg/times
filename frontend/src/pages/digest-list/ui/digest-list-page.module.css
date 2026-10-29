@@ -16,31 +16,135 @@
   color: var(--color-text-muted);
 }
 
-.list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.years {
   border-top: 1px solid var(--color-border);
 }
 
-.list > li {
+.years > section {
   border-bottom: 1px solid var(--color-border);
 }
 
-.link {
-  composes: t-title from global;
-  display: block;
-  padding: var(--space-2) 0;
-  color: var(--color-text);
-  text-decoration: none;
+.yearHeading {
+  margin: 0;
 }
 
-.link:focus-visible {
+.year {
+  composes: t-date from global;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-faint);
+  transition: transform 0.2s ease-out;
+}
+
+.year[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/* height: auto は transition できないので grid の 0fr → 1fr で高さを補間する */
+.panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* inert だと Accessibility Visualizer が閉じた中のリンクまで警告するので、visibility で隠す */
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.2s ease-out,
+    visibility 0.2s;
+}
+
+.yearHeading:has(.year[aria-expanded="true"]) + .panel {
+  grid-template-rows: 1fr;
+  visibility: visible;
+}
+
+.panelInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow: hidden;
+}
+
+.month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.month:last-child {
+  padding-bottom: var(--space-4);
+}
+
+.monthHeading {
+  composes: t-label from global;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.count {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day {
+  composes: t-body from global;
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform 0.1s ease-out;
+}
+
+.day:focus-visible {
   color: var(--color-accent);
 }
 
+.day:active {
+  transform: scale(1.03);
+}
+
 @media (hover: hover) {
-  .link:hover {
+  .day:hover {
+    background-color: var(--color-selected);
     color: var(--color-accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .panel,
+  .day {
+    transition: none;
+  }
+
+  .day:active {
+    transform: none;
   }
 }

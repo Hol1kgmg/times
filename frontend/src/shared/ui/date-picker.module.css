@@ -1,0 +1,376 @@
+.dialog {
+  composes: modal from global;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* 名前がないと root のクロスフェードに入り、高さが月パネルの移動と別に一瞬で変わる */
+  view-transition-name: date-picker;
+}
+
+/* showModal 前の閉じた dialog に display: flex が勝つと、常に見えてしまう */
+.dialog:not([open]) {
+  display: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  /* dialog のスナップショットは高さに合わせて伸ばすので、文字を伸ばさないよう切り出す */
+  view-transition-name: date-picker-toolbar;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+}
+
+.period {
+  composes: t-date from global;
+  margin: 0;
+}
+
+.back,
+.monthLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.back {
+  composes: t-body from global;
+  align-self: flex-start;
+  color: var(--color-accent);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.step,
+.today {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface-raised);
+  box-shadow: var(--shadow-menu);
+}
+
+.step {
+  display: inline-flex;
+  padding: var(--space-half);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.prev {
+  rotate: 90deg;
+}
+
+.next {
+  rotate: -90deg;
+}
+
+.today {
+  composes: t-body from global;
+  padding: var(--space-half) var(--space-2);
+  color: var(--color-text);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.today:disabled {
+  background-color: var(--color-surface);
+  box-shadow: none;
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.monthPanel {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+}
+
+.months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+}
+
+/* 3 列だと日付 1 マスが 12px ほどになり読めない。窓に収まらない分は dialog の中でスクロールさせる */
+@media (--narrow) {
+  .months {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.month {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  transition: transform 0.1s ease-out;
+}
+
+/* 見出しを button の中に入れられないので、見出しのボタンの当たり判定をカード全体に広げる */
+.monthLink::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.month:has(.monthLink:active) {
+  transform: scale(1.03);
+}
+
+.monthHeading {
+  composes: t-label from global;
+  margin: 0;
+}
+
+.monthLink {
+  color: var(--color-text);
+}
+
+.morph {
+  display: inline-block;
+  line-height: 1;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-half);
+  text-align: center;
+}
+
+/* 月送りで滑る日付が、伸び縮み中の枠の外にはみ出さないよう枠の中に入れて切る。年との切り替えでは数字が枠の外から来るので切らない */
+.clip {
+  view-transition-group: contain;
+}
+
+::view-transition-group-children(month-panel) {
+  overflow: clip;
+}
+
+.panelSlot {
+  display: grid;
+  align-items: start;
+}
+
+.panelSlot > * {
+  grid-area: 1 / 1;
+}
+
+.ghost {
+  visibility: hidden;
+}
+
+.monthView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.weekdays {
+  composes: t-meta from global;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-half);
+  padding-inline: var(--space-3);
+  color: var(--color-text-faint);
+  text-align: center;
+  /* 名前がないと dialog のスナップショットに入り、高さに合わせて縦に伸びる */
+  view-transition-name: date-picker-weekdays;
+}
+
+.cell {
+  composes: t-meta from global;
+  color: var(--color-text-faint);
+  /* 12 か月を 4 段で窓の高さに収めるため、行の高さを字の高さまで詰める */
+  line-height: 1;
+}
+
+.cellLarge {
+  composes: t-body from global;
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.cellLarge:disabled {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.selected {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.cellLarge.selected {
+  background-color: var(--color-selected);
+}
+
+/* 数字に添える装飾なので、非テキストの 3:1 を満たさないロゴ色でよい */
+.cellLarge.disabled::after {
+  position: absolute;
+  bottom: var(--space-1);
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-brand);
+  content: "";
+  translate: -50% 0;
+}
+
+.cellLarge:active:not(:disabled),
+.step:active {
+  transform: scale(1.1);
+}
+
+@media (hover: hover) {
+  .cellLarge:not(:disabled):hover {
+    background-color: var(--color-selected);
+    color: var(--color-accent);
+  }
+
+  .step:hover,
+  .today:not(:disabled):hover,
+  .monthLink:hover {
+    color: var(--color-accent);
+  }
+
+  .month:has(.monthLink:hover) {
+    border-color: var(--color-accent);
+  }
+}
+
+/* 名前のない * はアプリ全体の view transition に効くので、ピッカーの type で絞る */
+:root:active-view-transition-type(date-picker)::view-transition-group(*) {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-out;
+}
+
+/* view transition 中は Chrome がボタンにクリックを通さず、押すと文字選択のドラッグになる */
+:root:active-view-transition-type(date-picker),
+:root:active-view-transition-type(date-picker) * {
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* ホバー中の橙の枠のまま撮られると、月表示へ広がる間にモーダルの外まで枠が伸びる */
+:root:active-view-transition .month {
+  border-color: var(--color-border);
+}
+
+/* 既定の重なりは切り替え前の DOM 順で決まり、月→年で月の字が箱の裏に回る */
+::view-transition-group(date-picker-weekdays) {
+  z-index: var(--z-transition-backdrop);
+}
+
+::view-transition-group(.box) {
+  z-index: var(--z-transition-panel);
+}
+
+::view-transition-group(.morph) {
+  z-index: var(--z-transition-text);
+}
+
+::view-transition-old(date-picker),
+::view-transition-new(date-picker),
+::view-transition-old(month-panel),
+::view-transition-new(month-panel) {
+  height: 100%;
+}
+
+@keyframes slide-out-up {
+  to {
+    opacity: 0;
+    translate: 0 calc(var(--space-4) * -1);
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    opacity: 0;
+    translate: 0 var(--space-4);
+  }
+}
+
+@keyframes slide-out-down {
+  to {
+    opacity: 0;
+    translate: 0 var(--space-4);
+  }
+}
+
+@keyframes slide-in-down {
+  from {
+    opacity: 0;
+    translate: 0 calc(var(--space-4) * -1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(.slideNext) {
+    animation: slide-out-up 0.3s ease-out both;
+  }
+
+  ::view-transition-new(.slideNext) {
+    animation: slide-in-up 0.3s ease-out both;
+  }
+
+  ::view-transition-old(.slidePrev) {
+    animation: slide-out-down 0.3s ease-out both;
+  }
+
+  ::view-transition-new(.slidePrev) {
+    animation: slide-in-down 0.3s ease-out both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:active-view-transition-type(date-picker)::view-transition-group(*),
+  :root:active-view-transition-type(date-picker)::view-transition-old(*),
+  :root:active-view-transition-type(date-picker)::view-transition-new(*) {
+    animation: none;
+  }
+
+  .step,
+  .cellLarge,
+  .month {
+    transition: none;
+  }
+
+  .step:active,
+  .cellLarge:active:not(:disabled),
+  .month:has(.monthLink:active) {
+    transform: none;
+  }
+}
