@@ -2,7 +2,6 @@
 .agents/skills/
 .agents/rules/
 .claude/settings.local.json
-/TODO.md
 
 /.env
 /.env.*
