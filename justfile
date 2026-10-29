@@ -62,13 +62,11 @@ sync-pr: _template-settled
     [ -z "$(git status --porcelain)" ] || { echo "作業ツリーを clean にしてから実行する" >&2; exit 1; }
     orig=$(git branch --show-current)
     [ -n "$orig" ] || { echo "detached HEAD では実行しない。ブランチに切り替えてから実行する" >&2; exit 1; }
-    # upstream remote があると gh は origin より upstream を既定の repo に選ぶ
-    export GH_REPO=$(git remote get-url origin | sed -E 's#(\.git)?$##; s#.*github\.com[:/]##')
     git fetch --no-tags origin main
     git switch -C template-sync origin/main
     # 確認はこのレシピの依存で済んでいる
     SYNC_IGNORE_OPEN_PRS=1 just sync || {
-        printf 'template-sync で止めた。解決して commit し、git push --force origin template-sync && gh pr ready template-sync -R %s を実行して %s に戻る\n' "$GH_REPO" "$orig" >&2
+        printf 'template-sync で止めた。解決して commit し、just _sync-pr-open を実行して %s に戻る\n' "$orig" >&2
         exit 1
     }
     if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
@@ -76,6 +74,16 @@ sync-pr: _template-settled
         git switch "$orig"
         exit 0
     fi
+    just _sync-pr-open
+    git switch "$orig"
+
+# Push template-sync and mark the sync PR ready
+_sync-pr-open:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ "$(git branch --show-current)" = template-sync ] || { echo "template-sync ブランチで実行する" >&2; exit 1; }
+    # upstream remote があると gh は origin より upstream を既定の repo に選ぶ
+    export GH_REPO=$(git remote get-url origin | sed -E 's#(\.git)?$##; s#.*github\.com[:/]##')
     # template-sync は template-sync workflow が空コミットで作るブランチなので、毎回作り直す（adr/from-template/0006）
     git push --force origin template-sync
     case "$(gh pr list --head template-sync --state open --json isDraft -q '.[0].isDraft')" in
@@ -84,7 +92,6 @@ sync-pr: _template-settled
         *) gh pr create --base main --head template-sync --title "chore: テンプレートの更新を取り込む" \
             --body "**Create a merge commit** でマージする（squash / rebase は共通祖先を壊す。adr/from-template/0001）" ;;
     esac
-    git switch "$orig"
 
 # Scan working tree for secrets
 scan:

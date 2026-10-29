@@ -8,6 +8,8 @@ decision-makers: 'Hol1kgmg'
 
 ## Context and Problem Statement
 
+[ADR 0005](0005-separate-template-and-project-files.md) と同じく、テンプレートの更新を派生リポジトリへ円滑に取り込めるようにすることが目的である。
+
 [ADR 0001](0001-sync-template-via-merge-commit.md) は、派生リポジトリが手元の `just sync` でテンプレートを取り込むと決めた。取り込みを起動するのは人なので、気づかなければテンプレートの更新が派生リポジトリに届かない。[ADR 0005](0005-separate-template-and-project-files.md) で宣言ファイルの衝突はなくなったが、`flake.lock` の衝突は解消方法が決まっていない。
 
 `flake.lock` の衝突には 2 つの原因がある。
