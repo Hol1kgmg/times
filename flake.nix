@@ -21,52 +21,41 @@
     cognitive-rhythm-writing = { url = "git+https://gist.github.com/k16shikano/eb2929f13ed19c97188393d297be8432.git"; flake = false; };
     japanese-tech-writing = { url = "git+https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d.git"; flake = false; };
     hol1kgmg-rules = { url = "github:Hol1kgmg/rules"; flake = false; };
+
+    # --- project inputs: 派生先が管理。adr/from-template/0005 ---
     feature-sliced-skills = { url = "github:feature-sliced/skills"; flake = false; };
     google-skills = { url = "github:google/skills"; flake = false; };
   };
 
-  outputs = inputs@{ nixpkgs, flake-utils, agent-skills, nur-packages, agent-rules, nix-claude-code, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-utils, agent-skills, nur-packages, agent-rules, nix-claude-code, ... }:
     let
       agentLib = agent-skills.lib.agent-skills;
       rulesLib = agent-rules.lib.agent-rules;
+      lib = nixpkgs.lib;
 
-      # 有効にする ID は ./skills.nix
-      sources = {
-        anthropic = { path = inputs.anthropic-skills.outPath; subdir = "skills"; };
-        vercel = { path = inputs.vercel-ai.outPath; subdir = "skills"; };
-        web-quality = { path = inputs.web-quality-skills.outPath; subdir = "skills"; };
-        yomiyasu = { path = inputs.yomiyasu.outPath; subdir = "skills"; };
-        hol1kgmg = { path = inputs.hol1kgmg-skills.outPath; subdir = "skills"; };
-        security-audit = { path = inputs.security-audit-skill.outPath; subdir = "skills"; };
-        # gist はルート直下に SKILL.md があり、ファイル名がそのままスキル ID になる
-        cognitive-rhythm-writing = { path = inputs.cognitive-rhythm-writing.outPath; filter.maxDepth = 0; };
-        japanese-tech-writing = { path = inputs.japanese-tech-writing.outPath; filter.maxDepth = 0; };
-        local = { path = ./skills; };
-        # このリポジトリ固有（template 由来の行より下に置き、sync の衝突を避ける）
-        feature-sliced = { path = inputs.feature-sliced-skills.outPath; };
-        google = { path = inputs.google-skills.outPath; subdir = "skills/cloud"; };
-      };
+      templateSources = import ./sources.template.nix inputs;
+      projectSources = import ./sources.nix inputs;
+      allowlist = template: project: lib.subtractLists project.disable (template ++ project.enable);
+      mergeSources = kind: template: project:
+        let dup = builtins.attrNames (builtins.intersectAttrs template project);
+        in if dup == [ ] then template // project
+        else throw "sources.nix の ${kind} が sources.template.nix と重複: ${toString dup}";
+
+      sources = mergeSources "skills" templateSources.skills projectSources.skills;
       catalog = agentLib.discoverCatalog sources;
       selection = agentLib.selectSkills {
         inherit catalog sources;
-        # ./skills 配下は宣言不要で全件有効
-        allowlist = import ./skills.nix
-          ++ agentLib.allowlistFor { inherit catalog sources; enableAll = [ "local" ]; };
+        allowlist = allowlist (import ./skills.template.nix) (import ./skills.nix);
       };
 
       localTargets = {
         agents = agentLib.defaultLocalTargets.agents // { enable = true; };
       };
 
-      # 有効にする ID は ./rules.nix（skills と対称）
-      ruleSources = {
-        hol1kgmg = { path = inputs.hol1kgmg-rules.outPath; subdir = "rules"; };
-        local = { path = ./rules; };
-      };
-      ruleCatalog = rulesLib.discoverCatalog ruleSources;
+      ruleCatalog = rulesLib.discoverCatalog (mergeSources "rules" templateSources.rules projectSources.rules);
       ruleSelection = rulesLib.selectRules {
         catalog = ruleCatalog;
-        allowlist = import ./rules.nix;
+        allowlist = allowlist (import ./rules.template.nix) (import ./rules.nix);
       };
       ruleTargets = {
         agents = rulesLib.defaultLocalTargets.claude // { dest = ".agents/rules"; enable = true; };
@@ -75,8 +64,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        # CI の setup-node にも同じバージョンを渡すため、ここを唯一の定義箇所にする
-        nodejs = pkgs.nodejs_24;
         bundle = agentLib.mkBundle { inherit pkgs selection; };
         rulesBundle = rulesLib.mkBundle { inherit pkgs; selection = ruleSelection; };
         listApp = name: ids: {
@@ -86,7 +73,7 @@
           ''}/bin/${name}";
         };
       in {
-        # skills.nix / rules.nix の宣言が解決できてバンドルが組めるかの確認（nix flake check）
+        # skills / rules の宣言が解決できてバンドルが組めるかの確認（nix flake check）
         checks.skills = bundle;
         checks.rules = rulesBundle;
 
@@ -105,46 +92,24 @@
           program = "${agentLib.mkLocalInstallProgram { inherit pkgs bundle; targets = localTargets; }}/bin/skills-install-local";
         };
 
-        # GitHub Actions が `nix eval --raw .#node.version` で参照する。
-        # flake.lock の nixpkgs 更新に CI の Node.js バージョンを自動追従させるため。
-        packages.node = nodejs;
-
-        # backend-ci 用。default は gcloud や skills まで含み CI の環境構築だけで約 2 分かかるため最小構成に絞る
-        devShells.backend = pkgs.mkShell {
-          packages = [ pkgs.just pkgs.go pkgs.sqlc pkgs.oapi-codegen ];
-        };
-
-        devShells.default = pkgs.mkShell {
+        # テンプレート管理（派生先は devShells.default を編集）。adr/from-template/0005
+        devShells.template = pkgs.mkShell {
           packages = [
-            nodejs
             pkgs.just
+            pkgs.jq
             pkgs.gitleaks
             pkgs.lefthook
             pkgs.gh
-            # just fe-font-subset の pyftsubset。woff2 の書き出しに brotli が要る
-            (pkgs.python3.withPackages (ps: [ ps.fonttools ps.brotli ]))
+            pkgs.dotenvx
             nur-packages.packages.${system}.markserv
-            nur-packages.packages.${system}.spec-kit
+            nur-packages.packages.${system}.portless
             # gh は上で別途入れているため同梱版 default ではなく minimal
             nix-claude-code.packages.${system}.claude-minimal
             pkgs.codex
-            # backend。golang-migrate は Nix 版 CLI が macOS で起動時に panic するため
-            # compose の migrate/migrate イメージで実行する（just migrate）
-            pkgs.go
-            pkgs.gopls
-            pkgs.sqlc
-            pkgs.oapi-codegen
-            pkgs.google-cloud-sdk
           ];
 
           shellHook = ''
             lefthook install >/dev/null
-
-            # corepack (pnpm) の shim をプロジェクトローカルに隔離する
-            corepack_dir="$PWD/.direnv/state/corepack-bin"
-            mkdir -p "$corepack_dir"
-            corepack enable --install-directory "$corepack_dir"
-            export PATH="$corepack_dir:$PATH"
           '' + agentLib.mkShellHook {
             inherit pkgs bundle;
             targets = localTargets;
@@ -155,6 +120,42 @@
             targets = ruleTargets;
             quiet = true;
           };
+        };
+
+        # --- 派生先が管理。adr/from-template/0005 ---
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [ self.devShells.${system}.template ];
+          packages = [
+            self.packages.${system}.node
+            # just fe-font-subset の pyftsubset。woff2 の書き出しに brotli が要る
+            (pkgs.python3.withPackages (ps: [ ps.fonttools ps.brotli ]))
+            nur-packages.packages.${system}.spec-kit
+            # backend。golang-migrate は Nix 版 CLI が macOS で起動時に panic するため
+            # compose の migrate/migrate イメージで実行する（just migrate）
+            pkgs.go
+            pkgs.gopls
+            pkgs.sqlc
+            pkgs.oapi-codegen
+            # pkgs.google-cloud-sdk # ビルドが重かったので、一旦コメントアウト
+          ];
+
+          shellHook = ''
+            # corepack (pnpm) の shim をプロジェクトローカルに隔離する
+            corepack_dir="$PWD/.direnv/state/corepack-bin"
+            mkdir -p "$corepack_dir"
+            corepack enable --install-directory "$corepack_dir"
+            export PATH="$corepack_dir:$PATH"
+          '';
+        };
+
+        # GitHub Actions が `nix eval --raw .#node.version` で参照する。
+        # flake.lock の nixpkgs 更新に CI の Node.js バージョンを自動追従させるため。
+        # CI の setup-node にも同じバージョンを渡すため、ここを唯一の定義箇所にする
+        packages.node = pkgs.nodejs_24;
+
+        # backend-ci 用。default は gcloud や skills まで含み CI の環境構築だけで約 2 分かかるため最小構成に絞る
+        devShells.backend = pkgs.mkShell {
+          packages = [ pkgs.just pkgs.go pkgs.sqlc pkgs.oapi-codegen ];
         };
       });
 }
