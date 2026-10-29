@@ -1,49 +1,32 @@
-# 有効にするスキル ID の宣言ファイル。
-#
-# 取得元は flake.nix の flake = false な input（rev は flake.lock に固定）。
-# ID 一覧は `just skills-list` で確認できる。不要なものは行ごと消す。
-[
-  # anthropics/skills
-  "frontend-design"
-  "skill-creator"
-  "webapp-testing"
+# 派生先が管理。enable で追加、disable で除外。adr/from-template/0005
+# ID 一覧は `just skills-list`。
+{
+  enable = [
+    # Hol1kgmg/skills
+    "speckit-explain"
 
-  # vercel/ai
-  "adr-skill"
+    # feature-sliced/skills
+    "feature-sliced-design"
 
-  # gist
-  "cognitive-rhythm-writing"
-  "japanese-tech-writing"
+    # google/skills (Cloud Run + Cloud SQL へのデプロイ用)
+    "gcloud"
+    "cloud-run-basics"
+    "cloud-sql-basics"
+    "google-cloud-recipe-auth"
 
-  # addyosmani/web-quality-skills
-  "web-quality-audit"
-  "performance"
-  "core-web-vitals"
-  "accessibility"
-  "seo"
-  "best-practices"
+    # ./skills（speckit-* は specify init が出力したもの。skills/README.md）
+    "speckit-analyze"
+    "speckit-checklist"
+    "speckit-clarify"
+    "speckit-constitution"
+    "speckit-converge"
+    "speckit-implement"
+    "speckit-plan"
+    "speckit-specify"
+    "speckit-tasks"
+    "speckit-taskstoissues"
+  ];
 
-  # nanaism/yomiyasu
-  "yomiyasu"
-
-  # cloudflare/security-audit-skill
-  "security-audit"
-
-  # Hol1kgmg/skills（必要なリポジトリで有効化する）
-  "dependabot-review"
-  "speckit-explain"
-
-  # ./skills（独自）
-  "init-from-template"
-
-  # --- 以下はこのリポジトリ固有（template 由来の行より下に置き、sync の衝突を避ける）---
-
-  # feature-sliced/skills
-  "feature-sliced-design"
-
-  # google/skills (Cloud Run + Cloud SQL へのデプロイ用)
-  "gcloud"
-  "cloud-run-basics"
-  "cloud-sql-basics"
-  "google-cloud-recipe-auth"
-]
+  disable = [
+  ];
+}

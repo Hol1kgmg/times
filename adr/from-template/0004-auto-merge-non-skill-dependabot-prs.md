@@ -18,6 +18,7 @@ decision-makers: 'Hol1kgmg'
 - 対象は nix と github-actions の全更新。メジャー更新も区別しない
 - マージ可否はブランチ保護の必須チェック `check` に委ねる。auto-merge は `check` が通るまで待つ
 - 判定に skill の一覧を持たない。`flake = false` で宣言するという 0003 の規約がそのまま判定基準になり、取得元を追加しても workflow を直さずに済む
+- テンプレートリポジトリ（`Hol1kgmg/claude-temp`）でだけ動かす。workflow は `just sync` で派生リポジトリにも届くが動かず、派生側では全 PR を手動でマージする
 
 ## Consequences
 
@@ -31,6 +32,7 @@ decision-makers: 'Hol1kgmg'
 
 - **`dependabot/fetch-metadata` で依存名を取り、skill の一覧と照合する**: nix ecosystem の出力に実績が少なく、一覧の保守も要る。`flake.lock` の差分なら Dependabot の出力形式に依存しない
 - **semver で patch / minor だけ auto-merge する**: nix の input は commit 単位で更新され semver が無い。必須チェックを通ることを採否の基準にした
+- **リポジトリ変数（`DEPENDABOT_AUTO_MERGE`）で有効にする**: 派生側で有効にできるが、その予定はない。変数の設定を忘れるとテンプレート自身の auto-merge も止まる
 
 ## More Information
 
