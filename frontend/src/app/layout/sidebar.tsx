@@ -1,4 +1,4 @@
-import { Link, useRouteContext } from "@tanstack/react-router";
+import { Link, useMatchRoute, useRouteContext } from "@tanstack/react-router";
 import { Logo } from "#/shared/ui/logo";
 import styles from "./sidebar.module.css";
 
@@ -8,6 +8,7 @@ interface Props {
 
 export const ChannelNav = ({ onNavigate }: Props) => {
   const { user, loginPath } = useRouteContext({ from: "__root__" });
+  const matchRoute = useMatchRoute();
   return (
     <nav aria-label="チャンネル" className={styles.nav}>
       <span className={styles.group}>Channels</span>
@@ -19,7 +20,12 @@ export const ChannelNav = ({ onNavigate }: Props) => {
           <Link className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
             <span className={styles.hash}>+</span>記事を登録
           </Link>
-          <Link className={styles.link} to="/admin/digests" onClick={onNavigate}>
+          <Link
+            activeOptions={{ exact: Boolean(matchRoute({ to: "/admin/digests/new" })) }}
+            className={styles.link}
+            to="/admin/digests"
+            onClick={onNavigate}
+          >
             <span className={styles.hash}>#</span>記事を編集
           </Link>
           {loginPath !== undefined && (
