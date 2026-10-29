@@ -20,20 +20,19 @@ Client ID を控え、Generate a new client secret で Client Secret を控え�
 
 ### ローカル
 
-デプロイ先ごとに `backend/.env` と `frontend/.env` に分けて書く (どちらも gitignore 済み。雛形は各ディレクトリの `.env.example`)。ルートの `.envrc` が両方を direnv で読み、`just be-dev` / compose (`${GITHUB_CLIENT_ID:-}` の展開) / `just fe-dev` にシェル経由で届く。
+デプロイ先ごとに `backend/.env` と `frontend/.env` に分け、dotenvx で暗号化してコミットしている。復号鍵は各ディレクトリの `.env.keys` (gitignore 済み) で、リポジトリの外で受け取って置く。ルートの `.envrc` が両方を復号して direnv で読み、`just be-dev` / compose (`${GITHUB_CLIENT_ID:-}` の展開) / `just fe-dev` にシェル経由で届く。
 
 ```sh
-# backend/.env
-GITHUB_CLIENT_ID=<ローカル用 Client ID>
-GITHUB_CLIENT_SECRET=<ローカル用 Client Secret>
-ADMIN_GITHUB_LOGIN=<自分の GitHub ユーザー名>
+dotenvx set GITHUB_CLIENT_ID <ローカル用 Client ID> -f backend/.env
+dotenvx set GITHUB_CLIENT_SECRET <ローカル用 Client Secret> -f backend/.env
+dotenvx set ADMIN_GITHUB_LOGIN <自分の GitHub ユーザー名> -f backend/.env
 
-# frontend/.env (GITHUB_CLIENT_ID は backend と同じ値)
-ADMIN_LOGIN_PATH=<openssl rand -hex 16 の出力>
-GITHUB_CLIENT_ID=<ローカル用 Client ID>
+# GITHUB_CLIENT_ID は backend と同じ値
+dotenvx set ADMIN_LOGIN_PATH "$(openssl rand -hex 16)" -f frontend/.env
+dotenvx set GITHUB_CLIENT_ID <ローカル用 Client ID> -f frontend/.env
 ```
 
-書き換えたら `direnv reload` と dev server の再起動 (起動時の環境変数が使われる)。
+書き換えたら dev server を再起動する (起動時の環境変数が使われる)。direnv は `.env` の変更を見て読み直す。
 
 `direnv allow` → `just db-up` → `just be-dev` → `just fe-dev`。`http://localhost:3000/<ADMIN_LOGIN_PATH>/auth/login` にログインカードが出る。
 

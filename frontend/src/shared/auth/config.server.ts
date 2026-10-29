@@ -4,7 +4,6 @@ const schema = z.object({
   // 秘匿パス。1 セグメント、先頭 `/` なし。サーバー側の照合にだけ使う (FR-014)
   ADMIN_LOGIN_PATH: z.string().regex(/^[A-Za-z0-9-]{16,}$/u),
   GITHUB_CLIENT_ID: z.string().min(1),
-  // 空文字は未設定扱い (.env.example の空値をそのまま読めるように)
   GITHUB_BASE_URL: z.preprocess(
     (v) => (v === "" || v === undefined ? "https://github.com" : v),
     z.url(),

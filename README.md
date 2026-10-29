@@ -83,15 +83,14 @@ just be-dev    # backend:  http://localhost:8080
 
 ## 環境変数
 
-`.env*` は [dotenvx](https://dotenvx.com/) で暗号化してコミットします。復号鍵の `.env.keys` は gitignore 済みなので、チームにはリポジトリ外で共有してください。
+ローカル用の `backend/.env` と `frontend/.env` は [dotenvx](https://dotenvx.com/) で暗号化してコミットしています。復号鍵は各ディレクトリの `.env.keys`（gitignore 済み）で、リポジトリ外で共有してください。[.envrc](.envrc) が復号して読むので、`just` のレシピにはそのまま届きます。
 
 ```bash
-dotenvx set API_KEY xxx              # .env に暗号化して追加（初回は .env.keys も生成される）
-dotenvx set API_KEY xxx -f .env.dev  # 環境ごとのファイル
-dotenvx run -- <cmd>                 # 復号して <cmd> に渡す（-f .env.dev で切替）
+dotenvx set API_KEY xxx -f backend/.env  # 暗号化して追加（鍵は backend/.env.keys）
 ```
 
-CI などでは `.env.keys` の代わりに `DOTENV_PRIVATE_KEY`（`.env.dev` なら `DOTENV_PRIVATE_KEY_DEV`）を渡します。
+`-f` を省くとルートに `.env` と `.env.keys` ができます。ルートの `.env` / `.env.*` は gitignore 済みです。2 つのファイルの鍵はどちらも `DOTENV_PRIVATE_KEY` という名前なので、`.env.keys` は各ディレクトリに分けてください。
+本番の値は Cloud Run / Workers のダッシュボードに置き、`.env` は読みません（[docs/admin-login.md](docs/admin-login.md)）。
 暗号化していない `.env*` は pre-commit で止まります（`.env*.local` は gitignore 済みなので、平文の個人用設定に使えます）。
 
 ## タスク

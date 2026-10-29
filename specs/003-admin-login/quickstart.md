@@ -31,17 +31,7 @@ just db-migrate          # ローカル: users / sessions を作る
 
 ### ローカル
 
-デプロイ先ごとに `backend/.env` と `frontend/.env` に書く (gitignore 済み、雛形は各ディレクトリの `.env.example`)。`.envrc` の `dotenv_if_exists backend/.env` / `dotenv_if_exists frontend/.env` が読み、シェル経由で compose (`${GITHUB_CLIENT_ID:-}`) と `vite dev` に届く。
-
-```sh
-# backend/.env
-GITHUB_CLIENT_ID=<ローカル用 Client ID>
-GITHUB_CLIENT_SECRET=<ローカル用 Client Secret>
-ADMIN_GITHUB_LOGIN=<自分の GitHub ユーザー名>
-# frontend/.env (GITHUB_CLIENT_ID は backend と同じ値)
-ADMIN_LOGIN_PATH=<openssl rand -hex 16 の出力>
-GITHUB_CLIENT_ID=<ローカル用 Client ID>
-```
+`backend/.env` と `frontend/.env` に dotenvx で暗号化して書く。手順は [docs/admin-login.md](../../docs/admin-login.md) の「ローカル」。
 
 `direnv allow` → `just db-up && just db-migrate` → `just be-dev` → `just fe-dev`。
 

@@ -29,8 +29,8 @@ pre-commit:
       root: "backend/"
       glob: "**/*.{go,sql,yaml,mod,sum}"
       run: go test ./...
-    # dotenvx は .envrc も .env* として検査し除外できないため、.envrc だけのコミットでは起動させない
+    # dotenvx が .envrc も検査してしまうため、サブディレクトリに限定する
     dotenvx:
-      glob: ".env*"
+      glob: "**/.env*"
       exclude: [".envrc"]
-      run: dotenvx ext precommit
+      run: printf '%s\n' {staged_files} | xargs -n1 dirname | sort -u | xargs -n1 dotenvx ext precommit
