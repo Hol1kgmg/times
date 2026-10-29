@@ -41,8 +41,7 @@ test("一覧から登録済みの Digest を開き、タイトル・記事・日
   await menuOf(related, "上の記事の関連記事にする");
   await menuOf(other, "ホットにする");
   await page.getByRole("button", { name: "登録" }).click();
-  // / は Chromium で load が来ないことがある (原因は未確定)。ここでは登録が済めば足りる
-  await page.waitForURL((url) => url.pathname === "/", { waitUntil: "domcontentloaded" });
+  await page.waitForURL((url) => url.pathname === "/");
 
   await page
     .getByRole("navigation", { name: "チャンネル" })

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import type { Browser, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { loggedInState } from "./admin";
 
 // 前提: `just db-up` と `just be-dev-e2e` (GitHub モックを向いた backend) が起動済み。
 // GitHub モックと dev server は playwright.config.ts が起動する
@@ -36,16 +37,6 @@ const authorizeAs = async (page: Page, choice: string) => {
   await clickAfterHydration(page, loginButton);
   await page.waitForURL(/\/login\/oauth\/authorize/u);
   await page.getByRole("link", { name: choice }).click();
-};
-
-const loggedInState = async (browser: Browser) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await authorizeAs(page, "管理者として承認");
-  await page.waitForURL(atHome);
-  const state = await context.storageState();
-  await context.close();
-  return state;
 };
 
 test.describe("US1: 管理者専用のページ・処理を管理者だけのものにする", () => {
