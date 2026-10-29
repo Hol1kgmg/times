@@ -136,7 +136,7 @@
             pkgs.gopls
             pkgs.sqlc
             pkgs.oapi-codegen
-            # pkgs.google-cloud-sdk
+            # pkgs.google-cloud-sdk # ビルドが重かったので、一旦コメントアウト
           ];
 
           shellHook = ''
