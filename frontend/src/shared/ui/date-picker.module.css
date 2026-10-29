@@ -277,6 +277,11 @@
   animation-timing-function: ease-out;
 }
 
+/* backdrop-filter は root のスナップショットに焼き込まれず、モバイルで切り替えの間だけぼかしが消える */
+:root:active-view-transition-type(date-picker) {
+  view-transition-name: none;
+}
+
 /* view transition 中は Chrome がボタンにクリックを通さず、押すと文字選択のドラッグになる */
 :root:active-view-transition-type(date-picker),
 :root:active-view-transition-type(date-picker) * {
