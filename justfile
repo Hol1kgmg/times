@@ -250,6 +250,12 @@ be-dev-e2e:
         GITHUB_BASE_URL=http://host.docker.internal:3100 GITHUB_API_URL=http://host.docker.internal:3100 \
         docker compose up --build api
 
+# Serve the OpenAPI reference (Redoc) at http://api-docs.<repo>.localhost:1355
+be-api-doc:
+    redocly build-docs backend/api/openapi.yaml -o .cache/api-doc/index.html
+    # PORTLESS=0 のフォールバックは backend の 8080 と被らないようにずらす
+    portless run --name api-docs.{{file_name(parent_directory(`git rev-parse --path-format=absolute --git-common-dir`))}} sh -c 'python3 -m http.server "${PORT:-8090}" -b 127.0.0.1 -d .cache/api-doc'
+
 # --- db ---
 
 # Start Postgres and apply migrations
@@ -277,3 +283,7 @@ db-migrate *args:
 # Create a migration pair: db/migrations/NNNNNN_<name>.{up,down}.sql
 db-migrate-new name:
     docker compose run --rm migrate create -ext sql -dir /migrations -seq {{name}}
+
+# Regenerate the ER diagram and table docs in docs/schema (view with `just docs`). CI checks the diff
+db-doc: db-up
+    tbls doc --rm-dist

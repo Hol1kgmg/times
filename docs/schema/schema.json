@@ -1,0 +1,934 @@
+{
+  "name": "times",
+  "tables": [
+    {
+      "name": "public.items",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "items_pkey",
+          "def": "CREATE UNIQUE INDEX items_pkey ON public.items USING btree (id)",
+          "table": "public.items",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "items_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.items",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "items_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.items",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "items_title_check",
+          "type": "CHECK",
+          "def": "CHECK ((title \u003c\u003e ''::text))",
+          "table": "public.items",
+          "referenced_table": "",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "items_title_not_null",
+          "type": "n",
+          "def": "NOT NULL title",
+          "table": "public.items",
+          "referenced_table": "",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "items_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.items",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.digests",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "entry_date",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "created_by",
+          "type": "bigint",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "digests_pkey",
+          "def": "CREATE UNIQUE INDEX digests_pkey ON public.digests USING btree (id)",
+          "table": "public.digests",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "digests_created_by_entry_date_key",
+          "def": "CREATE UNIQUE INDEX digests_created_by_entry_date_key ON public.digests USING btree (created_by, entry_date)",
+          "table": "public.digests",
+          "columns": [
+            "created_by",
+            "entry_date"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "digests_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "digests_created_by_not_null",
+          "type": "n",
+          "def": "NOT NULL created_by",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "created_by"
+          ]
+        },
+        {
+          "name": "digests_entry_date_not_null",
+          "type": "n",
+          "def": "NOT NULL entry_date",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "entry_date"
+          ]
+        },
+        {
+          "name": "digests_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "digests_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "digests_created_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (created_by) REFERENCES users(id)",
+          "table": "public.digests",
+          "referenced_table": "public.users",
+          "columns": [
+            "created_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "digests_created_by_entry_date_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (created_by, entry_date)",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "created_by",
+            "entry_date"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.articles",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "digest_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "is_hot",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "created_by",
+          "type": "bigint",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "articles_pkey",
+          "def": "CREATE UNIQUE INDEX articles_pkey ON public.articles USING btree (id)",
+          "table": "public.articles",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "articles_digest_id_position_key",
+          "def": "CREATE UNIQUE INDEX articles_digest_id_position_key ON public.articles USING btree (digest_id, \"position\")",
+          "table": "public.articles",
+          "columns": [
+            "digest_id",
+            "position"
+          ]
+        },
+        {
+          "name": "articles_created_by_url_key",
+          "def": "CREATE UNIQUE INDEX articles_created_by_url_key ON public.articles USING btree (created_by, url)",
+          "table": "public.articles",
+          "columns": [
+            "created_by",
+            "url"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "articles_category_check",
+          "type": "CHECK",
+          "def": "CHECK ((category = ANY (ARRAY['セキュリティ'::text, 'IT系'::text, 'UI系'::text, 'AI系'::text, '面白そうなツール・サービス'::text, 'その他'::text])))",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "category"
+          ]
+        },
+        {
+          "name": "articles_category_not_null",
+          "type": "n",
+          "def": "NOT NULL category",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "category"
+          ]
+        },
+        {
+          "name": "articles_created_by_not_null",
+          "type": "n",
+          "def": "NOT NULL created_by",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "created_by"
+          ]
+        },
+        {
+          "name": "articles_digest_id_not_null",
+          "type": "n",
+          "def": "NOT NULL digest_id",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "digest_id"
+          ]
+        },
+        {
+          "name": "articles_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "articles_is_hot_not_null",
+          "type": "n",
+          "def": "NOT NULL is_hot",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "is_hot"
+          ]
+        },
+        {
+          "name": "articles_position_not_null",
+          "type": "n",
+          "def": "NOT NULL \"position\"",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "position"
+          ]
+        },
+        {
+          "name": "articles_title_check",
+          "type": "CHECK",
+          "def": "CHECK ((title \u003c\u003e ''::text))",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "articles_title_not_null",
+          "type": "n",
+          "def": "NOT NULL title",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "articles_url_check",
+          "type": "CHECK",
+          "def": "CHECK ((url \u003c\u003e ''::text))",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "url"
+          ]
+        },
+        {
+          "name": "articles_url_not_null",
+          "type": "n",
+          "def": "NOT NULL url",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "url"
+          ]
+        },
+        {
+          "name": "articles_url_scheme_check",
+          "type": "CHECK",
+          "def": "CHECK ((url ~ '^https?://'::text))",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "url"
+          ]
+        },
+        {
+          "name": "articles_digest_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE",
+          "table": "public.articles",
+          "referenced_table": "public.digests",
+          "columns": [
+            "digest_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "articles_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "articles_digest_id_position_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (digest_id, \"position\")",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "digest_id",
+            "position"
+          ]
+        },
+        {
+          "name": "articles_created_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (created_by) REFERENCES users(id)",
+          "table": "public.articles",
+          "referenced_table": "public.users",
+          "columns": [
+            "created_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "articles_created_by_url_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (created_by, url)",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "created_by",
+            "url"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.users",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "login",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "users_pkey",
+          "def": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)",
+          "table": "public.users",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "users_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "users_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "users_login_check",
+          "type": "CHECK",
+          "def": "CHECK ((login \u003c\u003e ''::text))",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "login"
+          ]
+        },
+        {
+          "name": "users_login_not_null",
+          "type": "n",
+          "def": "NOT NULL login",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "login"
+          ]
+        },
+        {
+          "name": "users_updated_at_not_null",
+          "type": "n",
+          "def": "NOT NULL updated_at",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "updated_at"
+          ]
+        },
+        {
+          "name": "users_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.users",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.sessions",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "token_hash",
+          "type": "bytea",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sessions_pkey",
+          "def": "CREATE UNIQUE INDEX sessions_pkey ON public.sessions USING btree (id)",
+          "table": "public.sessions",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sessions_token_hash_key",
+          "def": "CREATE UNIQUE INDEX sessions_token_hash_key ON public.sessions USING btree (token_hash)",
+          "table": "public.sessions",
+          "columns": [
+            "token_hash"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "sessions_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "sessions_expires_at_not_null",
+          "type": "n",
+          "def": "NOT NULL expires_at",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "expires_at"
+          ]
+        },
+        {
+          "name": "sessions_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sessions_token_hash_not_null",
+          "type": "n",
+          "def": "NOT NULL token_hash",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "token_hash"
+          ]
+        },
+        {
+          "name": "sessions_user_id_not_null",
+          "type": "n",
+          "def": "NOT NULL user_id",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "user_id"
+          ]
+        },
+        {
+          "name": "sessions_user_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+          "table": "public.sessions",
+          "referenced_table": "public.users",
+          "columns": [
+            "user_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sessions_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sessions_token_hash_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (token_hash)",
+          "table": "public.sessions",
+          "referenced_table": "",
+          "columns": [
+            "token_hash"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.article_links",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "parent_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "child_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "article_links_pkey",
+          "def": "CREATE UNIQUE INDEX article_links_pkey ON public.article_links USING btree (child_id)",
+          "table": "public.article_links",
+          "columns": [
+            "child_id"
+          ]
+        },
+        {
+          "name": "article_links_parent_id_position_key",
+          "def": "CREATE UNIQUE INDEX article_links_parent_id_position_key ON public.article_links USING btree (parent_id, \"position\")",
+          "table": "public.article_links",
+          "columns": [
+            "parent_id",
+            "position"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "article_links_check",
+          "type": "CHECK",
+          "def": "CHECK ((parent_id \u003c\u003e child_id))",
+          "table": "public.article_links",
+          "referenced_table": "",
+          "columns": [
+            "parent_id",
+            "child_id"
+          ]
+        },
+        {
+          "name": "article_links_child_id_not_null",
+          "type": "n",
+          "def": "NOT NULL child_id",
+          "table": "public.article_links",
+          "referenced_table": "",
+          "columns": [
+            "child_id"
+          ]
+        },
+        {
+          "name": "article_links_parent_id_not_null",
+          "type": "n",
+          "def": "NOT NULL parent_id",
+          "table": "public.article_links",
+          "referenced_table": "",
+          "columns": [
+            "parent_id"
+          ]
+        },
+        {
+          "name": "article_links_position_not_null",
+          "type": "n",
+          "def": "NOT NULL \"position\"",
+          "table": "public.article_links",
+          "referenced_table": "",
+          "columns": [
+            "position"
+          ]
+        },
+        {
+          "name": "article_links_child_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (child_id) REFERENCES articles(id) ON DELETE CASCADE",
+          "table": "public.article_links",
+          "referenced_table": "public.articles",
+          "columns": [
+            "child_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "article_links_parent_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (parent_id) REFERENCES articles(id) ON DELETE CASCADE",
+          "table": "public.article_links",
+          "referenced_table": "public.articles",
+          "columns": [
+            "parent_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "article_links_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (child_id)",
+          "table": "public.article_links",
+          "referenced_table": "",
+          "columns": [
+            "child_id"
+          ]
+        },
+        {
+          "name": "article_links_parent_id_position_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (parent_id, \"position\")",
+          "table": "public.article_links",
+          "referenced_table": "",
+          "columns": [
+            "parent_id",
+            "position"
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "table": "public.digests",
+      "columns": [
+        "created_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.users",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (created_by) REFERENCES users(id)"
+    },
+    {
+      "table": "public.articles",
+      "columns": [
+        "digest_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.digests",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.articles",
+      "columns": [
+        "created_by"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.users",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (created_by) REFERENCES users(id)"
+    },
+    {
+      "table": "public.sessions",
+      "columns": [
+        "user_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.users",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.article_links",
+      "columns": [
+        "child_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.articles",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (child_id) REFERENCES articles(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.article_links",
+      "columns": [
+        "parent_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.articles",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (parent_id) REFERENCES articles(id) ON DELETE CASCADE"
+    }
+  ],
+  "driver": {
+    "name": "postgres",
+    "database_version": "PostgreSQL 18.6 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+    "meta": {
+      "current_schema": "public",
+      "search_paths": [
+        "times",
+        "public"
+      ],
+      "dict": {
+        "Functions": "Stored procedures and functions"
+      }
+    }
+  }
+}

@@ -114,6 +114,15 @@ just be-gen       # OpenAPI / SQL を変えたら再生成
 just db-reset     # DB のデータを消して作り直す
 ```
 
+## 設計の可視化
+
+```bash
+just db-doc       # ER 図とテーブル定義を docs/schema に生成する。just docs で閲覧
+just be-api-doc   # OpenAPI のリファレンス (Redoc) を http://api-docs.<リポジトリ名>.localhost:1355 で閲覧する
+```
+
+`docs/schema` はコミットします。マイグレーションを変えたら `just db-doc` で再生成してください。CI (`backend-ci`) が `tbls diff` で古いままになっていないか検査します。
+
 ## テンプレート同期
 
 生成直後は `init-from-template` スキルで README / AGENTS.md のプレースホルダを埋めてください。同期対象のファイルは削除しないこと（[adr/from-template/0001](adr/from-template/0001-sync-template-via-merge-commit.md)）。

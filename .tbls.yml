@@ -1,0 +1,4 @@
+dsn: postgres://times:times@localhost:5432/times?sslmode=disable
+docPath: docs/schema
+exclude:
+  - schema_migrations

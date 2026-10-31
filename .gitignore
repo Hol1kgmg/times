@@ -18,3 +18,6 @@ node_modules/
 
 .DS_Store
 *.log
+
+# just be-api-doc の生成物
+/.cache/

@@ -136,6 +136,8 @@
             pkgs.gopls
             pkgs.sqlc
             pkgs.oapi-codegen
+            pkgs.tbls
+            pkgs.redocly
             # pkgs.google-cloud-sdk # ビルドが重かったので、一旦コメントアウト
           ];
 
@@ -155,7 +157,7 @@
 
         # backend-ci 用。default は gcloud や skills まで含み CI の環境構築だけで約 2 分かかるため最小構成に絞る
         devShells.backend = pkgs.mkShell {
-          packages = [ pkgs.just pkgs.go pkgs.sqlc pkgs.oapi-codegen ];
+          packages = [ pkgs.just pkgs.go pkgs.sqlc pkgs.oapi-codegen pkgs.tbls ];
         };
       });
 }
