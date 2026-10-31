@@ -4,7 +4,6 @@
 
 | Name | Columns | Comment | Type |
 | ---- | ------- | ------- | ---- |
-| [public.items](public.items.md) | 3 |  | BASE TABLE |
 | [public.digests](public.digests.md) | 4 |  | BASE TABLE |
 | [public.articles](public.articles.md) | 9 |  | BASE TABLE |
 | [public.users](public.users.md) | 4 |  | BASE TABLE |

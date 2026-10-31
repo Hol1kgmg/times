@@ -32,7 +32,7 @@ backend/
 - backend を呼ぶのは frontend のサーバー関数だけ。CORS 無し、API バージョニング無し（0003）。到達制限は共有シークレット `X-Backend-Token`（0006）
 - 認証は GitHub OAuth + backend session（0007）。管理者専用の操作は OpenAPI の `security: [bearerAuth]` で宣言し、`AuthenticationFunc` が `sessions` を照合する。運用手順は [docs/admin-login.md](admin-login.md)
 - ホスティングは GCP asia-northeast1 の Cloud Run (`times-api`) + Cloud SQL PostgreSQL 18 (`times-db`)。`DATABASE_URL` は Secret Manager、マイグレーションは Cloud Run Job `times-migrate`（0006）
-- 一覧応答は `{items: [...]}`。ページネーションは未実装、必要になったらカーソル方式（0004）
+- 一覧応答は `{<リソース名の複数形>: [...]}` (例: `{digests: [...]}`)。ページネーションは未実装、必要になったらカーソル方式（0004）
 - マイグレーションは手書きの命令型。Atlas の宣言型はテーブルが増えて全体把握が辛くなったら再検討（0005）
 - 環境変数: `DATABASE_URL`、`PORT`、`BACKEND_TOKEN`（0006）、`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `ADMIN_GITHUB_LOGIN`（0007。いずれか空なら `POST /auth/sessions` は常に 403）、任意で `GITHUB_BASE_URL` / `GITHUB_API_URL`（テストでモックへ向ける）。ログは slog の JSON を stdout に出す。SIGTERM で graceful shutdown（10 秒）、`statement_timeout` 5 秒、リクエスト本文 1 MiB 上限
 - DB を触るテストは書かない。sqlc の生成時にクエリとスキーマの整合は検証される。必要になったら CI で compose の `db` を起動する

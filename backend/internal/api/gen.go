@@ -148,13 +148,6 @@ type DigestSummary struct {
 	Id        openapi_types.UUID `json:"id"`
 }
 
-// Item defines model for Item.
-type Item struct {
-	CreatedAt time.Time          `json:"createdAt"`
-	Id        openapi_types.UUID `json:"id"`
-	Title     string             `json:"title"`
-}
-
 // NewArticle defines model for NewArticle.
 type NewArticle struct {
 	Category Category           `json:"category"`
@@ -174,11 +167,6 @@ type NewChildArticle struct {
 type NewDigest struct {
 	Articles  []NewArticle       `json:"articles"`
 	EntryDate openapi_types.Date `json:"entryDate"`
-}
-
-// NewItem defines model for NewItem.
-type NewItem struct {
-	Title string `json:"title"`
 }
 
 // NewSession defines model for NewSession.
@@ -227,9 +215,6 @@ type CreateDigestJSONRequestBody = NewDigest
 // UpdateDigestJSONRequestBody defines body for UpdateDigest for application/json ContentType.
 type UpdateDigestJSONRequestBody = NewDigest
 
-// CreateItemJSONRequestBody defines body for CreateItem for application/json ContentType.
-type CreateItemJSONRequestBody = NewItem
-
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -259,15 +244,6 @@ type ServerInterface interface {
 
 	// (GET /health)
 	GetHealth(c *gin.Context)
-
-	// (GET /items)
-	ListItems(c *gin.Context)
-
-	// (POST /items)
-	CreateItem(c *gin.Context)
-
-	// (GET /items/{id})
-	GetItem(c *gin.Context, id openapi_types.UUID)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -420,57 +396,6 @@ func (siw *ServerInterfaceWrapper) GetHealth(c *gin.Context) {
 	siw.Handler.GetHealth(c)
 }
 
-// ListItems operation middleware
-func (siw *ServerInterfaceWrapper) ListItems(c *gin.Context) {
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.ListItems(c)
-}
-
-// CreateItem operation middleware
-func (siw *ServerInterfaceWrapper) CreateItem(c *gin.Context) {
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.CreateItem(c)
-}
-
-// GetItem operation middleware
-func (siw *ServerInterfaceWrapper) GetItem(c *gin.Context) {
-
-	var err error
-	_ = err
-
-	// ------------- Path parameter "id" -------------
-	var id openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetItem(c, id)
-}
-
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -499,9 +424,6 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth)
-	router.GET(options.BaseURL+"/items", wrapper.ListItems)
-	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
-	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
 	router.GET(options.BaseURL+"/digests", wrapper.ListDigests)
 	router.POST(options.BaseURL+"/digests", wrapper.CreateDigest)
 	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
@@ -900,119 +822,6 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return err
 }
 
-type ListItemsRequestObject struct {
-}
-
-type ListItemsResponseObject interface {
-	VisitListItemsResponse(w http.ResponseWriter) error
-}
-
-type ListItems200JSONResponse struct {
-	Items []Item `json:"items"`
-}
-
-func (response ListItems200JSONResponse) VisitListItemsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateItemRequestObject struct {
-	Body *CreateItemJSONRequestBody
-}
-
-type CreateItemResponseObject interface {
-	VisitCreateItemResponse(w http.ResponseWriter) error
-}
-
-type CreateItem201JSONResponse Item
-
-func (response CreateItem201JSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateItem400ApplicationProblemPlusJSONResponse struct {
-	BadRequestApplicationProblemPlusJSONResponse
-}
-
-func (response CreateItem400ApplicationProblemPlusJSONResponse) VisitCreateItemResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetItemRequestObject struct {
-	Id openapi_types.UUID `json:"id"`
-}
-
-type GetItemResponseObject interface {
-	VisitGetItemResponse(w http.ResponseWriter) error
-}
-
-type GetItem200JSONResponse Item
-
-func (response GetItem200JSONResponse) VisitGetItemResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetItem400ApplicationProblemPlusJSONResponse struct {
-	BadRequestApplicationProblemPlusJSONResponse
-}
-
-func (response GetItem400ApplicationProblemPlusJSONResponse) VisitGetItemResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetItem404ApplicationProblemPlusJSONResponse Problem
-
-func (response GetItem404ApplicationProblemPlusJSONResponse) VisitGetItemResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -1042,15 +851,6 @@ type StrictServerInterface interface {
 
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
-
-	// (GET /items)
-	ListItems(ctx context.Context, request ListItemsRequestObject) (ListItemsResponseObject, error)
-
-	// (POST /items)
-	CreateItem(ctx context.Context, request CreateItemRequestObject) (CreateItemResponseObject, error)
-
-	// (GET /items/{id})
-	GetItem(ctx context.Context, request GetItemRequestObject) (GetItemResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx *gin.Context, request any) (any, error)
@@ -1351,134 +1151,51 @@ func (sh *strictHandler) GetHealth(ctx *gin.Context) {
 	}
 }
 
-// ListItems operation middleware
-func (sh *strictHandler) ListItems(ctx *gin.Context) {
-	var request ListItemsRequestObject
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListItems(ctx, request.(ListItemsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ListItems")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(ListItemsResponseObject); ok {
-		if err := validResponse.VisitListItemsResponse(ctx.Writer); err != nil {
-			sh.options.ResponseErrorHandlerFunc(ctx, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// CreateItem operation middleware
-func (sh *strictHandler) CreateItem(ctx *gin.Context) {
-	var request CreateItemRequestObject
-
-	var body CreateItemJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(ctx, err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateItem(ctx, request.(CreateItemRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateItem")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(CreateItemResponseObject); ok {
-		if err := validResponse.VisitCreateItemResponse(ctx.Writer); err != nil {
-			sh.options.ResponseErrorHandlerFunc(ctx, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetItem operation middleware
-func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
-	var request GetItemRequestObject
-
-	request.Id = id
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetItem(ctx, request.(GetItemRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetItem")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(GetItemResponseObject); ok {
-		if err := validResponse.VisitGetItemResponse(ctx.Writer); err != nil {
-			sh.options.ResponseErrorHandlerFunc(ctx, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

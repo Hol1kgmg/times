@@ -92,7 +92,7 @@ e2e はログインのたびに `users` と `sessions` に行を作る。開発�
 | ファイル | 対象 |
 |---|---|
 | `health.http` | 疎通確認 |
-| `items.http` / `digests.http` | 記事と Digest |
+| `digests.http` | Digest と記事 |
 | `auth.http` | session の発行、照合、削除 |
 
 curl で確認する例:

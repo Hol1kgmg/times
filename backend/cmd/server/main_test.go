@@ -19,21 +19,21 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// stub は GetItem だけ差し替えて、handler が返した error の変換経路を確認する
+// stub は Digest の取得だけ差し替えて、handler が返した error の変換経路を確認する
 type stub struct {
 	*handler.Server
-	getItem error
+	err error
 }
 
-func (s stub) GetItem(context.Context, api.GetItemRequestObject) (api.GetItemResponseObject, error) {
-	if s.getItem == nil {
+func (s stub) GetDigestByDate(context.Context, api.GetDigestByDateRequestObject) (api.GetDigestByDateResponseObject, error) {
+	if s.err == nil {
 		panic("boom")
 	}
-	return nil, s.getItem
+	return nil, s.err
 }
 
 func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject) (api.GetLatestDigestResponseObject, error) {
-	return nil, s.getItem
+	return nil, s.err
 }
 
 func (s stub) ListDigests(context.Context, api.ListDigestsRequestObject) (api.ListDigestsResponseObject, error) {
@@ -48,8 +48,8 @@ func (s stub) DeleteCurrentSession(ctx context.Context, _ api.DeleteCurrentSessi
 	return api.DeleteCurrentSession204Response{}, nil
 }
 
-func newStub(getItem error) stub {
-	return stub{Server: handler.New(nil, auth.Client{}, ""), getItem: getItem}
+func newStub(err error) stub {
+	return stub{Server: handler.New(nil, auth.Client{}, ""), err: err}
 }
 
 // lookup が呼ばれたらテスト失敗にする。security の無い操作で照合しないことの確認用
@@ -67,7 +67,7 @@ func TestRouter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const id = "/items/3f2a0c1e-0000-4000-8000-000000000000"
+	const digest = "/digests/2026-10-17"
 
 	tests := []struct {
 		method, path, body string
@@ -75,12 +75,9 @@ func TestRouter(t *testing.T) {
 		wantType           api.ProblemType
 	}{
 		{"GET", "/health", "", http.StatusOK, ""},
-		{"POST", "/items", `{"title":""}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
-		{"POST", "/items", `{}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
-		{"POST", "/items", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
-		{"GET", "/items/not-a-uuid", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
-		{"POST", "/items", `{"title":"` + strings.Repeat("a", maxBodyBytes) + `"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
-		{"GET", id, "", http.StatusNotFound, api.ProblemsnotFound},
+		{"POST", "/auth/sessions", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
+		{"POST", "/auth/sessions", `{"code":"` + strings.Repeat("a", maxBodyBytes) + `","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
+		{"GET", digest, "", http.StatusNotFound, api.ProblemsnotFound},
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound}, // /digests/{entryDate} より静的な経路が先
 		{"GET", "/digests", "", http.StatusOK, ""},
 		{"GET", "/digests/not-a-date", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
@@ -104,7 +101,7 @@ func TestRouter(t *testing.T) {
 		}
 	}
 
-	if p := problem(t, do(r, "GET", id, "")); p.Detail == nil || *p.Detail != "gone" {
+	if p := problem(t, do(r, "GET", digest, "")); p.Detail == nil || *p.Detail != "gone" {
 		t.Errorf("404 detail: got %v, want gone", p.Detail)
 	}
 }
@@ -114,7 +111,7 @@ func TestUnexpectedError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for name, err := range map[string]error{"error": errors.New("boom"), "panic": nil} {
 		r, _ := newRouter(newStub(err), "", noLookup(t))
-		w := do(r, "GET", "/items/3f2a0c1e-0000-4000-8000-000000000000", "")
+		w := do(r, "GET", "/digests/2026-10-17", "")
 		p := problem(t, w)
 		if w.Code != 500 || p.Type != api.AboutBlank || p.Detail != nil || strings.Contains(w.Body.String(), "boom") {
 			t.Errorf("%s: got %d %s", name, w.Code, w.Body)

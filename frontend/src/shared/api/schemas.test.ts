@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { article, item, itemId, newArticle } from "./schemas";
+import { article, digestId, digestSummary, newArticle } from "./schemas";
 
 describe("schemas", () => {
   it("rejects a non-uuid id", () => {
-    expect(itemId.safeParse("1").success).toBeFalsy();
-    expect(
-      item.safeParse({ id: "1", title: "t", createdAt: "2026-01-01T00:00:00Z" }).success,
-    ).toBeFalsy();
+    expect(digestId.safeParse("1").success).toBeFalsy();
+    expect(digestSummary.safeParse({ id: "1", entryDate: "2026-10-17" }).success).toBeFalsy();
   });
 
   it("rejects a category outside the fixed set", () => {

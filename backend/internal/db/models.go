@@ -35,12 +35,6 @@ type Digest struct {
 	CreatedBy int64
 }
 
-type Item struct {
-	ID        uuid.UUID
-	Title     string
-	CreatedAt time.Time
-}
-
 type Session struct {
 	ID        uuid.UUID
 	TokenHash []byte

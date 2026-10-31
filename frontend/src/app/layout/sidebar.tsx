@@ -39,9 +39,6 @@ export const ChannelNav = ({ onNavigate }: Props) => {
             </Link>
           )}
           <span className={styles.group}>Dev</span>
-          <Link className={styles.link} params={{ id: "1" }} to="/items/$id" onClick={onNavigate}>
-            <span className={styles.hash}>#</span>item-1
-          </Link>
           <Link className={styles.link} to="/client" onClick={onNavigate}>
             <span className={styles.hash}>#</span>client-only
           </Link>

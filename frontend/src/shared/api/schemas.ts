@@ -6,15 +6,8 @@ import type { components } from "./openapi.gen";
 
 type Schemas = components["schemas"];
 
-export const itemId = z.uuid().brand<"ItemId">();
 export const digestId = z.uuid().brand<"DigestId">();
 export const articleId = z.uuid().brand<"ArticleId">();
-
-export const item = z.object({
-  id: itemId,
-  title: z.string(),
-  createdAt: z.iso.datetime(),
-}) satisfies z.ZodType<Schemas["Item"]>;
 
 export const category = z.enum([
   "セキュリティ",
@@ -91,10 +84,8 @@ export const problem = z.object({
   duplicateUrls: z.string().array().optional(),
 }) satisfies z.ZodType<Schemas["Problem"]>;
 
-export type ItemId = z.infer<typeof itemId>;
 export type DigestId = z.infer<typeof digestId>;
 export type ArticleId = z.infer<typeof articleId>;
-export type Item = z.infer<typeof item>;
 export type Category = z.infer<typeof category>;
 export type ChildArticle = z.infer<typeof childArticle>;
 export type Article = z.infer<typeof article>;

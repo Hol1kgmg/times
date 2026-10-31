@@ -43,41 +43,10 @@ func (s *Server) GetHealth(context.Context, api.GetHealthRequestObject) (api.Get
 	return api.GetHealth200JSONResponse{Status: "ok"}, nil
 }
 
-func (s *Server) ListItems(ctx context.Context, _ api.ListItemsRequestObject) (api.ListItemsResponseObject, error) {
-	rows, err := s.q.ListItems(ctx)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]api.Item, len(rows))
-	for i, r := range rows {
-		out[i] = toItem(r)
-	}
-	return api.ListItems200JSONResponse{Items: out}, nil
-}
-
-func (s *Server) GetItem(ctx context.Context, req api.GetItemRequestObject) (api.GetItemResponseObject, error) {
-	row, err := s.q.GetItem(ctx, req.Id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		// DB の意味を知っているのは handler。配線層で pgx を見ない (adr/backend/0002)
-		return nil, apperr.NotFound("item " + req.Id.String() + " does not exist")
-	}
-	if err != nil {
-		return nil, err
-	}
-	return api.GetItem200JSONResponse(toItem(row)), nil
-}
-
-func (s *Server) CreateItem(ctx context.Context, req api.CreateItemRequestObject) (api.CreateItemResponseObject, error) {
-	row, err := s.q.CreateItem(ctx, req.Body.Title)
-	if err != nil {
-		return nil, err
-	}
-	return api.CreateItem201JSONResponse(toItem(row)), nil
-}
-
 func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestRequestObject) (api.GetLatestDigestResponseObject, error) {
 	d, err := s.q.GetLatestDigest(ctx)
 	if errors.Is(err, pgx.ErrNoRows) {
+		// DB の意味を知っているのは handler。配線層で pgx を見ない (adr/backend/0002)
 		return nil, apperr.NotFound("no digest registered")
 	}
 	if err != nil {
@@ -279,8 +248,4 @@ func toDigest(d db.Digest, rows []db.Article, links []db.ArticleLink) api.Digest
 		}
 	}
 	return api.Digest{Id: d.ID, EntryDate: openapi_types.Date{Time: d.EntryDate}, Articles: articles}
-}
-
-func toItem(r db.Item) api.Item {
-	return api.Item{Id: r.ID, Title: r.Title, CreatedAt: r.CreatedAt}
 }
