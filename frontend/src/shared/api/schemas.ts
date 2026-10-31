@@ -46,7 +46,7 @@ export const article = z.object({
 export const digest = z.object({
   id: digestId,
   entryDate: z.iso.date(),
-  items: article.array(),
+  articles: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
 
 export const digestSummary = z.object({
@@ -55,7 +55,7 @@ export const digestSummary = z.object({
 }) satisfies z.ZodType<Schemas["DigestSummary"]>;
 
 export const digestList = z.object({
-  items: digestSummary.array(),
+  digests: digestSummary.array(),
 }) satisfies z.ZodType<Schemas["DigestList"]>;
 
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
@@ -74,7 +74,7 @@ export const newArticle = newChildArticle.extend({
 
 export const newDigest = z.object({
   entryDate: z.iso.date(),
-  items: newArticle.array().min(1).max(100),
+  articles: newArticle.array().min(1).max(100),
 }) satisfies z.ZodType<Schemas["NewDigest"]>;
 
 export const problem = z.object({

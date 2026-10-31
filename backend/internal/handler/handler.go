@@ -95,11 +95,11 @@ func (s *Server) ListDigests(ctx context.Context, _ api.ListDigestsRequestObject
 	if err != nil {
 		return nil, err
 	}
-	items := make([]api.DigestSummary, 0, len(rows))
+	digests := make([]api.DigestSummary, 0, len(rows))
 	for _, r := range rows {
-		items = append(items, api.DigestSummary{Id: r.ID, EntryDate: openapi_types.Date{Time: r.EntryDate}})
+		digests = append(digests, api.DigestSummary{Id: r.ID, EntryDate: openapi_types.Date{Time: r.EntryDate}})
 	}
-	return api.ListDigests200JSONResponse{Items: items}, nil
+	return api.ListDigests200JSONResponse{Digests: digests}, nil
 }
 
 func (s *Server) GetDigestByDate(ctx context.Context, req api.GetDigestByDateRequestObject) (api.GetDigestByDateResponseObject, error) {
@@ -151,7 +151,7 @@ func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestOb
 	if err := q.DeleteArticlesByDigest(ctx, d.ID); err != nil {
 		return nil, err
 	}
-	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Items)
+	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	if err != nil {
 		return nil, constraintViolation(err)
 	}
-	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Items)
+	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +188,8 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
 }
 
-func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, items []api.NewArticle) ([]db.Article, []db.ArticleLink, error) {
-	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, Urls: urlsOf(items)})
+func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, articles []api.NewArticle) ([]db.Article, []db.ArticleLink, error) {
+	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, Urls: urlsOf(articles)})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -209,7 +209,7 @@ func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int6
 		rows = append(rows, row)
 		return row, nil
 	}
-	for _, a := range items {
+	for _, a := range articles {
 		hot := a.Hot != nil && *a.Hot
 		parent, err := insert(string(a.Category), a.Title, a.Url, hot)
 		if err != nil {
@@ -245,9 +245,9 @@ func constraintViolation(err error) error {
 	return err
 }
 
-func urlsOf(items []api.NewArticle) []string {
+func urlsOf(articles []api.NewArticle) []string {
 	var urls []string
-	for _, a := range items {
+	for _, a := range articles {
 		urls = append(urls, a.Url)
 		if a.Children != nil {
 			for _, c := range *a.Children {
@@ -264,21 +264,21 @@ func toDigest(d db.Digest, rows []db.Article, links []db.ArticleLink) api.Digest
 		parentOf[l.ChildID] = l.ParentID
 	}
 	children := make(map[uuid.UUID][]api.ChildArticle)
-	items := make([]api.Article, 0, len(rows)-len(links))
+	articles := make([]api.Article, 0, len(rows)-len(links))
 	for _, r := range rows {
 		if p, ok := parentOf[r.ID]; ok {
 			children[p] = append(children[p], api.ChildArticle{Id: r.ID, Title: r.Title, Url: r.Url, Description: r.Description})
 			continue
 		}
-		items = append(items, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description})
+		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description})
 	}
-	for i := range items {
-		items[i].Children = children[items[i].Id]
-		if items[i].Children == nil {
-			items[i].Children = []api.ChildArticle{}
+	for i := range articles {
+		articles[i].Children = children[articles[i].Id]
+		if articles[i].Children == nil {
+			articles[i].Children = []api.ChildArticle{}
 		}
 	}
-	return api.Digest{Id: d.ID, EntryDate: openapi_types.Date{Time: d.EntryDate}, Items: items}
+	return api.Digest{Id: d.ID, EntryDate: openapi_types.Date{Time: d.EntryDate}, Articles: articles}
 }
 
 func toItem(r db.Item) api.Item {

@@ -5,7 +5,7 @@ Content-Type: application/json
 
 {
   "entryDate": "2026-10-17",
-  "items": [
+  "articles": [
     {
       "category": "IT系", "title": "Hello", "url": "https://example.com/hello",
       "children": [{ "title": "Hello (関連)", "url": "https://example.com/hello/related" }]
@@ -17,7 +17,7 @@ Content-Type: application/json
 ### latest → 200 Digest（登録済みなら）/ 404 Problem type=/problems/not-found（未登録）
 GET {{host}}/digests/latest
 
-### 日付一覧 → 200 {items: [{id, entryDate}]}（新しい順、0 件なら空配列）
+### 日付一覧 → 200 {digests: [{id, entryDate}]}（新しい順、0 件なら空配列）
 GET {{host}}/digests
 
 ### 1 件 → 200 Digest / 404（その日付がない）/ 400（日付の形でない）
@@ -30,7 +30,7 @@ Content-Type: application/json
 
 {
   "entryDate": "2026-10-18",
-  "items": [
+  "articles": [
     { "category": "IT系", "title": "Hello (直した)", "url": "https://example.com/hello" }
   ]
 }

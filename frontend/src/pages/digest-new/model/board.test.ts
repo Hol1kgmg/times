@@ -130,7 +130,7 @@ describe("登録", () => {
       その他: [draft("o")],
       セキュリティ: [draft("s1", { children: [link("c1"), link("c2")] }), draft("s2")],
     });
-    const urls = toNewDigest(b, "2026-10-25").items.map((i) => [
+    const urls = toNewDigest(b, "2026-10-25").articles.map((i) => [
       i.category,
       i.url,
       i.children.map((c) => c.url),
@@ -201,7 +201,7 @@ describe("保存済みの Digest を開く", () => {
   const saved = digest.parse({
     id: uuid(0),
     entryDate: "2026-10-20",
-    items: [
+    articles: [
       article(1, { category: "IT系", hot: true }),
       article(2, { category: "IT系" }),
       article(3, {
@@ -218,7 +218,7 @@ describe("保存済みの Digest を開く", () => {
     expect(b[UNSORTED]).toHaveLength(0);
     expect(toNewDigest(b, saved.entryDate)).toStrictEqual({
       entryDate: saved.entryDate,
-      items: saved.items.map(({ category, hot, title, url, children }) => ({
+      articles: saved.articles.map(({ category, hot, title, url, children }) => ({
         category,
         hot,
         title,

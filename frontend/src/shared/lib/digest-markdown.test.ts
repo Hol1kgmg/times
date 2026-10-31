@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { newDigest } from "#/shared/api";
 import { digestMarkdown } from "./digest-markdown";
 
-const make = (items: unknown[]) => newDigest.parse({ entryDate: "2026-10-20", items });
+const make = (articles: unknown[]) => newDigest.parse({ entryDate: "2026-10-20", articles });
 
 describe(digestMarkdown, () => {
   it("gathers hot articles with their children first and drops categories left empty", () => {
@@ -32,8 +32,8 @@ describe(digestMarkdown, () => {
     const digest = make([
       { category: "その他", title: "[PR] x", url: "https://x.example/a", children: [] },
     ]);
-    const blank = { ...digest.items[0], title: " " };
+    const blank = { ...digest.articles[0], title: " " };
     expect(digestMarkdown(digest)).toBe("その他\n- [\\[PR\\] x](https://x.example/a)");
-    expect(digestMarkdown({ ...digest, items: [blank] })).toBe("その他\n- https://x.example/a");
+    expect(digestMarkdown({ ...digest, articles: [blank] })).toBe("その他\n- https://x.example/a");
   });
 });

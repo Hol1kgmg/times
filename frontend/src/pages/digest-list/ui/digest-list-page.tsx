@@ -62,15 +62,15 @@ const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }
 };
 
 export const DigestListPage = () => {
-  const { items } = route.useLoaderData();
+  const { digests } = route.useLoaderData();
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>記事を編集</h1>
-      {items.length === 0 ? (
+      {digests.length === 0 ? (
         <p className={styles.empty}>まだ Digest がないです</p>
       ) : (
         <div className={styles.years}>
-          {groupByMonth(items).map((y, i) => (
+          {groupByMonth(digests).map((y, i) => (
             <Year key={y.year} defaultOpen={i === 0} group={y} />
           ))}
         </div>

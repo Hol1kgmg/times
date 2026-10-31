@@ -181,7 +181,7 @@ const DigestForm = ({
 
   const entry = toNewDigest(board, entryDate);
   const dirty = isDirty(entry, board) && !submitting;
-  const registeredLeft = entry.items
+  const registeredLeft = entry.articles
     .flatMap((a) => [a.url, ...a.children.map((c) => c.url)])
     .filter((u) => registered.has(u)).length;
   const dateTaken = entryDate !== "" && entryDate === takenDate;
@@ -385,7 +385,7 @@ const DigestForm = ({
           )}
           <button
             className={styles.button}
-            disabled={entry.items.length === 0 || entryDate === ""}
+            disabled={entry.articles.length === 0 || entryDate === ""}
             type="button"
             onClick={() => {
               setPreviewing(true);
@@ -505,7 +505,7 @@ const DigestForm = ({
 const newRoute = getRouteApi("/_shell/admin/digests/new");
 
 export const DigestNewPage = () => {
-  const { items } = newRoute.useLoaderData();
+  const { digests } = newRoute.useLoaderData();
   const create = useServerFn(createDigest);
   return (
     <DigestForm
@@ -515,7 +515,7 @@ export const DigestNewPage = () => {
       leaveMessage="登録してない記事があります。このページを離れますか？"
       save={async (entry) => await create({ data: entry })}
       submitLabel="登録"
-      taken={new Set(items.map((d) => d.entryDate))}
+      taken={new Set(digests.map((d) => d.entryDate))}
     />
   );
 };
@@ -526,7 +526,7 @@ export const DigestEditPage = () => {
   const { digest, list } = editRoute.useLoaderData();
   const update = useServerFn(updateDigest);
   // 編集中の Digest 自身の日付は、そのまま保存できるので選べるようにする
-  const taken = new Set(list.items.map((d) => d.entryDate).filter((d) => d !== digest.entryDate));
+  const taken = new Set(list.digests.map((d) => d.entryDate).filter((d) => d !== digest.entryDate));
   const saved = JSON.stringify(toNewDigest(fromDigest(digest), digest.entryDate));
   return (
     // 別の日付の編集画面へ移っても同じ component が使い回されるので、state を Digest ごとに作り直す

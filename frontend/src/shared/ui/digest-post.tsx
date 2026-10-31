@@ -134,7 +134,7 @@ export const DigestPost = ({
           {dateFormat.format(new Date(digest.entryDate))}
         </time>
         <span className={styles.count}>
-          {digest.items.reduce((n, a) => n + 1 + a.children.length, 0)} 件
+          {digest.articles.reduce((n, a) => n + 1 + a.children.length, 0)} 件
         </span>
       </span>
       <span className={styles.end}>{action}</span>
@@ -144,7 +144,7 @@ export const DigestPost = ({
       <span className={styles.author}>z_times.dev</span>
       <div className={styles.body}>
         <ul className={styles.sections}>
-          {groupByCategory(digest.items).map(([name, articles]) => (
+          {groupByCategory(digest.articles).map(([name, articles]) => (
             <li key={name} className={styles.section}>
               <h3 className={styles.label}>{name}</h3>
               <ul className={styles.list}>

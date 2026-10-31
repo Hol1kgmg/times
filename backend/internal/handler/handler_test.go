@@ -37,11 +37,11 @@ func TestConstraintViolation(t *testing.T) {
 // 登録済みの照合は関連記事の URL も対象にする。漏れると印が付かず DB の unique で汎用エラーになる
 func TestURLsOfIncludesChildren(t *testing.T) {
 	children := []api.NewChildArticle{{Title: "a-child", Url: "https://a.example/child"}}
-	items := []api.NewArticle{
+	articles := []api.NewArticle{
 		{Title: "a", Url: "https://a.example", Children: &children},
 		{Title: "b", Url: "https://b.example"},
 	}
-	got := urlsOf(items)
+	got := urlsOf(articles)
 	want := []string{"https://a.example", "https://a.example/child", "https://b.example"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -49,7 +49,7 @@ func TestURLsOfIncludesChildren(t *testing.T) {
 }
 
 // DB 行 → API 応答の変換: 日付は date 形式、description は NULL なら省略、順序は行順のまま。
-// link の child 側は items から外れて親の children に入り、子のない親も children は [] になる。hot は親にだけ出る
+// link の child 側は articles から外れて親の children に入り、子のない親も children は [] になる。hot は親にだけ出る
 func TestToDigest(t *testing.T) {
 	desc := "summary"
 	d := db.Digest{ID: uuid.New(), EntryDate: time.Date(2026, 9, 22, 0, 0, 0, 0, time.UTC)}
@@ -67,7 +67,7 @@ func TestToDigest(t *testing.T) {
 	}
 	var got struct {
 		EntryDate string `json:"entryDate"`
-		Items     []struct {
+		Articles  []struct {
 			Title       string
 			Hot         bool
 			Description any
@@ -80,25 +80,25 @@ func TestToDigest(t *testing.T) {
 	if got.EntryDate != "2026-09-22" {
 		t.Errorf("entryDate: got %q", got.EntryDate)
 	}
-	if len(got.Items) != 3 || got.Items[0].Title != "a" || got.Items[1].Title != "b" || got.Items[2].Title != "c" {
-		t.Errorf("items order: got %v", got.Items)
+	if len(got.Articles) != 3 || got.Articles[0].Title != "a" || got.Articles[1].Title != "b" || got.Articles[2].Title != "c" {
+		t.Errorf("articles order: got %v", got.Articles)
 	}
-	if got.Items[0].Description != "summary" {
-		t.Errorf("description: got %v", got.Items[0].Description)
+	if got.Articles[0].Description != "summary" {
+		t.Errorf("description: got %v", got.Articles[0].Description)
 	}
-	if len(got.Items[0].Children) != 1 || got.Items[0].Children[0]["title"] != "a-child" {
-		t.Errorf("children: got %v", got.Items[0].Children)
+	if len(got.Articles[0].Children) != 1 || got.Articles[0].Children[0]["title"] != "a-child" {
+		t.Errorf("children: got %v", got.Articles[0].Children)
 	}
-	if got.Items[0].Hot || !got.Items[2].Hot {
+	if got.Articles[0].Hot || !got.Articles[2].Hot {
 		t.Errorf("hot: got %s", body)
 	}
-	if _, ok := got.Items[2].Children[0]["hot"]; ok {
+	if _, ok := got.Articles[2].Children[0]["hot"]; ok {
 		t.Errorf("child should not carry hot: got %s", body)
 	}
-	if got.Items[1].Children == nil || len(got.Items[1].Children) != 0 {
+	if got.Articles[1].Children == nil || len(got.Articles[1].Children) != 0 {
 		t.Errorf("children of childless parent should be []: got %s", body)
 	}
-	if got.Items[1].Description != nil {
-		t.Errorf("nil description must be omitted: %v", got.Items[1])
+	if got.Articles[1].Description != nil {
+		t.Errorf("nil description must be omitted: %v", got.Articles[1])
 	}
 }

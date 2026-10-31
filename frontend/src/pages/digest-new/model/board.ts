@@ -5,7 +5,7 @@ export const UNSORTED = "未分類";
 export type BoxId = typeof UNSORTED | Category;
 export const boxIds: readonly BoxId[] = [UNSORTED, ...category.options];
 
-// 上限は openapi.yaml の NewDigest.items (maxItems 100) と NewArticle.children (maxItems 20)
+// 上限は openapi.yaml の NewDigest.articles (maxItems 100) と NewArticle.children (maxItems 20)
 export const MAX_DRAFTS = 100;
 export const MAX_CHILDREN = 20;
 
@@ -290,7 +290,7 @@ const savedLink = ({ id, url, title }: { id: string; url: string; title: string 
 
 export const fromDigest = (digest: Digest): Board => {
   const board = emptyBoard();
-  for (const a of digest.items) {
+  for (const a of digest.articles) {
     board[a.category].push({ ...savedLink(a), hot: a.hot, children: a.children.map(savedLink) });
   }
   return board;
@@ -298,7 +298,7 @@ export const fromDigest = (digest: Digest): Board => {
 
 export const toNewDigest = (board: Board, entryDate: string): NewDigest => ({
   entryDate,
-  items: category.options.flatMap((c) =>
+  articles: category.options.flatMap((c) =>
     board[c].map((d) => ({
       category: c,
       hot: d.hot,
