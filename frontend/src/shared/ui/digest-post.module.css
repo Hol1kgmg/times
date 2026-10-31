@@ -177,17 +177,28 @@
 }
 
 .divider {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2);
   margin: 0 0 var(--space-3);
 }
 
 .divider::before,
-.divider::after {
+.end::before {
   content: "";
-  flex: 1;
   border-top: 1px solid var(--color-border);
+}
+
+.center,
+.end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.end::before {
+  flex: 1;
 }
 
 .date {
@@ -201,12 +212,6 @@
 .count {
   composes: t-meta from global;
   color: var(--color-text-muted);
-}
-
-/* ::after の線より後ろ (右端) に置くため、DOM 順ではなく order で並べる */
-.action {
-  display: flex;
-  order: 1;
 }
 
 .post {

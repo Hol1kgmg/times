@@ -129,13 +129,15 @@ export const DigestPost = ({
 }) => (
   <>
     <div className={styles.divider}>
-      <time className={styles.date} dateTime={digest.entryDate}>
-        {dateFormat.format(new Date(digest.entryDate))}
-      </time>
-      <span className={styles.count}>
-        {digest.items.reduce((n, a) => n + 1 + a.children.length, 0)} 件
+      <span className={styles.center}>
+        <time className={styles.date} dateTime={digest.entryDate}>
+          {dateFormat.format(new Date(digest.entryDate))}
+        </time>
+        <span className={styles.count}>
+          {digest.items.reduce((n, a) => n + 1 + a.children.length, 0)} 件
+        </span>
       </span>
-      {action !== undefined && <span className={styles.action}>{action}</span>}
+      <span className={styles.end}>{action}</span>
     </div>
     <article className={styles.post}>
       <img alt="" height={36} src="/favicon.svg" width={36} />
