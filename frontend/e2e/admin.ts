@@ -68,8 +68,11 @@ export const boardOf = (page: Page) => {
     await expect(card.getByText("タイトルを入れてください")).toBeVisible();
     await card.getByRole("button", { name: "メニュー" }).click();
     await page.getByRole("button", { name: "編集" }).click();
-    await page.getByLabel("タイトル").fill(title);
-    await page.getByRole("button", { name: "確定" }).click();
+    // 閉じたダイアログはフェードアウトの間 DOM に残るので、開いているものに絞って閉じきるまで待つ
+    const dialog = page.getByRole("dialog", { name: "記事を編集" });
+    await dialog.getByLabel("タイトル").fill(title);
+    await dialog.getByRole("button", { name: "確定" }).click();
+    await expect(dialog).toBeHidden();
   };
   return { unsorted, dragFirstUnsortedTo, menuOf, collect };
 };

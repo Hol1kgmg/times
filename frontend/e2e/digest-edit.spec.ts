@@ -6,6 +6,15 @@ import { boardOf, loggedInState } from "./admin";
 const dayFrom = (n: number) =>
   new Date(Date.UTC(1900, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 
+// 一覧は最新の年だけ開いていて、digest-new.spec.ts の Digest がそれより後の年を占める
+const openDigest = async (page: Page, date: string) => {
+  const year = page.getByRole("button", { name: `${Number(date.slice(0, 4))} 年` });
+  if ((await year.getAttribute("aria-expanded")) === "false") {
+    await year.click();
+  }
+  await page.locator(`a[href="/admin/digests/${date}/edit"]`).click();
+};
+
 const previewLinks = async (page: Page) => {
   await page.getByRole("button", { name: "プレビュー" }).click();
   return page.getByRole("dialog").getByRole("link");
@@ -48,7 +57,7 @@ test("一覧から登録済みの Digest を開き、タイトル・記事・日
     .getByRole("link", { name: "記事を編集" })
     .click();
   await page.waitForURL((url) => url.pathname === "/admin/digests");
-  await page.locator(`a[href="/admin/digests/${date}/edit"]`).click();
+  await openDigest(page, date);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByLabel("日付")).toHaveValue(date);
@@ -65,7 +74,7 @@ test("一覧から登録済みの Digest を開き、タイトル・記事・日
 
   await expect(page.locator(`a[href="/admin/digests/${moved}/edit"]`)).toHaveCount(1);
   await expect(page.locator(`a[href="/admin/digests/${date}/edit"]`)).toHaveCount(0);
-  await page.locator(`a[href="/admin/digests/${moved}/edit"]`).click();
+  await openDigest(page, moved);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${moved}/edit`);
   await page.waitForLoadState("networkidle");
   await expect(await previewLinks(page)).toHaveText([fixed, `${other}HOT`]);
