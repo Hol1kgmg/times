@@ -3,13 +3,13 @@ module github.com/Hol1kgmg/times/backend
 go 1.26.7
 
 require (
-	github.com/getkin/kin-openapi v0.151.0
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/oapi-codegen/gin-middleware v1.1.0
-	github.com/oapi-codegen/runtime v1.7.0
+	github.com/oapi-codegen/gin-middleware v1.2.1
+	github.com/oapi-codegen/runtime v1.8.0
 )
 
 require (
