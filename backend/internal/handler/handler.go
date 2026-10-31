@@ -39,8 +39,8 @@ func New(pool *pgxpool.Pool, gh auth.Client, adminLogin string) *Server {
 	}
 }
 
-func (s *Server) Health(context.Context, api.HealthRequestObject) (api.HealthResponseObject, error) {
-	return api.Health200JSONResponse{Status: "ok"}, nil
+func (s *Server) GetHealth(context.Context, api.GetHealthRequestObject) (api.GetHealthResponseObject, error) {
+	return api.GetHealth200JSONResponse{Status: "ok"}, nil
 }
 
 func (s *Server) ListItems(ctx context.Context, _ api.ListItemsRequestObject) (api.ListItemsResponseObject, error) {

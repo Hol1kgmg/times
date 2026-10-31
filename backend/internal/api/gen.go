@@ -232,19 +232,19 @@ type CreateItemJSONRequestBody = NewItem
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// CreateSession GitHub の code を検証し、管理者の session を発行する
+
 	// (POST /auth/sessions)
 	CreateSession(c *gin.Context)
-	// DeleteCurrentSession Bearer の session を削除する (ログアウト)。存在しなくても 204
+
 	// (DELETE /auth/sessions/current)
 	DeleteCurrentSession(c *gin.Context)
-	// GetCurrentSession Bearer の session を照合し、管理者を返す
+
 	// (GET /auth/sessions/current)
 	GetCurrentSession(c *gin.Context)
-	// ListDigests 登録済みの Digest の日付を新しい順に返す。記事は含まない
+
 	// (GET /digests)
 	ListDigests(c *gin.Context)
-	// CreateDigest 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
+
 	// (POST /digests)
 	CreateDigest(c *gin.Context)
 
@@ -253,12 +253,12 @@ type ServerInterface interface {
 
 	// (GET /digests/{entryDate})
 	GetDigestByDate(c *gin.Context, entryDate openapi_types.Date)
-	// UpdateDigest その日付の Digest の日付と記事一式を置き換える。日付を変えるときは body の entryDate に新しい日付を入れる
+
 	// (PUT /digests/{entryDate})
 	UpdateDigest(c *gin.Context, entryDate openapi_types.Date)
 
 	// (GET /health)
-	Health(c *gin.Context)
+	GetHealth(c *gin.Context)
 
 	// (GET /items)
 	ListItems(c *gin.Context)
@@ -407,8 +407,8 @@ func (siw *ServerInterfaceWrapper) UpdateDigest(c *gin.Context) {
 	siw.Handler.UpdateDigest(c, entryDate)
 }
 
-// Health operation middleware
-func (siw *ServerInterfaceWrapper) Health(c *gin.Context) {
+// GetHealth operation middleware
+func (siw *ServerInterfaceWrapper) GetHealth(c *gin.Context) {
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -417,7 +417,7 @@ func (siw *ServerInterfaceWrapper) Health(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.Health(c)
+	siw.Handler.GetHealth(c)
 }
 
 // ListItems operation middleware
@@ -498,7 +498,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
-	router.GET(options.BaseURL+"/health", wrapper.Health)
+	router.GET(options.BaseURL+"/health", wrapper.GetHealth)
 	router.GET(options.BaseURL+"/items", wrapper.ListItems)
 	router.POST(options.BaseURL+"/items", wrapper.CreateItem)
 	router.GET(options.BaseURL+"/items/:id", wrapper.GetItem)
@@ -877,18 +877,18 @@ func (response UpdateDigest404ApplicationProblemPlusJSONResponse) VisitUpdateDig
 	return err
 }
 
-type HealthRequestObject struct {
+type GetHealthRequestObject struct {
 }
 
-type HealthResponseObject interface {
-	VisitHealthResponse(w http.ResponseWriter) error
+type GetHealthResponseObject interface {
+	VisitGetHealthResponse(w http.ResponseWriter) error
 }
 
-type Health200JSONResponse struct {
+type GetHealth200JSONResponse struct {
 	Status string `json:"status"`
 }
 
-func (response Health200JSONResponse) VisitHealthResponse(w http.ResponseWriter) error {
+func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1015,19 +1015,19 @@ func (response GetItem404ApplicationProblemPlusJSONResponse) VisitGetItemRespons
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// CreateSession GitHub の code を検証し、管理者の session を発行する
+
 	// (POST /auth/sessions)
 	CreateSession(ctx context.Context, request CreateSessionRequestObject) (CreateSessionResponseObject, error)
-	// DeleteCurrentSession Bearer の session を削除する (ログアウト)。存在しなくても 204
+
 	// (DELETE /auth/sessions/current)
 	DeleteCurrentSession(ctx context.Context, request DeleteCurrentSessionRequestObject) (DeleteCurrentSessionResponseObject, error)
-	// GetCurrentSession Bearer の session を照合し、管理者を返す
+
 	// (GET /auth/sessions/current)
 	GetCurrentSession(ctx context.Context, request GetCurrentSessionRequestObject) (GetCurrentSessionResponseObject, error)
-	// ListDigests 登録済みの Digest の日付を新しい順に返す。記事は含まない
+
 	// (GET /digests)
 	ListDigests(ctx context.Context, request ListDigestsRequestObject) (ListDigestsResponseObject, error)
-	// CreateDigest 1 日付分の Digest を記事ごと登録する。items の並びがそのまま表示順になる
+
 	// (POST /digests)
 	CreateDigest(ctx context.Context, request CreateDigestRequestObject) (CreateDigestResponseObject, error)
 
@@ -1036,12 +1036,12 @@ type StrictServerInterface interface {
 
 	// (GET /digests/{entryDate})
 	GetDigestByDate(ctx context.Context, request GetDigestByDateRequestObject) (GetDigestByDateResponseObject, error)
-	// UpdateDigest その日付の Digest の日付と記事一式を置き換える。日付を変えるときは body の entryDate に新しい日付を入れる
+
 	// (PUT /digests/{entryDate})
 	UpdateDigest(ctx context.Context, request UpdateDigestRequestObject) (UpdateDigestResponseObject, error)
 
 	// (GET /health)
-	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
+	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
 
 	// (GET /items)
 	ListItems(ctx context.Context, request ListItemsRequestObject) (ListItemsResponseObject, error)
@@ -1327,23 +1327,23 @@ func (sh *strictHandler) UpdateDigest(ctx *gin.Context, entryDate openapi_types.
 	}
 }
 
-// Health operation middleware
-func (sh *strictHandler) Health(ctx *gin.Context) {
-	var request HealthRequestObject
+// GetHealth operation middleware
+func (sh *strictHandler) GetHealth(ctx *gin.Context) {
+	var request GetHealthRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Health(ctx, request.(HealthRequestObject))
+		return sh.ssi.GetHealth(ctx, request.(GetHealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Health")
+		handler = middleware(handler, "GetHealth")
 	}
 
 	response, err := handler(ctx, request)
 
 	if err != nil {
 		sh.options.HandlerErrorFunc(ctx, err)
-	} else if validResponse, ok := response.(HealthResponseObject); ok {
-		if err := validResponse.VisitHealthResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
+		if err := validResponse.VisitGetHealthResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {
@@ -1437,48 +1437,48 @@ func (sh *strictHandler) GetItem(ctx *gin.Context, id openapi_types.UUID) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"1Fntb9NIGv9XLN99KLqUpMDdh3w5FdDtVofY1bL9hLiTG09bL4mdHY+BHoqUcaCEpd32eCktL4JCX0J7",
-	"TXeBW5WmwB/zxEn6X5xmxnbsxElalracVKnxeGae9+f3PI+vyykjkzV0pBNTTl6XMTKzhm4i/nBaUb9D",
-	"P1rIJOwpZegE6fynks2mtZRCNEOPZ7ExkkaZP/1gGjp7Z6bGUUZhv/6I0aiclP8Qb5KIi7dm/FtxSs7l",
-	"cjFZRWYKa1l2nZxkVCWPbC4mD+uKRcYNrP0LqYfJRogue+2eYVcOqhlNHzYRZg9ZbGQRJprQmcaZDF/1",
-	"lUa+tkYk5/G2U34kDZ2FvA32f6GwA4V7YL9zJm8CXa2XF+uzk438TbDv1qZuAV1obMw7xWVnY1aOyaMG",
-	"zihETsqaTv5ySo7JZCKLxCMaQ5gpKm2MaVx095VJsKaPcdYx+tHSMNPfRcagt/eSf40x8gNKcXUPYqKl",
-	"0qhdsJRC0JiBJ3qp9Iy3LxeTU+NaWsWIc6URlDF7HmYHPBZyPnsKxgq/MKTXVjVD4RHTqb0FtNxY+09t",
-	"/ufa3C3I287MnPPhIdBVoNNAnzVK89XtO0CfA/13bYoCXWqq09NZTB43SBSFx1AoQKHI/+6z3/Ym0DtA",
-	"XwGdZD/ytrMx61HYbKysAV13Ptzjb8tAV6WghBLQdaCbnIlnQNeA3miyMmIYaaTojBfhU74LWBa3YRvL",
-	"RCPCcG1vLJwO34C19gui/MQ3ulCIR0PcGLBvlCedCTgM0q0MuxTsCtgbUFiGwhoUJsF+Kcfkoe/rbypy",
-	"TB4eEv8H3f+7T1/UF94Dfcq1twaFGzxk1qFQCYaPHJP5nnK1MhdgxBUrJl/rZ9T7ryhYVzLMly/6rF1A",
-	"KQtrhInnLQ19H3gYHgo8DAYfvjeMtBl4/oaMIyxfYmIHXbgtilocuM1SR2fqoGUjzYmRQpB6AZmmy7yS",
-	"Tn8zKicvdg9p70Au1qoLYlxGEWFc3Zrezc/U5n/mQbbDIqzwBvL2GcO4rPGYcW4ugz0FdEU6jRSMsAR0",
-	"tVF5sZunQBfAvtNTYEG5XUpmv7PamAt4YW6RTvDEWYWgkHpVthD7ZDv6SXFP2bFjYoyyZ5Nfj0yUVYW0",
-	"57QoiffHnLjpgpXJKCL5d2exB0fePYdhhu7ai+JxiKBMBEKKCBkkbaz1Ey3ze9ykU7h3i+MmN1ESnEdX",
-	"jxbpz6OrrWCfUa4NiaMnEu3Q7wPyqGKliZwcVdImikJLX1kZ5do5pI+RcTl5MpGIyRlN954HYnvNnIFL",
-	"TiTYLVmFEIRZovrHOCFZ86/JeLynTwVwtFeebVVMm3m+RPn2INRnyqv7ykkBLw/514CrLu+xR7LaWyo9",
-	"j65G54Uog53oabBIDXegGwDlllA2VNSxH/H7G4lVrvbtWrEC9CXQZxI/Ftsfv4xdVcMoRYax1k4zSGy9",
-	"trUI9CGj5J35p4U1yNscmKXq9lJt5jGrll1OgU5Vt/KNW29Zb7T0pFHa8YF+X4WOK1eQ0SiNel1hRPVG",
-	"FC0dWXepluhF0TBOt1d6LDD6lTRGijrRj9GYZhKEkSrxpqDE+xLWjvDChjcRs1NA55stIZ1ybk8DLUsi",
-	"iljBU1+o7E69rm0VgX5kb4a/Oyf18RKIm5D7qQS0JHmpWRCbBLrYePXaeX9PqBBsm68vAH0HdOWYHIix",
-	"dhxqyckmUYgV3BpoRzuXqGKhrbeyS1B4BYWdeqnsFJd5j7zJVuwlsF+wErBQBLoJ9B6v/Vad4qTzetYV",
-	"Im/XCm+c8iNnaQ7opqSMGBZJjqQV/TLHctF8hFe9iYEZv6KkNZVPEfpHFS2N1NBb3SD9o4alh1et4HQg",
-	"+GLUwCOaqiI9vD1rEoyUTBSBaNcIbVG51f1d6JpmErO912nLGextE3Fca0V5fMcEgq5lNYzM/dQ0ljsX",
-	"6VrJ+gOUVp756ViAbju7zPHcxu0Cu09wOsJbgUGLZSd3/MMLA77c5JNhmhj3aPqoEUjPMpPHlAa/ZW3e",
-	"FYSFPuTE8YHjCSaWkUW6ktXkpHzyeOL4SZkj5TgnHWe+EDeFDvlK1hBQx1TJPWtIlZNuC+XpWsiNTHLa",
-	"UCe6TLb2N9EKoEEurFuCLcQXAhO+E4mBz0a5pUGMGKm5O/w874YzLTsfn9Q37vNpCEuD9ZkPLMbtO0zv",
-	"pxKJTpR9UeKBSSU/cvIwJ4WN0q/OzCbQB6IpBXpDzHJ89LJfgL0O9oqbxFiO/sAnPpvSiJK6jHQOBN72",
-	"3fzL2uw20Knak7VGacMpP2Iy/Tlx4jBl8oG3BLS8m39U/bgIhYpnp7IHwuvO0q+1Bw+lPoasDKbrNxad",
-	"n94BXXOev3Vmi2Dbzuw62PljImy9rq55f1kSR5vA/hDyNIB8ZckNLLanvrDdWJxywZ/dGA69eMrC2FWP",
-	"itJIFJXhIDzL18+IjcFYDIXFqXaAOm9IZ1ztcx8b6O2W7TNkb+CUvBjOWBcv5S4F9eMPNkLiO7d/2l1Y",
-	"EuJLfVDYAPsX7l0rUCge48PHeedJiddWa0BnmDfatsTEycXkMRSRk75CpJcuEp8tRXTJDd/8/ci0Wr+5",
-	"yly1xfHsu42P94EuCDcTCMwVEqnGc5pJzrp7DlCBgXFNBx2Goqy1RvSrx3Lt4XK1Ms+ibu4X7i43dp9P",
-	"Al0XMkPe9mfYLH5ZuuLT6VysK7S5Pd6BIZt7/yEDW5BqJKAFYOqw8rPz/oWzM7NLHzgz01JfWwV7jIPM",
-	"06ahg8afCrqF1BdZXLIL9tRysKzEM7zUF13IQp6GeiOJszPNspXHW0ncxJq8xdrcO6C/AV3iPekdrzva",
-	"lKJr4IPPGQOSYNMpTga1Yd/1IuQ+0JLQjN+MeM1Xubq1AvQN0ClhDB5IHxqLpfrStog3FlcelLk5Jp5W",
-	"iDsp6ZSxz/EdgWg70HTTLV2fOkynP28Q6W+sFZP6ms4sDUjVym+8jWUpihUaIW1e96c3uW4qFRee9sY8",
-	"R6jSTyh3j8oKnVNMwBisUcJKBhGETR5tGruFNU9yTNYV3qUFJ2zhxB4LMNxjOsjiNmtFmHc4q35h4HTo",
-	"/vQF4ZKzdLv2+K1zsxhwnXWnuPxJGFWtzB0sRh0WJB1lGDdurbWgGwOmUGh7Y8JAYO8DQzvmCX+tJNC0",
-	"upV3dmZYTf6+DHSaT4GL7oDPq1idpdvuom+IEUOd4FW9n0f4lNkrbZtHxYdjD3DHkZIW46JIVPhavP6d",
-	"wRuep7VNTDuM7jrO6jpU/Vwef3DbsUURHzw+q0T7+yLDv5B86sfhTrJ3b0o4yQPL+kKgw21ImjR7tSN7",
-	"LyMCHhS/rqldayVXo71hnX+Q3gOed/guf+kAcbOTDv/vqjBuulzufwEAAP//",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
