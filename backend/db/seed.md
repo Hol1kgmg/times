@@ -50,7 +50,7 @@ AI系
 - [Nixの切り替えコマンドを1つにまとめたnhが良さげかも | kawarimidoll.com](https://kawarimidoll.com/posts/202610151/)
 その他
 
-- [ローカル開発サーバー](http://localhost:3000)
+- [ローカル開発サーバー](http://times.localhost:1355)
 
 
 

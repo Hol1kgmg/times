@@ -10,8 +10,8 @@ GitHub → Settings → Developer settings → OAuth Apps → New OAuth App。
 
 | 項目 | ローカル | 本番 |
 |---|---|---|
-| Homepage URL | `http://localhost:3000` | 本番の origin |
-| Authorization callback URL | `http://localhost:3000/auth/github/callback` | `https://<本番 host>/auth/github/callback` |
+| Homepage URL | `http://times.localhost:1355` | 本番の origin |
+| Authorization callback URL | `http://times.localhost:1355/auth/github/callback` | `https://<本番 host>/auth/github/callback` |
 | Device Flow | 無効 | 無効 |
 
 Client ID を控え、Generate a new client secret で Client Secret を控える。callback URL は 1 つしか登録できないため App を 2 つ作る。
@@ -34,7 +34,13 @@ dotenvx set GITHUB_CLIENT_ID <ローカル用 Client ID> -f frontend/.env
 
 書き換えたら dev server を再起動する (起動時の環境変数が使われる)。direnv は `.env` の変更を見て読み直す。
 
-`direnv allow` → `just db-up` → `just be-dev` → `just fe-dev`。`http://localhost:3000/<ADMIN_LOGIN_PATH>/auth/login` にログインカードが出る。
+`direnv allow` → `just db-up` → `just be-dev` → `just fe-dev`。`http://times.localhost:1355/<ADMIN_LOGIN_PATH>/auth/login` にログインカードが出る。
+
+`fe-dev` / `be-dev` は既定 (`GITHUB_AUTH=mock`) で GitHub モック (`frontend/e2e/github-mock.ts`、`be-dev` が一緒に起動する) を向き、Client ID / Secret と `ADMIN_GITHUB_LOGIN` をモック用の値 (`octocat`) で上書きする。モックの「管理者として承認」で管理者として入れる。worktree ではホスト名が変わるが、モックは渡された `redirect_uri` に戻すので同じ手順で入れる。
+
+スマホからは `just fe-dev-host` を使う。3100 番のモックも一緒に起動し、承認画面は端末のブラウザが `http://<LAN IP>:3100` で開き、トークン交換は backend が `be-dev` の起動したモックに行う。モックは状態を持たないので 2 つに分かれてよい。dev server では Cookie の `Secure` を外している (LAN の IP は http のため)。本番のビルドでは必ず付く。
+
+本物の GitHub に向けるのは `GITHUB_AUTH=real just be-dev` / `GITHUB_AUTH=real just fe-dev`。callback URL は 1 つしか登録できないため、本体の worktree (`http://times.localhost:1355`) でだけ動き、worktree の中ではレシピが止まる。`PORTLESS=0` で起動すると origin が `http://localhost:3000` になり登録と合わないので、real とは組み合わせない。
 
 ### 本番
 

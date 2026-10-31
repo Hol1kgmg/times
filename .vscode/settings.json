@@ -10,7 +10,7 @@
   },
   "rest-client.environmentVariables": {
     "$shared": {
-      "host": "http://localhost:8080"
+      "host": "http://api.times.localhost:1355"
     }
   }
 }

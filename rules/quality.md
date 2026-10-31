@@ -55,11 +55,12 @@ just fe-test-e2e       # 画面の遷移・フォーム・ログインに触れ�
 ```
 
 - e2e は変更に関わる spec だけを回す (`just fe-test-e2e <ファイル名>`)。トップの Digest の表示 (並び・見出し・リンク・HOT) を変えたら `digest-new`、ログインなら `admin-login`、トップのそれ以外は `index`。見た目だけの変更では回さない
-- e2e は backend を切り替えて回す。開発用 (`just be-dev`、DB `times`) と e2e 用 (`just be-dev-e2e`、DB `times_e2e`) は同じ 8080 を使うため、同時には動かせない。
-  1. 開発用の backend が動いていたら止める (`lsof -iTCP:8080 -sTCP:LISTEN -P` で確認)。ユーザーが別のターミナルで動かしていて止められないときは、止めてもらうよう伝えて待つ
+- e2e 用の backend (`just be-dev-e2e`、DB `times_e2e`) は 8080 を使う。portless 経由の `just be-dev` とは衝突しないが、8080 を使う開発用 (`just be-up` の compose、`PORTLESS=0 just be-dev`) とは同時に動かせない。e2e は worktree の間でも同時に回さない。
+  1. 8080 が使われていたら止める (`lsof -iTCP:8080 -sTCP:LISTEN -P` で確認)。ユーザーが別のターミナルで動かしていて止められないときは、止めてもらうよう伝えて待つ
   2. `just be-dev-e2e` をバックグラウンドで起動し、`/health` が返るのを待つ
   3. `just fe-test-e2e`
-  4. 結果に関わらず `docker compose stop api` で e2e 用を止め、1 で止めた開発用を `just be-dev` で起動し直す
+  4. 結果に関わらず `docker compose stop api` で e2e 用を止め、1 で止めたものを起動し直す
+- 管理者ログインの動作確認は GitHub モック (`fe-dev` / `be-dev` の既定) で行う。本物の GitHub (`GITHUB_AUTH=real`) で確かめるのは、OAuth の往復そのもの (`auth` / `admin-login` の GitHub とのやりとり、OAuth App や Client ID / Secret の設定) を変えたときだけで、本体の worktree でユーザーにログインしてもらう
 
 - 新しい API 操作: `openapi.yaml` + sqlc クエリ + handler + router テスト 1 件 + `schemas.ts` のスキーマ。
 - 新しい画面: route + page + サーバー関数 (zod) + e2e 1 本。

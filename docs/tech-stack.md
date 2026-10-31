@@ -39,7 +39,7 @@ backend/
 
 ## 運用
 
-- `just db-up` で Postgres 起動 + マイグレーション、`just be-dev` でサーバー起動（localhost:8080）
+- `just db-up` で Postgres 起動 + マイグレーション、`just be-dev` でサーバー起動（http://api.times.localhost:1355、[docs/testing.md](testing.md)）
 - `just be-up` で api も含めて compose 一式をビルド・起動
 - API や SQL を変えたら `just be-gen` で再生成してコミット。CI が差分なしを検証する
 - マイグレーション追加は `just db-migrate-new <name>`、適用は `just db-up`（up）または `just db-migrate <args>`
