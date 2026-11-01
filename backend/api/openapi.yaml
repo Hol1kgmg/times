@@ -21,7 +21,9 @@ paths:
   /digests:
     get:
       operationId: listDigests
-      description: 登録済みの Digest の日付を新しい順に返す。記事は含まない
+      description: 登録済みの Digest の日付を、ステータスを問わず新しい順に返す。記事は含まない
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
@@ -29,6 +31,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DigestList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       operationId: createDigest
       description: 1 日付分の Digest を記事ごと登録する。articles の並びがそのまま表示順になる
@@ -58,6 +62,7 @@ paths:
   /digests/latest:
     get:
       operationId: getLatestDigest
+      description: 公開の Digest のうち日付が最新のものを返す。未ログインに見せるのはこの操作だけ
       responses:
         "200":
           description: OK
@@ -66,7 +71,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Digest"
         "404":
-          description: Not Found (Digest が 1 件もない)
+          description: Not Found (公開の Digest が 1 件もない)
           content:
             application/problem+json:
               schema:
@@ -82,6 +87,9 @@ paths:
           format: date
     get:
       operationId: getDigestByDate
+      description: その日付の Digest を、ステータスを問わず返す
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: OK
@@ -91,6 +99,8 @@ paths:
                 $ref: "#/components/schemas/Digest"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "404":
           description: Not Found (その日付の Digest がない)
           content:
@@ -107,7 +117,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NewDigest"
+              $ref: "#/components/schemas/DigestUpdate"
       responses:
         "200":
           description: OK
@@ -250,7 +260,7 @@ components:
     # 1 日付分の記事のまとまり。articles は登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
     Digest:
       type: object
-      required: [id, entryDate, articles]
+      required: [id, entryDate, status, articles]
       properties:
         id:
           type: string
@@ -258,6 +268,8 @@ components:
         entryDate:
           type: string
           format: date
+        status:
+          $ref: "#/components/schemas/DigestStatus"
         articles:
           type: array
           items:
@@ -272,7 +284,7 @@ components:
             $ref: "#/components/schemas/DigestSummary"
     DigestSummary:
       type: object
-      required: [id, entryDate]
+      required: [id, entryDate, status]
       properties:
         id:
           type: string
@@ -280,6 +292,12 @@ components:
         entryDate:
           type: string
           format: date
+        status:
+          $ref: "#/components/schemas/DigestStatus"
+    DigestStatus:
+      type: string
+      enum: [draft, published, private]
+      description: draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
     Article:
       type: object
       required: [id, category, hot, title, url, children]
@@ -332,6 +350,28 @@ components:
           maxItems: 100
           items:
             $ref: "#/components/schemas/NewArticle"
+        status:
+          type: string
+          enum: [draft, published]
+          default: draft
+    # 更新では draft を受けない。下書きへ戻せないことをスキーマだけで保証する (specs/006 research R2)
+    DigestUpdate:
+      type: object
+      required: [entryDate, articles]
+      properties:
+        entryDate:
+          type: string
+          format: date
+        articles:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/NewArticle"
+        status:
+          type: string
+          enum: [published, private]
+          description: 省略すると今のステータスのまま
     NewArticle:
       type: object
       required: [category, title, url]

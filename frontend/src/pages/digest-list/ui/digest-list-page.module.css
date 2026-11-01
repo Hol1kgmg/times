@@ -122,6 +122,12 @@
   transition: transform 0.1s ease-out;
 }
 
+.status {
+  composes: t-meta from global;
+  margin-left: var(--space-1);
+  color: var(--color-text-faint);
+}
+
 .day:focus-visible {
   color: var(--color-accent);
 }

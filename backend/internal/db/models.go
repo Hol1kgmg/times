@@ -33,6 +33,7 @@ type Digest struct {
 	EntryDate time.Time
 	CreatedAt time.Time
 	CreatedBy int64
+	Status    string
 }
 
 type Session struct {

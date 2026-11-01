@@ -122,7 +122,7 @@ curl -i -H "Authorization: Bearer garbage" localhost:8080/auth/sessions/current 
 
 ```sh
 just fe-test src/shared/auth                      # パスで絞る
-just fe-test -t "requireAdmin"                    # テスト名で絞る
+just fe-test -t "requireAdminToken"                 # テスト名で絞る
 pnpm -C frontend test:watch                       # 変更を監視して再実行
 pnpm -C frontend test:coverage                    # カバレッジ。結果は frontend/coverage/index.html
 

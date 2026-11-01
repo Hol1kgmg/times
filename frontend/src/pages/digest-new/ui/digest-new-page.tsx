@@ -5,7 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 // barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
 import { category, newChildArticle } from "#/shared/api/schemas";
-import type { NewDigest } from "#/shared/api/schemas";
+import type { DigestContent, DigestStatus } from "#/shared/api/schemas";
+import { Chevron } from "#/shared/ui/chevron";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { calendarIcon } from "#/shared/ui/icons/calendar";
@@ -89,7 +90,7 @@ const blockerText = (b: Blocker) => {
   }
 };
 
-const PreviewDialog = ({ digest, onClose }: { digest: NewDigest; onClose: () => void }) => {
+const PreviewDialog = ({ digest, onClose }: { digest: DigestContent; onClose: () => void }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const headingId = useId();
   useEffect(() => {
@@ -121,27 +122,35 @@ const PreviewDialog = ({ digest, onClose }: { digest: NewDigest; onClose: () => 
   );
 };
 
-interface FormProps {
+interface SaveAction<S extends DigestStatus> {
+  label: string;
+  status: S;
+}
+
+interface FormProps<S extends DigestStatus> {
   heading: string;
   initialDate?: string;
   initialBoard: Board;
+  // 先頭が既定。▼ で選んでも保存はせず、主ボタンの中身を替えるだけにして押し間違いで公開しないようにする
+  saveActions: readonly [SaveAction<S>, ...SaveAction<S>[]];
   submitLabel: string;
   leaveMessage: string;
-  save: (entry: NewDigest) => Promise<Rejection>;
-  isDirty: (entry: NewDigest, board: Board) => boolean;
+  save: (entry: DigestContent, status: S) => Promise<Rejection>;
+  isDirty: (entry: DigestContent, board: Board) => boolean;
   taken: ReadonlySet<string>;
 }
 
-const DigestForm = ({
+const DigestForm = <S extends DigestStatus>({
   heading,
   initialDate,
   initialBoard,
+  saveActions,
   submitLabel,
   leaveMessage,
   save,
   isDirty,
   taken,
-}: FormProps) => {
+}: FormProps<S>) => {
   const getPreview = useServerFn(fetchDraftPreview);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
@@ -164,6 +173,9 @@ const DigestForm = ({
   const urlInput = useRef<HTMLInputElement>(null);
   const blockersId = useId();
   const dateId = useId();
+  const saveMenuId = useId();
+  const saveMenu = useRef<HTMLDivElement>(null);
+  const [action, setAction] = useState(saveActions[0]);
   const header = useRef<HTMLElement>(null);
 
   // 登録できない理由とエラーで高さが変わるので、下の面を留める位置を CSS だけでは決められない
@@ -278,12 +290,12 @@ const DigestForm = ({
     urlInput.current?.focus();
   };
 
-  const onSubmit = async () => {
+  const onSubmit = async (status: S) => {
     setSubmitting(true);
     setSubmitError(undefined);
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が遷移する
-      const rejected = await save(entry);
+      const rejected = await save(entry, status);
       if (rejected.reason === "digest-already-exists") {
         setTakenDate(entry.entryDate);
       } else {
@@ -301,6 +313,7 @@ const DigestForm = ({
   };
 
   const reasons = blockers(board);
+  const cannotSave = reasons.length > 0 || submitting || entryDate === "";
   const renderBox = (box: BoxId) => (
     <Box key={box} count={board[box].length} id={box}>
       {board[box].map((draft, i) => (
@@ -394,17 +407,64 @@ const DigestForm = ({
           >
             プレビュー
           </HoverButton>
-          <HoverButton
-            aria-describedby={reasons.length > 0 ? blockersId : undefined}
-            className={styles.button}
-            disabled={reasons.length > 0 || submitting || entryDate === ""}
-            type="button"
-            onClick={() => {
-              void onSubmit();
-            }}
-          >
-            {submitLabel}
-          </HoverButton>
+          <div className={styles.split}>
+            <HoverButton
+              aria-describedby={reasons.length > 0 ? blockersId : undefined}
+              className={styles.button}
+              disabled={cannotSave}
+              type="button"
+              onClick={() => {
+                void onSubmit(action.status);
+              }}
+            >
+              {/* いちばん長いラベルの幅を普段から取り、選び直してもボタンの位置を動かさない */}
+              <span className={styles.splitLabels}>
+                {saveActions.map((a) => (
+                  <span
+                    key={a.status}
+                    className={a.status === action.status ? undefined : styles.splitLabelHidden}
+                  >
+                    {a.label}
+                  </span>
+                ))}
+              </span>
+            </HoverButton>
+            <HoverButton
+              aria-label={`${submitLabel}方法を選ぶ`}
+              className={`${styles.button} ${styles.splitMore}`}
+              disabled={cannotSave}
+              popoverTarget={saveMenuId}
+              type="button"
+            >
+              <Chevron size={16} />
+            </HoverButton>
+            <div
+              ref={saveMenu}
+              className={styles.saveMenu}
+              id={saveMenuId}
+              popover="auto"
+              onToggle={(e) => {
+                if (e.newState === "open") {
+                  e.currentTarget.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+                }
+              }}
+            >
+              {saveActions.map((a) => (
+                <HoverButton
+                  key={a.status}
+                  aria-pressed={a.status === action.status}
+                  className={styles.saveMenuItem}
+                  type="button"
+                  onClick={() => {
+                    saveMenu.current?.hidePopover();
+                    setAction(a);
+                  }}
+                >
+                  {a.label}
+                </HoverButton>
+              ))}
+            </div>
+          </div>
         </div>
       </header>
       {previewing && (
@@ -503,6 +563,26 @@ const DigestForm = ({
   );
 };
 
+// 下書きへは戻せないので、公開した後のメニューに下書きを出さない (specs/006 FR-008)
+const editActions = {
+  draft: [
+    { label: "下書きのまま保存", status: "draft" },
+    { label: "公開して保存", status: "published" },
+    { label: "非公開にして保存", status: "private" },
+  ],
+  published: [
+    { label: "公開のまま保存", status: "published" },
+    { label: "非公開にして保存", status: "private" },
+  ],
+  private: [
+    { label: "非公開のまま保存", status: "private" },
+    { label: "公開して保存", status: "published" },
+  ],
+} as const satisfies Record<
+  DigestStatus,
+  readonly [SaveAction<DigestStatus>, ...SaveAction<DigestStatus>[]]
+>;
+
 const newRoute = getRouteApi("/_shell/admin/digests/new");
 
 export const DigestNewPage = () => {
@@ -514,7 +594,11 @@ export const DigestNewPage = () => {
       initialBoard={emptyBoard()}
       isDirty={(_, board) => hasDrafts(board)}
       leaveMessage="登録してない記事があります。このページを離れますか？"
-      save={async (entry) => await create({ data: entry })}
+      save={async (entry, status) => await create({ data: { ...entry, status } })}
+      saveActions={[
+        { label: "下書きで登録", status: "draft" },
+        { label: "公開して登録", status: "published" },
+      ]}
       submitLabel="登録"
       taken={new Set(digests.map((d) => d.entryDate))}
     />
@@ -538,7 +622,16 @@ export const DigestEditPage = () => {
       initialDate={digest.entryDate}
       isDirty={(entry) => JSON.stringify(entry) !== saved}
       leaveMessage="保存してない変更があります。このページを離れますか？"
-      save={async (entry) => await update({ data: { date: digest.entryDate, digest: entry } })}
+      save={async (entry, status) =>
+        await update({
+          data: {
+            date: digest.entryDate,
+            // 変えないときは送らず、backend に今のステータスを保たせる (draft は送れない)
+            digest: status === digest.status || status === "draft" ? entry : { ...entry, status },
+          },
+        })
+      }
+      saveActions={editActions[digest.status]}
       submitLabel="保存"
       taken={taken}
     />

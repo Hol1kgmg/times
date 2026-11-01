@@ -5,6 +5,7 @@ import { digestHasUrl } from "./digest-urls";
 const latest = digest.parse({
   id: "0b2a2f3e-0000-4000-8000-000000000001",
   entryDate: "2026-10-21",
+  status: "published",
   articles: [
     {
       id: "0b2a2f3e-0000-4000-8000-000000000002",

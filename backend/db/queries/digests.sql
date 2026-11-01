@@ -1,16 +1,17 @@
 -- name: GetLatestDigest :one
 -- 同じ日付が複数あれば後に登録したものを採用する (specs/002 Edge Cases)
-SELECT * FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1;
+SELECT * FROM digests WHERE status = 'published' ORDER BY entry_date DESC, created_at DESC LIMIT 1;
 
 -- name: ListDigests :many
-SELECT id, entry_date FROM digests ORDER BY entry_date DESC, created_at DESC;
+SELECT id, entry_date, status FROM digests ORDER BY entry_date DESC, created_at DESC;
 
 -- name: GetDigestByDate :one
 -- ponytail: 管理者 1 人の前提で created_by を見ない。複数になったら条件を足す
 SELECT * FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1;
 
--- name: UpdateDigestDate :one
-UPDATE digests SET entry_date = sqlc.arg(new_date) WHERE created_by = sqlc.arg(created_by) AND entry_date = sqlc.arg(old_date) RETURNING *;
+-- name: UpdateDigest :one
+-- status を省略した更新は今のステータスを保つ
+UPDATE digests SET entry_date = sqlc.arg(new_date), status = COALESCE(sqlc.narg(status), status) WHERE created_by = sqlc.arg(created_by) AND entry_date = sqlc.arg(old_date) RETURNING *;
 
 -- name: DeleteArticlesByDigest :exec
 DELETE FROM articles WHERE digest_id = $1;
@@ -20,7 +21,7 @@ DELETE FROM articles WHERE digest_id = $1;
 SELECT url FROM articles WHERE created_by = $1 AND url = ANY(sqlc.arg(urls)::text[]);
 
 -- name: CreateDigest :one
-INSERT INTO digests (entry_date, created_by) VALUES ($1, $2) RETURNING *;
+INSERT INTO digests (entry_date, created_by, status) VALUES ($1, $2, $3) RETURNING *;
 
 -- name: CreateArticle :one
 INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;

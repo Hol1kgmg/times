@@ -201,6 +201,7 @@ describe("保存済みの Digest を開く", () => {
   const saved = digest.parse({
     id: uuid(0),
     entryDate: "2026-10-20",
+    status: "published",
     articles: [
       article(1, { category: "IT系", hot: true }),
       article(2, { category: "IT系" }),

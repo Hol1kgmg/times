@@ -2,12 +2,18 @@ import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { backendFetchRaw, digest } from "#/shared/api";
+import { requireAdminToken, SESSION_EXPIRED } from "#/shared/auth";
 
 // 保存直後に開き直したとき古い内容で上書きしないよう、トップと違ってキャッシュを通さない
 export const getDigest = createServerFn({ method: "GET" })
   .validator(z.iso.date())
   .handler(async ({ data }) => {
-    const res = await backendFetchRaw(`/digests/${data}`);
+    const res = await backendFetchRaw(`/digests/${data}`, undefined, {
+      token: requireAdminToken(),
+    });
+    if (res.status === 401) {
+      throw notFound({ data: { reason: SESSION_EXPIRED } });
+    }
     if (res.status === 404) {
       throw notFound();
     }

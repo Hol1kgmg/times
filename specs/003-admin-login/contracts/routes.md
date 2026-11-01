@@ -31,6 +31,8 @@ backend の契約は [openapi.md](./openapi.md)、値の形は [../data-model.md
 
 ### `requireAdmin` middleware (後続の管理者専用サーバー関数向け)
 
+> **Superseded**: クライアントから呼ぶサーバー関数に付けると import-protection に弾かれるため、handler の中で呼ぶ `requireAdminToken()` (トークンを返す) に置き換えた。
+
 ```ts
 // shared/auth/session.server.ts
 export const requireAdmin = createMiddleware({ type: "function" }).server(async ({ next }) => {

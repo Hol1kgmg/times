@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { mergeProps, useFocusRing, useHover } from "react-aria";
-import type { NewArticle, NewChildArticle, NewDigest } from "#/shared/api/schemas";
+import type { DigestContent, NewArticle, NewChildArticle } from "#/shared/api/schemas";
 import { groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { Favicon } from "#/shared/ui/favicon";
@@ -119,7 +119,7 @@ export const DigestPost = ({
   loadPreview,
   action,
 }: {
-  digest: NewDigest;
+  digest: DigestContent;
   loadPreview: LoadPreview;
   action?: ReactNode;
 }) => (

@@ -18,6 +18,10 @@ export const category = z.enum([
   "その他",
 ]) satisfies z.ZodType<Schemas["Category"]>;
 
+export const digestStatus = z.enum(["draft", "published", "private"]) satisfies z.ZodType<
+  Schemas["DigestStatus"]
+>;
+
 // children を持たない型にすることで孫が作れない (親子 2 階層まで)
 export const childArticle = z.object({
   id: articleId,
@@ -39,12 +43,14 @@ export const article = z.object({
 export const digest = z.object({
   id: digestId,
   entryDate: z.iso.date(),
+  status: digestStatus,
   articles: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
 
 export const digestSummary = z.object({
   id: digestId,
   entryDate: z.iso.date(),
+  status: digestStatus,
 }) satisfies z.ZodType<Schemas["DigestSummary"]>;
 
 export const digestList = z.object({
@@ -68,7 +74,14 @@ export const newArticle = newChildArticle.extend({
 export const newDigest = z.object({
   entryDate: z.iso.date(),
   articles: newArticle.array().min(1).max(100),
+  // hot と同じく openapi.yaml の default で生成型が必須になるので、省略を埋める
+  status: digestStatus.extract(["draft", "published"]).default("draft"),
 }) satisfies z.ZodType<Schemas["NewDigest"]>;
+
+// 更新では draft を受けない。下書きへ戻せないことは backend もスキーマで守る (specs/006 research R2)
+export const digestUpdate = newDigest.omit({ status: true }).extend({
+  status: digestStatus.extract(["published", "private"]).optional(),
+}) satisfies z.ZodType<Schemas["DigestUpdate"]>;
 
 export const problem = z.object({
   type: z.enum([
@@ -91,7 +104,11 @@ export type ChildArticle = z.infer<typeof childArticle>;
 export type Article = z.infer<typeof article>;
 export type Digest = z.infer<typeof digest>;
 export type DigestSummary = z.infer<typeof digestSummary>;
+export type DigestStatus = z.infer<typeof digestStatus>;
 export type NewChildArticle = z.infer<typeof newChildArticle>;
 export type NewArticle = z.infer<typeof newArticle>;
 export type NewDigest = z.infer<typeof newDigest>;
+export type DigestUpdate = z.infer<typeof digestUpdate>;
+// プレビューと公開表示はステータスを見ない
+export type DigestContent = Omit<NewDigest, "status">;
 export type Problem = z.infer<typeof problem>;

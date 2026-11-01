@@ -48,7 +48,7 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   await collect(security);
   await collect(related);
   await collect(other);
-  await expect(page.getByRole("button", { name: "登録" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "下書きで登録" })).toBeDisabled();
 
   await dragFirstUnsortedTo("セキュリティ");
   await dragFirstUnsortedTo("セキュリティ");
@@ -57,8 +57,14 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
 
   await menuOf(related, "上の記事の関連記事にする");
   await menuOf(other, "ホットにする");
+  await expect(page.getByRole("button", { name: "下書きで登録" })).toBeEnabled();
 
-  await page.getByRole("button", { name: "登録" }).click();
+  // 既定の下書きはトップに出ないので、▼ で公開に切り替えてから登録する (specs/006)
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("button", { name: "公開して登録" }).click();
+  // 選んだだけでは登録せず、主ボタンが切り替わる
+  await expect(page).toHaveURL((url) => url.pathname === newPath);
+  await page.getByRole("button", { name: "公開して登録" }).click();
   await page.waitForURL((url) => url.pathname === "/");
 
   const panel = page.getByRole("region", { name: "最新の Digest" });

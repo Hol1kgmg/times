@@ -3,7 +3,11 @@ import { digestSummary } from "#/shared/api";
 import { groupByMonth } from "./group-by-month";
 
 const at = (n: number, entryDate: string) =>
-  digestSummary.parse({ id: `0b2a2f3e-0000-4000-8000-00000000000${n}`, entryDate });
+  digestSummary.parse({
+    id: `0b2a2f3e-0000-4000-8000-00000000000${n}`,
+    entryDate,
+    status: "published",
+  });
 
 describe(groupByMonth, () => {
   it("keeps years and months newest first but orders days within a month oldest first", () => {

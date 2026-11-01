@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -90,7 +91,7 @@ func run() error {
 		if _, err := tx.Exec(ctx, "DELETE FROM digests WHERE entry_date = $1", date); err != nil {
 			return err
 		}
-		dg, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: date, CreatedBy: seeder.ID})
+		dg, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: date, CreatedBy: seeder.ID, Status: string(api.DigestStatusPublished)})
 		if err != nil {
 			return err
 		}

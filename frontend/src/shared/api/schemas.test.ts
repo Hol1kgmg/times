@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { article, digestId, digestSummary, newArticle } from "./schemas";
+import { article, digestId, digestSummary, digestUpdate, newArticle } from "./schemas";
 
 describe("schemas", () => {
   it("rejects a non-uuid id", () => {
     expect(digestId.safeParse("1").success).toBeFalsy();
-    expect(digestSummary.safeParse({ id: "1", entryDate: "2026-10-17" }).success).toBeFalsy();
+    expect(
+      digestSummary.safeParse({ id: "1", entryDate: "2026-10-17", status: "published" }).success,
+    ).toBeFalsy();
   });
 
   it("rejects a category outside the fixed set", () => {
@@ -28,5 +30,15 @@ describe("schemas", () => {
     // eslint-disable-next-line no-script-url -- 弾く対象の文字列そのもの
     expect(newArticle.safeParse({ ...base, url: "javascript:alert(1)" }).success).toBeFalsy();
     expect(newArticle.safeParse({ ...base, url: "data:text/html,x" }).success).toBeFalsy();
+  });
+
+  it("rejects returning a digest to draft on update", () => {
+    const base = {
+      entryDate: "2026-10-17",
+      articles: [{ category: "その他", title: "t", url: "https://x.example", children: [] }],
+    };
+    expect(digestUpdate.safeParse(base).success).toBeTruthy();
+    expect(digestUpdate.safeParse({ ...base, status: "private" }).success).toBeTruthy();
+    expect(digestUpdate.safeParse({ ...base, status: "draft" }).success).toBeFalsy();
   });
 });

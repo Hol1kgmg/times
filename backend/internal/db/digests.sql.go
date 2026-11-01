@@ -67,22 +67,24 @@ func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkPa
 }
 
 const createDigest = `-- name: CreateDigest :one
-INSERT INTO digests (entry_date, created_by) VALUES ($1, $2) RETURNING id, entry_date, created_at, created_by
+INSERT INTO digests (entry_date, created_by, status) VALUES ($1, $2, $3) RETURNING id, entry_date, created_at, created_by, status
 `
 
 type CreateDigestParams struct {
 	EntryDate time.Time
 	CreatedBy int64
+	Status    string
 }
 
 func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Digest, error) {
-	row := q.db.QueryRow(ctx, createDigest, arg.EntryDate, arg.CreatedBy)
+	row := q.db.QueryRow(ctx, createDigest, arg.EntryDate, arg.CreatedBy, arg.Status)
 	var i Digest
 	err := row.Scan(
 		&i.ID,
 		&i.EntryDate,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.Status,
 	)
 	return i, err
 }
@@ -97,7 +99,7 @@ func (q *Queries) DeleteArticlesByDigest(ctx context.Context, digestID uuid.UUID
 }
 
 const getDigestByDate = `-- name: GetDigestByDate :one
-SELECT id, entry_date, created_at, created_by FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1
+SELECT id, entry_date, created_at, created_by, status FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1
 `
 
 // ponytail: 管理者 1 人の前提で created_by を見ない。複数になったら条件を足す
@@ -109,12 +111,13 @@ func (q *Queries) GetDigestByDate(ctx context.Context, entryDate time.Time) (Dig
 		&i.EntryDate,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.Status,
 	)
 	return i, err
 }
 
 const getLatestDigest = `-- name: GetLatestDigest :one
-SELECT id, entry_date, created_at, created_by FROM digests ORDER BY entry_date DESC, created_at DESC LIMIT 1
+SELECT id, entry_date, created_at, created_by, status FROM digests WHERE status = 'published' ORDER BY entry_date DESC, created_at DESC LIMIT 1
 `
 
 // 同じ日付が複数あれば後に登録したものを採用する (specs/002 Edge Cases)
@@ -126,6 +129,7 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 		&i.EntryDate,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.Status,
 	)
 	return i, err
 }
@@ -192,12 +196,13 @@ func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) 
 }
 
 const listDigests = `-- name: ListDigests :many
-SELECT id, entry_date FROM digests ORDER BY entry_date DESC, created_at DESC
+SELECT id, entry_date, status FROM digests ORDER BY entry_date DESC, created_at DESC
 `
 
 type ListDigestsRow struct {
 	ID        uuid.UUID
 	EntryDate time.Time
+	Status    string
 }
 
 func (q *Queries) ListDigests(ctx context.Context) ([]ListDigestsRow, error) {
@@ -209,7 +214,7 @@ func (q *Queries) ListDigests(ctx context.Context) ([]ListDigestsRow, error) {
 	var items []ListDigestsRow
 	for rows.Next() {
 		var i ListDigestsRow
-		if err := rows.Scan(&i.ID, &i.EntryDate); err != nil {
+		if err := rows.Scan(&i.ID, &i.EntryDate, &i.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -250,24 +255,32 @@ func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLs
 	return items, nil
 }
 
-const updateDigestDate = `-- name: UpdateDigestDate :one
-UPDATE digests SET entry_date = $1 WHERE created_by = $2 AND entry_date = $3 RETURNING id, entry_date, created_at, created_by
+const updateDigest = `-- name: UpdateDigest :one
+UPDATE digests SET entry_date = $1, status = COALESCE($2, status) WHERE created_by = $3 AND entry_date = $4 RETURNING id, entry_date, created_at, created_by, status
 `
 
-type UpdateDigestDateParams struct {
+type UpdateDigestParams struct {
 	NewDate   time.Time
+	Status    *string
 	CreatedBy int64
 	OldDate   time.Time
 }
 
-func (q *Queries) UpdateDigestDate(ctx context.Context, arg UpdateDigestDateParams) (Digest, error) {
-	row := q.db.QueryRow(ctx, updateDigestDate, arg.NewDate, arg.CreatedBy, arg.OldDate)
+// status を省略した更新は今のステータスを保つ
+func (q *Queries) UpdateDigest(ctx context.Context, arg UpdateDigestParams) (Digest, error) {
+	row := q.db.QueryRow(ctx, updateDigest,
+		arg.NewDate,
+		arg.Status,
+		arg.CreatedBy,
+		arg.OldDate,
+	)
 	var i Digest
 	err := row.Scan(
 		&i.ID,
 		&i.EntryDate,
 		&i.CreatedAt,
 		&i.CreatedBy,
+		&i.Status,
 	)
 	return i, err
 }
