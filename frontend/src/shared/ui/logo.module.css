@@ -55,36 +55,36 @@
   transform-origin: 50% 50%;
 }
 
-/* タッチ端末はタップで :hover が残り、1 回再生して文字が出たままになるため、ホバーできる環境に限る */
-@media (hover: hover) {
+/* タッチ端末ではホバーで文字を出せないので、隠しておくのはホバーできる環境に限る */
+@media (--hover) {
   .hover .main,
   .hover .dev {
     opacity: 0;
     transition: opacity 0.2s;
   }
 
-  :is(:focus-visible > .hover, .hover:has(.icon:hover)) :is(.main, .dev) {
+  :is(:focus-visible > .hover, .hover:has(.icon[data-hovered])) :is(.main, .dev) {
     opacity: 1;
   }
 
   /* animation-name はホバー中だけ付ける。外して付け直すと最初から再生される */
-  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .main {
+  :is(:focus-visible > .hover, .hover:has(.icon[data-hovered])) .main {
     animation-name: main;
   }
 
-  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .dev {
+  :is(:focus-visible > .hover, .hover:has(.icon[data-hovered])) .dev {
     animation-name: dev;
   }
 
-  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .bell {
+  :is(:focus-visible > .hover, .hover:has(.icon[data-hovered])) .bell {
     animation-name: bell;
   }
 
-  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .bellBody {
+  :is(:focus-visible > .hover, .hover:has(.icon[data-hovered])) .bellBody {
     animation-name: ring;
   }
 
-  :is(:focus-visible > .hover, .hover:has(.icon:hover)) .dot {
+  :is(:focus-visible > .hover, .hover:has(.icon[data-hovered])) .dot {
     animation-name: dot;
   }
 }

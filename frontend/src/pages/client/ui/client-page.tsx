@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HoverButton } from "#/shared/ui/hover-button";
 import styles from "./client-page.module.css";
 
 export const ClientPage = () => {
@@ -6,7 +7,7 @@ export const ClientPage = () => {
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>Client only</h1>
-      <button
+      <HoverButton
         className={styles.button}
         type="button"
         onClick={() => {
@@ -14,7 +15,7 @@ export const ClientPage = () => {
         }}
       >
         count: {n}
-      </button>
+      </HoverButton>
     </div>
   );
 };

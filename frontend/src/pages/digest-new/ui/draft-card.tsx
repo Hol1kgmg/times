@@ -1,7 +1,9 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { Suspense, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
+import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
 import { afterFadeOut } from "#/shared/ui/modal";
 import { PreviewCard } from "#/shared/ui/preview-card";
@@ -33,12 +35,12 @@ const Menu = ({ items }: { items: MenuItem[] }) => {
   const id = useId();
   return (
     <>
-      <button aria-label="メニュー" className={styles.more} popoverTarget={id} type="button">
+      <HoverButton aria-label="メニュー" className={styles.more} popoverTarget={id} type="button">
         ···
-      </button>
+      </HoverButton>
       <div ref={menuRef} className={styles.menu} id={id} popover="auto">
         {items.map((item) => (
-          <button
+          <HoverButton
             key={item.label}
             className={styles.item}
             disabled={item.disabled}
@@ -49,7 +51,7 @@ const Menu = ({ items }: { items: MenuItem[] }) => {
             }}
           >
             {item.label}
-          </button>
+          </HoverButton>
         ))}
       </div>
     </>
@@ -158,12 +160,13 @@ const LinkRow = ({
   onEdit: (next: { url: string; title: string }) => Rejected | null;
 }) => {
   const [editing, setEditing] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [previewed, setPreviewed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const show = () => {
-    setHovered(true);
+    setPreviewed(true);
     setDismissed(false);
   };
+  const hovered = useHovered({ onHoverStart: show });
   // カードは下の行を覆うので、ポインターやフォーカスを動かさずに消せるようにする (WCAG 1.4.13)
   useEffect(() => {
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -190,7 +193,7 @@ const LinkRow = ({
           rel="noopener noreferrer"
           target="_blank"
           onFocus={show}
-          onMouseEnter={show}
+          {...hovered}
         >
           <span className={styles.titleText} title={link.title}>
             {link.title === "" ? host : link.title}
@@ -202,7 +205,7 @@ const LinkRow = ({
             </span>
           )}
         </a>
-        {hovered && (
+        {previewed && (
           <Suspense fallback={null}>
             <PreviewCard
               className={styles.preview}

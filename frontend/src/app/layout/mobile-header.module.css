@@ -84,10 +84,8 @@
   background-color: var(--color-fill-subtle);
 }
 
-@media (hover: hover) {
-  .menuBody a:hover {
-    background-color: var(--color-fill-subtle);
-  }
+.menuBody a[data-hovered] {
+  background-color: var(--color-fill-subtle);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -165,10 +165,8 @@
   cursor: not-allowed;
 }
 
-@media (hover: hover) {
-  .button:not(:disabled):hover {
-    color: var(--color-accent);
-  }
+.button:not(:disabled)[data-hovered] {
+  color: var(--color-accent);
 }
 
 .fieldButton {

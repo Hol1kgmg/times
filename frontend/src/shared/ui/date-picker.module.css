@@ -254,21 +254,19 @@
   transform: scale(1.1);
 }
 
-@media (hover: hover) {
-  .cellLarge:not(:disabled):hover {
-    background-color: var(--color-selected);
-    color: var(--color-accent);
-  }
+.cellLarge:not(:disabled)[data-hovered] {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
+}
 
-  .step:hover,
-  .today:not(:disabled):hover,
-  .monthLink:hover {
-    color: var(--color-accent);
-  }
+.step[data-hovered],
+.today:not(:disabled)[data-hovered],
+.monthLink[data-hovered] {
+  color: var(--color-accent);
+}
 
-  .month:has(.monthLink:hover) {
-    border-color: var(--color-accent);
-  }
+.month:has(.monthLink[data-hovered]) {
+  border-color: var(--color-accent);
 }
 
 /* 名前のない * はアプリ全体の view transition に効くので、ピッカーの type で絞る */

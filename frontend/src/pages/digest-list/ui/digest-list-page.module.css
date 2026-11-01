@@ -130,11 +130,9 @@
   transform: scale(1.03);
 }
 
-@media (hover: hover) {
-  .day:hover {
-    background-color: var(--color-selected);
-    color: var(--color-accent);
-  }
+.day[data-hovered] {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {

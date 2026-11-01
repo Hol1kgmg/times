@@ -12,3 +12,4 @@
 | 0004 | [ロゴは「フィードで組んだ z + 新着ドット」で作り、形の正はコードに置く](0004-build-logo-from-feed-bars-z-and-new-dot.md) | accepted |
 | 0005 | [固定の UI 文字は Klee One のサブセットを preload して先に出し、記事タイトルの遅れは許容する](0005-preload-klee-one-subset-for-fixed-ui-text.md) | accepted |
 | 0006 | [記事プレビューの待ち時間と Esc での消去は CSS と小さな JS で作り、interestfor はまだ使わない](0006-delay-and-dismiss-link-preview-without-interestfor.md) | accepted |
+| 0007 | [ホバーのきっかけは react-aria の useHover で操作ごとに判定し、ホバー前提の UI を出すかはメディアクエリで決める](0007-split-hover-trigger-and-hover-ui-presence.md) | accepted |

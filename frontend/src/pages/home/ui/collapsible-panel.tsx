@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Chevron } from "#/shared/ui/chevron";
+import { HoverButton } from "#/shared/ui/hover-button";
 import styles from "./collapsible-panel.module.css";
 
 // 高さの上限は親が [data-collapsed] を見て決める (home-page.module.css の .fit)
@@ -49,10 +50,10 @@ export const CollapsiblePanel = ({ children }: { children: ReactNode }) => {
       )}
       {!expanded && overflowing === true && (
         <div className={styles.more}>
-          <button className={styles.expand} type="button" onClick={expand}>
+          <HoverButton className={styles.expand} type="button" onClick={expand}>
             すべて表示
             <Chevron size={14} />
-          </button>
+          </HoverButton>
         </div>
       )}
     </div>

@@ -1,4 +1,6 @@
 @custom-media --narrow (max-width: 767px);
+/* ホバー前提の UI を置くかだけに使う。ホバーのきっかけは [data-hovered] で見る (adr/frontend/0007) */
+@custom-media --hover (hover: hover);
 
 /* 固定文字だけのサブセット。preload して初回描画から出す (adr/frontend/0005)。再生成は just fe-font-subset */
 @font-face {

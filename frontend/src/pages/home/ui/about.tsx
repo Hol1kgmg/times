@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { category } from "#/shared/api/schemas";
 import type { Category } from "#/shared/api/schemas";
+import { useHovered } from "#/shared/lib/use-hovered";
 import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
@@ -80,6 +81,22 @@ const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: 
   );
 };
 
+// <li> は呼び出し側に置く。markuplint はコンポーネントの中を追わず、<ul> 直下を不正と判定する
+const CategoryItem = ({ c }: { c: Category }) => {
+  const { Icon, text } = categoryDetails[c];
+  return (
+    <AnimateIcon animateOnHover asChild>
+      <div className={styles.category} {...useHovered()}>
+        <span className={styles.categoryName}>
+          <Icon className={styles.categoryIcon} role="none" size={18} />
+          {c}
+        </span>
+        {text}
+      </div>
+    </AnimateIcon>
+  );
+};
+
 export const About = () => (
   <section aria-labelledby="about" className={styles.about}>
     <div className={styles.aboutIntro}>
@@ -91,20 +108,11 @@ export const About = () => (
     <div className={styles.block}>
       <h3 className={styles.blockHeading}>カテゴリ</h3>
       <ul className={styles.categories}>
-        {category.options.map((c) => {
-          const { Icon, text } = categoryDetails[c];
-          return (
-            <AnimateIcon key={c} animateOnHover asChild>
-              <li className={styles.category}>
-                <span className={styles.categoryName}>
-                  <Icon className={styles.categoryIcon} role="none" size={18} />
-                  {c}
-                </span>
-                {text}
-              </li>
-            </AnimateIcon>
-          );
-        })}
+        {category.options.map((c) => (
+          <li key={c}>
+            <CategoryItem c={c} />
+          </li>
+        ))}
       </ul>
     </div>
     <div className={styles.block}>

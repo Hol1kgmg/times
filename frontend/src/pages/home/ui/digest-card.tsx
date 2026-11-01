@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Digest } from "#/shared/api/schemas";
 import { digestMarkdown } from "#/shared/lib/digest-markdown";
 import { DigestPost } from "#/shared/ui/digest-post";
+import { HoverButton } from "#/shared/ui/hover-button";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { loadLinkPreview } from "../api/load-link-preview";
 import { CollapsiblePanel } from "./collapsible-panel";
@@ -20,7 +21,7 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
   };
   return (
     <span className={styles.copyWrap}>
-      <button
+      <HoverButton
         aria-label="Markdown でコピー"
         className={styles.copy}
         type="button"
@@ -40,7 +41,7 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
         >
           <path d={copied ? checkIcon : clipboardIcon} />
         </svg>
-      </button>
+      </HoverButton>
       {/* 中身の差し替えで読み上げさせるため、領域は常に置いて文字だけ出し入れする */}
       <output className={styles.toast}>
         {copied && <span className={styles.toastText}>コピーしました</span>}

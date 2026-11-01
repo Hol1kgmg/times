@@ -52,7 +52,7 @@
   gap: var(--space-1);
 }
 
-/* リンクをインラインのままにして、:hover がテキストの行ボックスだけで効くようにする */
+/* リンクをインラインのままにして、ホバーがテキストの行ボックスだけで効くようにする */
 .text {
   min-width: 0;
 }
@@ -78,10 +78,8 @@
   color: var(--color-accent);
 }
 
-@media (hover: hover) {
-  .title:hover {
-    color: var(--color-accent);
-  }
+.title[data-hovered] {
+  color: var(--color-accent);
 }
 
 /* ホバーできる環境 (PC) でだけ出す */
@@ -89,7 +87,7 @@
   display: none;
 }
 
-@media (hover: hover) {
+@media (--hover) {
   .title {
     anchor-name: --link;
   }
@@ -100,7 +98,7 @@
   }
 
   /* 一覧の上を通り過ぎただけで出さないよう待つ。interestfor は Chrome だけなので使わない (adr/frontend/0006) */
-  .text > a:not([data-dismissed]):hover + .preview,
+  .text > a:not([data-dismissed])[data-hovered] + .preview,
   .text > a:not([data-dismissed]):focus-visible + .preview {
     position: absolute;
     top: 100%;
@@ -119,7 +117,7 @@
 
   /* カード下端で収まらなければリンクの上側に出す。fixed にしないと溢れ判定の基準が行の高さになり常に flip する */
   @supports (position-area: bottom span-right) {
-    .text > a:not([data-dismissed]):hover + .preview,
+    .text > a:not([data-dismissed])[data-hovered] + .preview,
     .text > a:not([data-dismissed]):focus-visible + .preview {
       position: fixed;
       inset: auto;
@@ -153,7 +151,7 @@
 }
 
 /* タッチ端末はホバーできないので吹き出しを最初から出す (ロゴの variant="hover" と同じ扱い) */
-@media (hover: hover) {
+@media (--hover) {
   /* 幅は普段から確保する。幅ごと伸ばすと長いタイトルの折り返しがホバーのたびに変わる */
   .hotLabel {
     opacity: 0;
@@ -163,7 +161,7 @@
       opacity 0.1s ease-out;
   }
 
-  .title:hover .hotLabel,
+  .title[data-hovered] .hotLabel,
   .title:focus-visible .hotLabel {
     opacity: 1;
     transform: scale(1);

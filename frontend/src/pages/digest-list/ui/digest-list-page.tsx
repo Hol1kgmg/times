@@ -1,6 +1,7 @@
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { Chevron } from "#/shared/ui/chevron";
+import { HoverLink } from "#/shared/ui/hover-link";
 import { groupByMonth } from "../model/group-by-month";
 import type { YearGroup } from "../model/group-by-month";
 import styles from "./digest-list-page.module.css";
@@ -43,13 +44,13 @@ const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }
               <ul className={styles.days}>
                 {m.items.map((d) => (
                   <li key={d.id}>
-                    <Link
+                    <HoverLink
                       className={styles.day}
                       params={{ date: d.entryDate }}
                       to="/admin/digests/$date/edit"
                     >
                       {dayFormat.format(new Date(d.entryDate))}
-                    </Link>
+                    </HoverLink>
                   </li>
                 ))}
               </ul>

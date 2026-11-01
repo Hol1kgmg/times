@@ -34,6 +34,7 @@
     "@tanstack/router-plugin": "1.168.48",
     "motion": "^14.7.1",
     "react": "^19.3.1",
+    "react-aria": "^3.53.1",
     "react-dom": "^19.3.1",
     "temporal-polyfill": "^1.0.6",
     "zod": "^4.6.7"

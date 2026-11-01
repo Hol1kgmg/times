@@ -80,8 +80,6 @@
   color: var(--color-accent);
 }
 
-@media (hover: hover) {
-  .copy:hover {
-    color: var(--color-accent);
-  }
+.copy[data-hovered] {
+  color: var(--color-accent);
 }

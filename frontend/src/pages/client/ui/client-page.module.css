@@ -23,6 +23,6 @@
   cursor: pointer;
 }
 
-.button:hover {
+.button[data-hovered] {
   background-color: var(--color-fill-faint);
 }
