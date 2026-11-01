@@ -11,6 +11,7 @@ import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { calendarIcon } from "#/shared/ui/icons/calendar";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
+import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { useModal } from "#/shared/ui/modal";
 import { createDigest } from "../api/create-digest";
 import { fetchDraftPreview } from "../api/fetch-draft-preview";
@@ -344,18 +345,7 @@ const DigestForm = <S extends DigestStatus>({
                   setPicking(true);
                 }}
               >
-                <svg
-                  fill="none"
-                  height={20}
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  viewBox="0 0 24 24"
-                  width={20}
-                >
-                  <path d={calendarIcon} />
-                </svg>
+                <LineIcon d={calendarIcon} size={20} />
               </button>
             </div>
             {picking && (
@@ -528,18 +518,7 @@ const DigestForm = <S extends DigestStatus>({
                   }
                 }}
               >
-                <svg
-                  fill="none"
-                  height={20}
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  viewBox="0 0 24 24"
-                  width={20}
-                >
-                  <path d={url === "" ? clipboardIcon : clearIcon} />
-                </svg>
+                <LineIcon d={url === "" ? clipboardIcon : clearIcon} size={20} />
               </button>
             </div>
             <HoverButton className={styles.button} disabled={adding} type="submit">

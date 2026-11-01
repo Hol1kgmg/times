@@ -4,6 +4,7 @@ import { digestMarkdown } from "#/shared/lib/digest-markdown";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
+import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { loadLinkPreview } from "../api/load-link-preview";
 import { CollapsiblePanel } from "./collapsible-panel";
 import styles from "./digest-card.module.css";
@@ -29,18 +30,7 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
           void copy();
         }}
       >
-        <svg
-          fill="none"
-          height={20}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          viewBox="0 0 24 24"
-          width={20}
-        >
-          <path d={copied ? checkIcon : clipboardIcon} />
-        </svg>
+        <LineIcon d={copied ? checkIcon : clipboardIcon} size={20} />
       </HoverButton>
       {/* 中身の差し替えで読み上げさせるため、領域は常に置いて文字だけ出し入れする */}
       <output className={styles.toast}>
