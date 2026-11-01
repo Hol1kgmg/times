@@ -1,5 +1,5 @@
 import { isNotFound, notFound } from "@tanstack/react-router";
-import { createMiddleware, createServerFn } from "@tanstack/react-start";
+import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
@@ -68,12 +68,12 @@ export const requireAdminPage = createServerFn({ method: "GET" }).handler(async 
   return { user };
 });
 
-// 管理者専用サーバー関数に .middleware([requireAdmin]) で付ける。
-// Cookie の有無だけ見る。照合は backendFetch(path, init, { token: context.sessionToken }) で backend が行う
-export const requireAdmin = createMiddleware({ type: "function" }).server(async ({ next }) => {
+// middleware にしないのは、.server.ts 由来の middleware はクライアントから呼ぶサーバー関数に付けると import-protection に弾かれるため
+// Cookie の有無だけ見る。照合は backendFetch(path, init, { token }) で backend が行う
+export const requireAdminToken = () => {
   const token = readAdminToken();
   if (token === undefined || token === "") {
     throw notFound({ data: { reason: SESSION_EXPIRED } });
   }
-  return await next({ context: { sessionToken: token } });
-});
+  return token;
+};

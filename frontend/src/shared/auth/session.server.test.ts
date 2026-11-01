@@ -1,7 +1,7 @@
 import { isNotFound } from "@tanstack/react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SESSION_EXPIRED } from "./errors";
-import { requireAdmin } from "./session.server";
+import { requireAdminToken } from "./session.server";
 
 const cookies = vi.hoisted(() => new Map<string, string>());
 
@@ -15,30 +15,24 @@ vi.mock(import("@tanstack/react-start/server"), () => ({
   },
 }));
 
-// middleware の server 関数を直接呼ぶ。next の引数 (context) をそのまま返して検証する
-const run = async () => {
-  const next = vi.fn<(opts?: { context?: unknown }) => unknown>((opts) => opts?.context);
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- テストから呼ぶために引数の型を緩める
-  const server = requireAdmin.options.server as unknown as (o: { next: typeof next }) => unknown;
-  const result = await server({ next });
-  return { next, result };
-};
-
-describe("requireAdmin middleware", () => {
+describe(requireAdminToken, () => {
   beforeEach(() => {
     cookies.clear();
   });
 
-  it("throws notFound(SESSION_EXPIRED) without the cookie", async () => {
-    const err: unknown = await run().catch((error: unknown) => error);
+  it("throws notFound(SESSION_EXPIRED) without the cookie", () => {
+    let err: unknown;
+    try {
+      requireAdminToken();
+    } catch (error) {
+      err = error;
+    }
     expect(isNotFound(err)).toBeTruthy();
     expect(isNotFound(err) && err.data).toStrictEqual({ reason: SESSION_EXPIRED });
   });
 
-  it("passes the token to the next context", async () => {
+  it("returns the token from the cookie", () => {
     cookies.set("times_admin", "tok");
-    const { next, result } = await run();
-    expect(result).toStrictEqual({ sessionToken: "tok" });
-    expect(next).toHaveBeenCalledOnce();
+    expect(requireAdminToken()).toBe("tok");
   });
 });
