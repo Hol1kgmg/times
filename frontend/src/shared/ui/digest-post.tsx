@@ -1,4 +1,3 @@
-import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { mergeProps, useFocusRing, useHover } from "react-aria";
 import type { DigestContent, NewArticle, NewChildArticle } from "#/shared/api/schemas";
@@ -7,7 +6,7 @@ import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { HotBubble } from "#/shared/ui/icons/hot-bubble";
-import { PreviewCard } from "#/shared/ui/preview-card";
+import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import styles from "./digest-post.module.css";
 
 // 取得先は呼び出し側が決める。公開ページは Digest 内の URL に限り、管理画面は任意の URL を取る
@@ -32,28 +31,16 @@ const ArticleLink = ({
   hot?: boolean;
   loadPreview: LoadPreview;
 }) => {
-  const [previewed, setPreviewed] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const show = () => {
-    setPreviewed(true);
-    setDismissed(false);
-  };
+  const { show, dismissed, card } = useLinkPreview({
+    url: article.url,
+    title: article.title,
+    className: styles.preview,
+    load: loadPreview,
+  });
   const { hoverProps, isHovered } = useHover({ onHoverStart: show });
   // タップでもフォーカスは来るので、動かすのはキーボードのフォーカスだけにする
   const { focusProps, isFocusVisible } = useFocusRing();
   const pointed = (isHovered || isFocusVisible) && !reducedMotion();
-  // カードはリンクの下の行を覆うので、ポインターやフォーカスを動かさずに消せるようにする (WCAG 1.4.13)
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setDismissed(true);
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
   return (
     <div className={styles.row}>
       <Favicon className={styles.favicon} url={article.url} />
@@ -82,16 +69,7 @@ const ArticleLink = ({
             </span>
           )}
         </a>
-        {previewed && (
-          <Suspense fallback={null}>
-            <PreviewCard
-              className={styles.preview}
-              preview={loadPreview(article.url)}
-              title={article.title}
-              url={article.url}
-            />
-          </Suspense>
-        )}
+        {card}
       </span>
     </div>
   );

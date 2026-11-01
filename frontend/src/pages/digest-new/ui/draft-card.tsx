@@ -1,12 +1,12 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import { Suspense, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
 import { afterFadeOut } from "#/shared/ui/modal";
-import { PreviewCard } from "#/shared/ui/preview-card";
+import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import { loadDraftPreview } from "../api/load-draft-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
 import styles from "./draft-card.module.css";
@@ -160,26 +160,14 @@ const LinkRow = ({
   onEdit: (next: { url: string; title: string }) => Rejected | null;
 }) => {
   const [editing, setEditing] = useState(false);
-  const [previewed, setPreviewed] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const show = () => {
-    setPreviewed(true);
-    setDismissed(false);
-  };
-  const hovered = useHovered({ onHoverStart: show });
-  // カードは下の行を覆うので、ポインターやフォーカスを動かさずに消せるようにする (WCAG 1.4.13)
-  useEffect(() => {
-    const onKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setDismissed(true);
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
   const host = new URL(link.url).hostname;
+  const { show, dismissed, card } = useLinkPreview({
+    url: link.url,
+    title: link.title === "" ? host : link.title,
+    className: styles.preview,
+    load: loadDraftPreview,
+  });
+  const hovered = useHovered({ onHoverStart: show });
   const untitled = link.status !== "loading" && link.title.trim() === "";
   return (
     <div className={styles.row} data-registered={registered ? "" : undefined}>
@@ -205,16 +193,7 @@ const LinkRow = ({
             </span>
           )}
         </a>
-        {previewed && (
-          <Suspense fallback={null}>
-            <PreviewCard
-              className={styles.preview}
-              preview={loadDraftPreview(link.url)}
-              title={link.title === "" ? host : link.title}
-              url={link.url}
-            />
-          </Suspense>
-        )}
+        {card}
         <span className={styles.meta}>
           <span className={styles.host}>{host}</span>
           {link.status === "loading" && (
