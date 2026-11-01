@@ -1,0 +1,71 @@
+.add {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.urlField {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.urlInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) calc(var(--space-4) + var(--space-1)) var(--space-1) var(--space-2);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-family: var(--font-dynamic);
+  outline: none;
+}
+
+.urlInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.button {
+  composes: t-body button from global;
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+}
+
+.fieldButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--space-4) + var(--space-1));
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-brand);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.fieldButton:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.fieldButton:disabled {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.message {
+  composes: t-body from global;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fieldButton {
+    transition: none;
+  }
+}

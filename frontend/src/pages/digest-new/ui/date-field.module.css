@@ -1,0 +1,66 @@
+.dateField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.label {
+  composes: t-label from global;
+  color: var(--color-text-muted);
+}
+
+.dateBox {
+  display: flex;
+  align-items: stretch;
+  overflow: clip;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+}
+
+.dateBox:has(.input:focus-visible) {
+  border-color: var(--color-accent);
+}
+
+.dateBox:has(.input[aria-invalid="true"]) {
+  border-color: var(--color-danger);
+}
+
+.input {
+  padding: var(--space-half) var(--space-1);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+/* 既定のピッカーを残すとカレンダーのボタンが 2 つ並ぶ。Firefox は隠す手段がなく残る */
+.input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.calendarButton {
+  display: inline-flex;
+  padding: var(--space-half) var(--space-1);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-brand);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.calendarButton:active {
+  transform: scale(1.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendarButton {
+    transition: none;
+  }
+
+  .calendarButton:active {
+    transform: none;
+  }
+}

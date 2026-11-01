@@ -1,60 +1,41 @@
-import { DragDropProvider } from "@dnd-kit/react";
-import { move } from "@dnd-kit/helpers";
 import { getRouteApi, isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { lazy, Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { category, newChildArticle } from "#/shared/api";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { category } from "#/shared/api";
 import type { DigestContent, DigestStatus } from "#/shared/api";
-import { Chevron } from "#/shared/ui/chevron";
-import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
-import { calendarIcon } from "#/shared/ui/icons/calendar";
-import { clipboardIcon } from "#/shared/ui/icons/clipboard";
-import { LineIcon } from "#/shared/ui/icons/line-icon";
-import { useModal } from "#/shared/ui/modal";
 import { createDigest } from "../api/create-digest";
-import { fetchDraftPreview } from "../api/fetch-draft-preview";
-import { loadDraftPreview } from "../api/load-draft-preview";
 import type { Rejection } from "../api/rejection-of";
 import { updateDigest } from "../api/update-digest";
 import {
-  addDraft,
   blockers,
   canMakeChild,
   draftCount,
   editLink,
   emptyBoard,
   fromDigest,
-  fromIds,
   hasDrafts,
-  isBoxId,
   makeChild,
   MAX_DRAFTS,
   moveChild,
-  moveToBoxEnd,
   remove,
   revert,
-  draftTitle,
-  settleTitle,
-  stripTracking,
   toggleHot,
-  toIds,
   toNewDigest,
   unmakeChild,
   UNSORTED,
 } from "../model/board";
 import type { Blocker, Board, BoxId, Rejected } from "../model/board";
-import { plugins } from "./announcements";
+import { BoardDragDrop } from "./board-drag-drop";
 import { Box } from "./box";
+import { DateField } from "./date-field";
 import { DraftCard } from "./draft-card";
 import type { CardActions } from "./draft-card";
+import { PreviewDialog } from "./preview-dialog";
+import { SaveSplitButton } from "./save-split-button";
+import type { SaveAction } from "./save-split-button";
+import { UrlAddForm } from "./url-add-form";
 import styles from "./digest-new-page.module.css";
-
-// Temporal の polyfill が重いので、カレンダーを開くまで読まない
-const DatePickerDialog = lazy(async () => {
-  const { DatePickerDialog: Picker } = await import("#/shared/ui/date-picker");
-  return { default: Picker };
-});
 
 // toISOString は UTC 日付になり JST の 0〜9 時に前日を返す。sv-SE ロケールはローカル日付を YYYY-MM-DD で出す
 const today = () => new Date().toLocaleDateString("sv-SE");
@@ -63,13 +44,6 @@ const noop = () => {
   /* 何もしない */
 };
 const subscribeNever = () => noop;
-
-const clearIcon = "M18 6l-12 12M6 6l12 12";
-
-const rejectedText: Record<Rejected, string> = {
-  duplicate: "その URL はもう入ってます",
-  limit: `記事は ${MAX_DRAFTS} 件までです`,
-};
 
 const blockerText = (b: Blocker) => {
   switch (b.kind) {
@@ -90,35 +64,6 @@ const blockerText = (b: Blocker) => {
     }
   }
 };
-
-const PreviewDialog = ({ digest, onClose }: { digest: DigestContent; onClose: () => void }) => {
-  const { dialogProps, close } = useModal(onClose);
-  const headingId = useId();
-  return (
-    <dialog {...dialogProps} aria-labelledby={headingId} className={styles.dialog}>
-      <div className={styles.dialogHeader}>
-        <h2 className={styles.dialogHeading} id={headingId}>
-          プレビュー
-        </h2>
-        <HoverButton
-          className={styles.button}
-          type="button"
-          onClick={() => {
-            close();
-          }}
-        >
-          閉じる
-        </HoverButton>
-      </div>
-      <DigestPost digest={digest} loadPreview={loadDraftPreview} />
-    </dialog>
-  );
-};
-
-interface SaveAction<S extends DigestStatus> {
-  label: string;
-  status: S;
-}
 
 interface FormProps<S extends DigestStatus> {
   heading: string;
@@ -144,15 +89,11 @@ const DigestForm = <S extends DigestStatus>({
   isDirty,
   taken,
 }: FormProps<S>) => {
-  const getPreview = useServerFn(fetchDraftPreview);
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
   const [editedDate, setEditedDate] = useState<string>();
   const entryDate = editedDate ?? initialDate ?? defaultDate;
   const [board, setBoard] = useState<Board>(initialBoard);
-  const [url, setUrl] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
@@ -160,15 +101,7 @@ const DigestForm = <S extends DigestStatus>({
   // 登録済みと断られた日付。日付を変えれば印も消える
   const [takenDate, setTakenDate] = useState<string>();
   const [previewing, setPreviewing] = useState(false);
-  const [picking, setPicking] = useState(false);
-  // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
-  const beforeDrag = useRef<Board>(undefined);
-  const urlInput = useRef<HTMLInputElement>(null);
   const blockersId = useId();
-  const dateId = useId();
-  const saveMenuId = useId();
-  const saveMenu = useRef<HTMLDivElement>(null);
-  const [action, setAction] = useState(saveActions[0]);
   const header = useRef<HTMLElement>(null);
 
   // 登録できない理由とエラーで高さが変わるので、下の面を留める位置を CSS だけでは決められない
@@ -235,53 +168,6 @@ const DigestForm = <S extends DigestStatus>({
     },
   };
 
-  const onAdd = async (input: string) => {
-    if (!newChildArticle.shape.url.safeParse(input).success) {
-      setAddError("http か https の URL を入れてください");
-      return;
-    }
-    const link = stripTracking(input);
-    const id = crypto.randomUUID();
-    const added = addDraft(board, link, id);
-    if (typeof added === "string") {
-      setAddError(rejectedText[added]);
-      return;
-    }
-    setBoard(added);
-    setUrl("");
-    setAddError(undefined);
-    setAdding(true);
-    let title: string | null = null;
-    try {
-      title = draftTitle(link, await getPreview({ data: link }));
-    } catch {
-      // 取れなかったときはタイトル空の候補として残し、手で入れてもらう
-    }
-    // 取得を待つ間に他の操作で board が変わっているので、最新の state に反映する
-    setBoard((b) => settleTitle(b, id, title));
-    setAdding(false);
-    urlInput.current?.focus();
-  };
-
-  const onPaste = async () => {
-    let text: string;
-    try {
-      text = await navigator.clipboard.readText();
-    } catch {
-      setAddError("クリップボードを読めませんでした。入力欄に貼り付けてください");
-      return;
-    }
-    // 弾かれたときに何が貼られたか見えるよう、先に入力欄へ入れる
-    setUrl(text.trim());
-    await onAdd(text.trim());
-  };
-
-  const onClear = () => {
-    setUrl("");
-    setAddError(undefined);
-    urlInput.current?.focus();
-  };
-
   const onSubmit = async (status: S) => {
     setSubmitting(true);
     setSubmitError(undefined);
@@ -319,47 +205,7 @@ const DigestForm = <S extends DigestStatus>({
       <header ref={header} className={styles.header}>
         <div className={styles.title}>
           <h1 className={styles.heading}>{heading}</h1>
-          <div className={styles.dateField}>
-            {/* ボタンを label の中に入れると labelable な要素が 2 つになり不正なので、htmlFor で結ぶ */}
-            <label className={styles.label} htmlFor={dateId}>
-              日付
-            </label>
-            <div className={styles.dateBox}>
-              <input
-                aria-invalid={dateTaken}
-                className={styles.input}
-                id={dateId}
-                required
-                type="date"
-                value={entryDate}
-                onChange={(e) => {
-                  setEditedDate(e.target.value);
-                }}
-              />
-              <button
-                aria-label="カレンダーから選ぶ"
-                className={styles.calendarButton}
-                type="button"
-                onClick={() => {
-                  setPicking(true);
-                }}
-              >
-                <LineIcon d={calendarIcon} size={20} />
-              </button>
-            </div>
-            {picking && (
-              <Suspense>
-                <DatePickerDialog
-                  disabled={{ dates: taken, label: "登録済み" }}
-                  value={entryDate}
-                  onClose={() => {
-                    setPicking(false);
-                  }}
-                  onPick={setEditedDate}
-                />
-              </Suspense>
-            )}
-          </div>
+          <DateField invalid={dateTaken} taken={taken} value={entryDate} onChange={setEditedDate} />
         </div>
         <div className={styles.submit}>
           {reasons.length > 0 && (
@@ -388,64 +234,15 @@ const DigestForm = <S extends DigestStatus>({
           >
             プレビュー
           </HoverButton>
-          <div className={styles.split}>
-            <HoverButton
-              aria-describedby={reasons.length > 0 ? blockersId : undefined}
-              className={styles.button}
-              disabled={cannotSave}
-              type="button"
-              onClick={() => {
-                void onSubmit(action.status);
-              }}
-            >
-              {/* いちばん長いラベルの幅を普段から取り、選び直してもボタンの位置を動かさない */}
-              <span className={styles.splitLabels}>
-                {saveActions.map((a) => (
-                  <span
-                    key={a.status}
-                    className={a.status === action.status ? undefined : styles.splitLabelHidden}
-                  >
-                    {a.label}
-                  </span>
-                ))}
-              </span>
-            </HoverButton>
-            <HoverButton
-              aria-label={`${submitLabel}方法を選ぶ`}
-              className={`${styles.button} ${styles.splitMore}`}
-              disabled={cannotSave}
-              popoverTarget={saveMenuId}
-              type="button"
-            >
-              <Chevron size={16} />
-            </HoverButton>
-            <div
-              ref={saveMenu}
-              className={styles.saveMenu}
-              id={saveMenuId}
-              popover="auto"
-              onToggle={(e) => {
-                if (e.newState === "open") {
-                  e.currentTarget.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
-                }
-              }}
-            >
-              {saveActions.map((a) => (
-                <HoverButton
-                  key={a.status}
-                  aria-pressed={a.status === action.status}
-                  className={styles.saveMenuItem}
-                  type="button"
-                  onClick={() => {
-                    saveMenu.current?.hidePopover();
-                    setAction(a);
-                  }}
-                >
-                  {a.label}
-                </HoverButton>
-              ))}
-            </div>
-          </div>
+          <SaveSplitButton
+            describedBy={reasons.length > 0 ? blockersId : undefined}
+            disabled={cannotSave}
+            saveActions={saveActions}
+            submitLabel={submitLabel}
+            onSave={(status) => {
+              void onSubmit(status);
+            }}
+          />
         </div>
       </header>
       {previewing && (
@@ -456,79 +253,13 @@ const DigestForm = <S extends DigestStatus>({
           }}
         />
       )}
-      <DragDropProvider
-        plugins={plugins}
-        onDragEnd={(e) => {
-          if (e.canceled && beforeDrag.current !== undefined) {
-            setBoard(beforeDrag.current);
-          }
-          beforeDrag.current = undefined;
-        }}
-        onDragOver={(e) => {
-          const { source, target } = e.operation;
-          if (source !== null && target !== null && isBoxId(target.id)) {
-            setBoard(moveToBoxEnd(board, String(source.id), target.id));
-            return;
-          }
-          const ids = toIds(board);
-          const next = move(ids, e);
-          // ポインター移動の大半は並びが変わらないので、ここで打ち切って再描画を避ける
-          if (next !== ids) {
-            setBoard(fromIds(board, next));
-          }
-        }}
-        onDragStart={() => {
-          beforeDrag.current = board;
-        }}
-      >
+      <BoardDragDrop board={board} onChange={setBoard}>
         <div className={styles.collect}>
-          <form
-            className={styles.add}
-            onSubmit={(e) => {
-              e.preventDefault();
-              void onAdd(url);
-            }}
-          >
-            <div className={styles.urlField}>
-              <input
-                ref={urlInput}
-                aria-label="記事の URL"
-                className={styles.urlInput}
-                disabled={adding}
-                maxLength={2000}
-                placeholder="https://example.com/article"
-                required
-                type="url"
-                value={url}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                }}
-              />
-              <button
-                aria-label={url === "" ? "クリップボードから追加" : "入力を消去"}
-                className={styles.fieldButton}
-                disabled={adding}
-                type="button"
-                onClick={() => {
-                  if (url === "") {
-                    void onPaste();
-                  } else {
-                    onClear();
-                  }
-                }}
-              >
-                <LineIcon d={url === "" ? clipboardIcon : clearIcon} size={20} />
-              </button>
-            </div>
-            <HoverButton className={styles.button} disabled={adding} type="submit">
-              {adding ? "取得中" : "追加"}
-            </HoverButton>
-          </form>
-          {addError !== undefined && <p className={styles.message}>{addError}</p>}
+          <UrlAddForm board={board} setBoard={setBoard} />
           {renderBox(UNSORTED)}
         </div>
         <div className={styles.shelf}>{category.options.map(renderBox)}</div>
-      </DragDropProvider>
+      </BoardDragDrop>
     </div>
   );
 };

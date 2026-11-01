@@ -1,0 +1,23 @@
+/* 幅はトップの投稿カードに揃え、見え方を同じにする */
+.dialog {
+  composes: modal from global;
+  width: 720px;
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.dialogHeading {
+  composes: t-label from global;
+  margin: 0;
+}
+
+.button {
+  composes: t-body button from global;
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+}
