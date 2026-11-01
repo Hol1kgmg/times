@@ -3,6 +3,7 @@ import {
   addDraft,
   blockers,
   canMakeChild,
+  draftTitle,
   editLink,
   emptyBoard,
   fromDigest,
@@ -239,5 +240,20 @@ describe("保存済みの Digest を開く", () => {
       title: "title 2",
       hot: true,
     });
+  });
+});
+
+describe("取得したタイトルの初期値", () => {
+  const preview = { title: "動画", description: "チャンネル", image: null };
+
+  it("YouTube はチャンネル名を前に付ける", () => {
+    expect(draftTitle("https://youtu.be/P7sK966R3eI", preview)).toBe("YouTube チャンネル - 動画");
+  });
+
+  it("チャンネル名が取れないときと YouTube 以外は取得したタイトルのまま", () => {
+    expect(draftTitle("https://youtu.be/P7sK966R3eI", { ...preview, description: null })).toBe(
+      "動画",
+    );
+    expect(draftTitle("https://x.example/a", preview)).toBe("動画");
   });
 });

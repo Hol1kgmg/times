@@ -34,6 +34,7 @@ import {
   moveToBoxEnd,
   remove,
   revert,
+  draftTitle,
   settleTitle,
   stripTracking,
   toggleHot,
@@ -260,8 +261,7 @@ const DigestForm = <S extends DigestStatus>({
     setAdding(true);
     let title: string | null = null;
     try {
-      const preview = await getPreview({ data: link });
-      title = preview?.title ?? null;
+      title = draftTitle(link, await getPreview({ data: link }));
     } catch {
       // 取れなかったときはタイトル空の候補として残し、手で入れてもらう
     }

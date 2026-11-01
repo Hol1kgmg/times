@@ -1,5 +1,7 @@
 import { category } from "#/shared/api/schemas";
 import type { Category, Digest, DigestContent } from "#/shared/api/schemas";
+import type { LinkPreview } from "#/shared/lib/parse-link-preview";
+import { youTubeId } from "#/shared/lib/parse-link-preview";
 
 export const UNSORTED = "未分類";
 export type BoxId = typeof UNSORTED | Category;
@@ -114,6 +116,15 @@ export const addDraft = (board: Board, url: string, id: string): Board | Rejecte
     children: [],
   };
   return replaceBox(board, UNSORTED, [...board[UNSORTED], draft]);
+};
+
+// YouTube のプレビューは description にチャンネル名を入れている (parseOEmbed)
+export const draftTitle = (url: string, preview: LinkPreview | null): string | null => {
+  const title = preview?.title ?? null;
+  const channel = preview?.description ?? null;
+  return title !== null && channel !== null && youTubeId(url) !== null
+    ? `YouTube ${channel} - ${title}`
+    : title;
 };
 
 export const settleTitle = (board: Board, id: string, title: string | null): Board =>
