@@ -20,7 +20,7 @@ const previewLinks = async (page: Page) => {
   return page.getByRole("dialog").getByRole("link");
 };
 
-test("一覧から登録済みの Digest を開き、タイトル・記事・日付を直して保存すると、開き直したときに直した内容で並ぶ", async ({
+test("下書きで登録した Digest を一覧から開き、タイトル・記事・日付を直して公開で保存すると、開き直したときに直した内容で並び公開になっている", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -49,14 +49,10 @@ test("一覧から登録済みの Digest を開き、タイトル・記事・日
   await dragFirstUnsortedTo("その他");
   await menuOf(related, "上の記事の関連記事にする");
   await menuOf(other, "ホットにする");
-  await page.getByRole("button", { name: "登録" }).click();
-  await page.waitForURL((url) => url.pathname === "/");
-
-  await page
-    .getByRole("navigation", { name: "チャンネル" })
-    .getByRole("link", { name: "記事を編集" })
-    .click();
+  await page.getByRole("button", { name: "下書きで登録" }).click();
+  // 下書きはトップに出ないので、登録後は一覧へ移る
   await page.waitForURL((url) => url.pathname === "/admin/digests");
+  await expect(page.locator(`a[href="/admin/digests/${date}/edit"]`)).toContainText("下書き");
   await openDigest(page, date);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
@@ -69,14 +65,23 @@ test("一覧から登録済みの Digest を開き、タイトル・記事・日
   await page.getByRole("button", { name: "確定" }).click();
   await menuOf(related, "削除");
   await page.getByLabel("日付").fill(moved);
-  await page.getByRole("button", { name: "保存" }).click();
+  await page.getByRole("button", { name: "保存方法を選ぶ" }).click();
+  await page.getByRole("button", { name: "公開して保存" }).click();
+  await page.getByRole("button", { name: "公開して保存" }).click();
   await page.waitForURL((url) => url.pathname === "/admin/digests");
 
-  await expect(page.locator(`a[href="/admin/digests/${moved}/edit"]`)).toHaveCount(1);
+  await expect(page.locator(`a[href="/admin/digests/${moved}/edit"]`)).not.toContainText("下書き");
   await expect(page.locator(`a[href="/admin/digests/${date}/edit"]`)).toHaveCount(0);
   await openDigest(page, moved);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${moved}/edit`);
   await page.waitForLoadState("networkidle");
+  // 公開した後のメニューに下書きはない
+  await page.getByRole("button", { name: "保存方法を選ぶ" }).click();
+  await expect(page.locator(":popover-open").getByRole("button")).toHaveText([
+    "公開のまま保存",
+    "非公開にして保存",
+  ]);
+  await page.keyboard.press("Escape");
   await expect(await previewLinks(page)).toHaveText([fixed, `${other}HOT`]);
   await context.close();
 });

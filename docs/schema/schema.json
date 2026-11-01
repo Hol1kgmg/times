@@ -26,6 +26,11 @@
           "name": "created_by",
           "type": "bigint",
           "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false
         }
       ],
       "indexes": [
@@ -86,6 +91,26 @@
           "referenced_table": "",
           "columns": [
             "id"
+          ]
+        },
+        {
+          "name": "digests_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'private'::text])))",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "digests_status_not_null",
+          "type": "n",
+          "def": "NOT NULL status",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "status"
           ]
         },
         {

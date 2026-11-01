@@ -30,6 +30,7 @@
 - **Rationale**: 載っている情報は公開ページと同じで、specs/002 の過去 Digest 一覧でもそのまま使う。管理者は 1 人なので、絞らなくても FR-003 の「ログイン中の管理者が登録した Digest」と一致する。書き込みの `PUT` は `created_by` で絞るので、他人の Digest は直せない。
   - ponytail: 管理者 1 人の前提。複数になったら一覧と 1 件取得に `created_by` の条件を足す (`GetLatestDigest` も同じ)
 - **Alternatives considered**: 管理者専用の一覧 API を別に作る — specs/002 で公開版がまた要り、2 本になる。
+- **Superseded**: specs/006 research R4 で、一覧と 1 件取得は管理者専用 (bearerAuth) に置き換えた。
 
 ## R6. `/digests/latest` と `/digests/{entryDate}` の共存
 

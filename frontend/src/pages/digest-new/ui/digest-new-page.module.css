@@ -171,6 +171,94 @@
   }
 }
 
+/* 影をボタンごとに付けると、隣り合う辺に相手の影が落ちる */
+.split {
+  display: flex;
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-menu);
+}
+
+.split:has(.button:disabled) {
+  box-shadow: none;
+}
+
+.split > .button {
+  box-shadow: none;
+}
+
+.split > .button:first-child {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.splitLabels {
+  display: grid;
+}
+
+.splitLabels > * {
+  grid-area: 1 / 1;
+}
+
+/* visibility: hidden は幅を残したまま読み上げからも外れる */
+.splitLabelHidden {
+  visibility: hidden;
+}
+
+.splitMore {
+  display: flex;
+  align-items: center;
+  margin-inline-start: -1px;
+  padding-inline: var(--space-1);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  /* draft-card の記事メニューと別名にしないと、どちらかのメニューが別のボタンに付く */
+  anchor-name: --save-menu;
+}
+
+.saveMenu {
+  margin: 0;
+  padding: var(--space-half);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+  color: var(--color-text);
+  inset: auto;
+  position-anchor: --save-menu;
+  position-area: bottom span-left;
+  position-try-fallbacks: flip-block;
+}
+
+.saveMenu:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+
+.saveMenuItem {
+  composes: t-body from global;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.saveMenuItem[aria-pressed="true"] {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .saveMenuItem:hover {
+    background-color: var(--color-selected);
+    color: var(--color-accent);
+  }
+}
+
 .fieldButton {
   position: absolute;
   top: 0;

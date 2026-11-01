@@ -25,19 +25,11 @@ type stub struct {
 	err error
 }
 
-func (s stub) GetDigestByDate(context.Context, api.GetDigestByDateRequestObject) (api.GetDigestByDateResponseObject, error) {
+func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject) (api.GetLatestDigestResponseObject, error) {
 	if s.err == nil {
 		panic("boom")
 	}
 	return nil, s.err
-}
-
-func (s stub) GetLatestDigest(context.Context, api.GetLatestDigestRequestObject) (api.GetLatestDigestResponseObject, error) {
-	return nil, s.err
-}
-
-func (s stub) ListDigests(context.Context, api.ListDigestsRequestObject) (api.ListDigestsResponseObject, error) {
-	return api.ListDigests200JSONResponse{Digests: []api.DigestSummary{}}, nil
 }
 
 // DeleteCurrentSession は DB を触るので差し替える。Principal が載っていることだけ確認する
@@ -67,8 +59,6 @@ func TestRouter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const digest = "/digests/2026-10-17"
-
 	tests := []struct {
 		method, path, body string
 		want               int
@@ -77,10 +67,11 @@ func TestRouter(t *testing.T) {
 		{"GET", "/health", "", http.StatusOK, ""},
 		{"POST", "/auth/sessions", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/auth/sessions", `{"code":"` + strings.Repeat("a", maxBodyBytes) + `","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
-		{"GET", digest, "", http.StatusNotFound, api.ProblemsnotFound},
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound}, // /digests/{entryDate} より静的な経路が先
-		{"GET", "/digests", "", http.StatusOK, ""},
-		{"GET", "/digests/not-a-date", "", http.StatusBadRequest, api.ProblemsvalidationFailed},
+		// 未ログインに見せるのは latest だけ (specs/006 FR-003)
+		{"GET", "/digests", "", http.StatusUnauthorized, api.Problemsunauthorized},
+		{"GET", "/digests/2026-10-17", "", http.StatusUnauthorized, api.Problemsunauthorized},
+		{"GET", "/digests/not-a-date", "", http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
 		{"PUT", "/digests/2026-10-17", `{"entryDate":"2026-10-17","articles":[]}`, http.StatusUnauthorized, api.Problemsunauthorized},
 		{"POST", "/digests", `{"entryDate":"2026-10-17","articles":[]}`, http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
 		{"POST", "/auth/sessions", `{"code":"","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
@@ -101,7 +92,7 @@ func TestRouter(t *testing.T) {
 		}
 	}
 
-	if p := problem(t, do(r, "GET", digest, "")); p.Detail == nil || *p.Detail != "gone" {
+	if p := problem(t, do(r, "GET", "/digests/latest", "")); p.Detail == nil || *p.Detail != "gone" {
 		t.Errorf("404 detail: got %v, want gone", p.Detail)
 	}
 }
@@ -111,7 +102,7 @@ func TestUnexpectedError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for name, err := range map[string]error{"error": errors.New("boom"), "panic": nil} {
 		r, _ := newRouter(newStub(err), "", noLookup(t))
-		w := do(r, "GET", "/digests/2026-10-17", "")
+		w := do(r, "GET", "/digests/latest", "")
 		p := problem(t, w)
 		if w.Code != 500 || p.Type != api.AboutBlank || p.Detail != nil || strings.Contains(w.Body.String(), "boom") {
 			t.Errorf("%s: got %d %s", name, w.Code, w.Body)
@@ -199,6 +190,24 @@ func TestCreateDigestRejectsNonHTTPURL(t *testing.T) {
 	r, _ := newRouter(newStub(nil), "", lookup)
 	body := `{"entryDate":"2026-10-17","articles":[{"category":"その他","title":"t","url":"javascript:alert(1)"}]}`
 	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer valid")
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
+		t.Errorf("got %d: %s", w.Code, w.Body)
+	}
+}
+
+// 下書きへ戻せないことは、更新の status が draft を受けないことで守る (specs/006 SC-004)
+func TestUpdateDigestRejectsDraft(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
+		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
+	}
+	r, _ := newRouter(newStub(nil), "", lookup)
+	body := `{"entryDate":"2026-10-17","status":"draft","articles":[{"category":"その他","title":"t","url":"https://example.com"}]}`
+	req := httptest.NewRequest("PUT", "/digests/2026-10-17", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer valid")
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

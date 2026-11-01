@@ -1,5 +1,5 @@
 import { category } from "#/shared/api/schemas";
-import type { Category, Digest, NewDigest } from "#/shared/api/schemas";
+import type { Category, Digest, DigestContent } from "#/shared/api/schemas";
 
 export const UNSORTED = "未分類";
 export type BoxId = typeof UNSORTED | Category;
@@ -296,7 +296,7 @@ export const fromDigest = (digest: Digest): Board => {
   return board;
 };
 
-export const toNewDigest = (board: Board, entryDate: string): NewDigest => ({
+export const toNewDigest = (board: Board, entryDate: string): DigestContent => ({
   entryDate,
   articles: category.options.flatMap((c) =>
     board[c].map((d) => ({

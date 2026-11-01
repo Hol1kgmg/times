@@ -8,6 +8,7 @@
 | entry_date | date |  | false |  |  |  |
 | created_at | timestamp with time zone | now() | false |  |  |  |
 | created_by | bigint |  | false |  | [public.users](public.users.md) |  |
+| status | text |  | false |  |  |  |
 
 ## Constraints
 
@@ -17,6 +18,8 @@
 | digests_created_by_not_null | n | NOT NULL created_by |
 | digests_entry_date_not_null | n | NOT NULL entry_date |
 | digests_id_not_null | n | NOT NULL id |
+| digests_status_check | CHECK | CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'private'::text]))) |
+| digests_status_not_null | n | NOT NULL status |
 | digests_pkey | PRIMARY KEY | PRIMARY KEY (id) |
 | digests_created_by_fkey | FOREIGN KEY | FOREIGN KEY (created_by) REFERENCES users(id) |
 | digests_created_by_entry_date_key | UNIQUE | UNIQUE (created_by, entry_date) |

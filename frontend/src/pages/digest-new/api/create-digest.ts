@@ -32,5 +32,6 @@ export const createDigest = createServerFn({ method: "POST" })
       }
       return rejection;
     }
-    throw redirect({ to: "/" });
+    // 下書きはトップに出ないので、登録できたことを一覧で見せる
+    throw redirect({ to: data.status === "published" ? "/" : "/admin/digests" });
   });

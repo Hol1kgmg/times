@@ -2,6 +2,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { Chevron } from "#/shared/ui/chevron";
 import { groupByMonth } from "../model/group-by-month";
+import type { DigestStatus } from "#/shared/api/schemas";
 import type { YearGroup } from "../model/group-by-month";
 import styles from "./digest-list-page.module.css";
 
@@ -13,6 +14,13 @@ const dayFormat = new Intl.DateTimeFormat("ja-JP", {
   weekday: "short",
   timeZone: "UTC",
 });
+
+// ほとんどが公開なので、印は公開以外にだけ付ける (specs/006 research R6)
+const statusMark: Record<DigestStatus, string | undefined> = {
+  draft: "下書き",
+  published: undefined,
+  private: "非公開",
+};
 
 const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -49,6 +57,9 @@ const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }
                       to="/admin/digests/$date/edit"
                     >
                       {dayFormat.format(new Date(d.entryDate))}
+                      {statusMark[d.status] !== undefined && (
+                        <span className={styles.status}>{statusMark[d.status]}</span>
+                      )}
                     </Link>
                   </li>
                 ))}
