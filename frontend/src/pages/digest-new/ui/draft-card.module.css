@@ -258,33 +258,12 @@
 }
 
 .button {
-  composes: t-body from global;
+  composes: t-body button from global;
   padding: var(--space-half) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background-color: var(--color-surface);
-  color: var(--color-text-muted);
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform 0.1s ease-out;
-}
-
-.button:active,
-.submit:active {
-  transform: scale(1.05);
-}
-
-.submit {
-  composes: button;
-  background-color: var(--color-surface-raised);
-  box-shadow: var(--shadow-menu);
-  color: var(--color-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card,
-  .button,
-  .submit {
+  .card {
     transition: none;
   }
 }

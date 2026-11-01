@@ -140,33 +140,9 @@
 }
 
 .button {
-  composes: t-body from global;
+  composes: t-body button from global;
   flex-shrink: 0;
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background-color: var(--color-surface-raised);
-  /* 箱と同じ枠と地なので、押せることは影で示す */
-  box-shadow: var(--shadow-menu);
-  color: var(--color-text);
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform 0.1s ease-out;
-}
-
-.button:active:not(:disabled) {
-  transform: scale(1.05);
-}
-
-.button:disabled {
-  background-color: var(--color-surface);
-  box-shadow: none;
-  color: var(--color-text-faint);
-  cursor: not-allowed;
-}
-
-.button:not(:disabled)[data-hovered] {
-  color: var(--color-accent);
 }
 
 /* 影をボタンごとに付けると、隣り合う辺に相手の影が落ちる */
@@ -326,7 +302,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .button,
   .fieldButton,
   .calendarButton {
     transition: none;

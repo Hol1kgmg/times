@@ -127,7 +127,7 @@ const EditDialog = ({
           >
             やめる
           </button>
-          <button className={styles.submit} type="submit">
+          <button className={styles.button} type="submit">
             確定
           </button>
         </div>
