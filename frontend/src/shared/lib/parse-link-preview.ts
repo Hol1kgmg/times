@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface LinkPreview {
   title: string | null;
   description: string | null;
@@ -63,4 +65,43 @@ export const parseLinkPreview = (html: string, pageUrl: string): LinkPreview | n
   return title === null && description === null && image === null
     ? null
     : { title, description, image };
+};
+
+const youtubeHosts = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]);
+const videoId = /^[\w-]{11}$/u;
+
+export const youTubeId = (url: string): string | null => {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  let id: string | undefined;
+  if (u.hostname === "youtu.be") {
+    id = u.pathname.slice(1);
+  } else if (youtubeHosts.has(u.hostname)) {
+    id =
+      u.pathname === "/watch"
+        ? (u.searchParams.get("v") ?? undefined)
+        : /^\/(?:shorts|live|embed)\/(?<id>[^/]+)/u.exec(u.pathname)?.groups?.id;
+  }
+  return id !== undefined && videoId.test(id) ? id : null;
+};
+
+// maxresdefault は無い動画で 404 の灰色画像を返し onError で拾えないので、必ずある hqdefault にする
+export const youTubeThumbnail = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+
+const oEmbed = z.object({
+  title: z.string().optional(),
+  author_name: z.string().optional(),
+});
+
+// oEmbed には概要文がないので、チャンネル名を説明の代わりにする
+export const parseOEmbed = (json: unknown): Pick<LinkPreview, "title" | "description"> => {
+  const parsed = oEmbed.safeParse(json);
+  return {
+    title: nonEmpty(parsed.data?.title?.trim()),
+    description: nonEmpty(parsed.data?.author_name?.trim()),
+  };
 };

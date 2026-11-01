@@ -1,10 +1,14 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
-import { parseLinkPreview } from "#/shared/lib/parse-link-preview";
+import {
+  parseLinkPreview,
+  parseOEmbed,
+  youTubeId,
+  youTubeThumbnail,
+} from "#/shared/lib/parse-link-preview";
 import { cachedJson } from "./cache.server";
 
 // 外部サイトの HTML を Workers 側で取りに行く。ブラウザからは CORS で読めないため
-// YouTube は og タグの手前に 750KB 超のスクリプトを置くので、</head> が出るまで読む
 const MAX_BYTES = 1024 * 1024;
 // 失敗 (タイムアウト等) は一時的なことが多いので短くしか覚えない
 const ttlOf = (preview: LinkPreview | null) => (preview === null ? 3600 : 86_400);
@@ -48,6 +52,23 @@ const readHead = async (res: Response) => {
   return decode(bytes, charsetOf(contentType, new TextDecoder("latin1").decode(bytes)));
 };
 
+// YouTube は bot の UA に og タグのないページを返すので、画像は動画 ID から作り、文字だけ oEmbed から取る
+const loadYouTube = async (url: string, id: string): Promise<LinkPreview> => {
+  const image = youTubeThumbnail(id);
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (res.ok) {
+      return { ...parseOEmbed(await res.json()), image };
+    }
+  } catch {
+    // oEmbed が断られてもサムネイルは出せるので、文字なしで返す
+  }
+  return { title: null, description: null, image };
+};
+
 // 任意の URL を外部 fetch するので、呼び出し側が URL を絞る (公開側は digest 内、管理側は管理者のみ)
 export const loadLinkPreviewCached = createServerOnlyFn(
   async (url: string): Promise<LinkPreview | null> =>
@@ -57,6 +78,10 @@ export const loadLinkPreviewCached = createServerOnlyFn(
       `https://cache.times.invalid/preview/v2/${encodeURIComponent(url)}`,
       ttlOf,
       async () => {
+        const id = youTubeId(url);
+        if (id !== null) {
+          return await loadYouTube(url, id);
+        }
         try {
           const res = await fetch(url, {
             headers: { accept: "text/html", "user-agent": "times-link-preview" },

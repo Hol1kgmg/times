@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLinkPreview } from "./parse-link-preview";
+import { parseLinkPreview, parseOEmbed, youTubeId } from "./parse-link-preview";
 
 const page = "https://x.example/posts/1";
 
@@ -35,5 +35,32 @@ describe(parseLinkPreview, () => {
   it("returns null when nothing usable is present", () => {
     expect(parseLinkPreview(`<meta charset="utf-8"><title> </title>`, page)).toBeNull();
     expect(parseLinkPreview(`<meta name="description" content="  ">`, page)).toBeNull();
+  });
+});
+
+describe(youTubeId, () => {
+  it("reads the video id from watch, youtu.be and shorts URLs", () => {
+    expect(youTubeId("https://www.youtube.com/watch?v=P7sK966R3eI&t=1")).toBe("P7sK966R3eI");
+    expect(youTubeId("https://youtu.be/P7sK966R3eI?si=x")).toBe("P7sK966R3eI");
+    expect(youTubeId("https://m.youtube.com/shorts/P7sK966R3eI")).toBe("P7sK966R3eI");
+  });
+
+  it("ignores lookalike hosts and pages without a valid video id", () => {
+    expect(youTubeId("https://youtube.com.evil.example/watch?v=P7sK966R3eI")).toBeNull();
+    expect(youTubeId("https://www.youtube.com/@channel")).toBeNull();
+    expect(youTubeId("https://youtu.be/..%2Fx")).toBeNull();
+  });
+});
+
+describe(parseOEmbed, () => {
+  it("uses the channel name as the description", () => {
+    expect(parseOEmbed({ title: "動画", author_name: "チャンネル" })).toStrictEqual({
+      title: "動画",
+      description: "チャンネル",
+    });
+  });
+
+  it("yields no text for a response that is not an oEmbed object", () => {
+    expect(parseOEmbed("Not Found")).toStrictEqual({ title: null, description: null });
   });
 });
