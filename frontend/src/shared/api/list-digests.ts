@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireAdminToken } from "#/shared/auth/session.server";
+import { requireAdminToken } from "#/shared/auth/index.server";
 import { backendFetch } from "./backend.server";
 import { digestList } from "./schemas";
 

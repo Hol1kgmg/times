@@ -1,8 +1,8 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { useId, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { category } from "#/shared/api/schemas";
-import type { Category } from "#/shared/api/schemas";
+import { category } from "#/shared/api";
+import type { Category } from "#/shared/api";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";

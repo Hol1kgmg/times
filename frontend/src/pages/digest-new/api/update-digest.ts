@@ -1,10 +1,9 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { backendFetch } from "#/shared/api";
-// validator はクライアントにも残るので、.server.ts を再 export する barrel ではなく schemas から取る
-import { digestUpdate } from "#/shared/api/schemas";
-import { requireAdminToken } from "#/shared/auth";
+import { backendFetch } from "#/shared/api/index.server";
+import { digestUpdate } from "#/shared/api";
+import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
 
 // 拒否を例外にせず返す理由は create-digest.ts と同じ

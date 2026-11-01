@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { writeLoginState } from "#/shared/auth";
+import { writeLoginState } from "#/shared/auth/index.server";
 import { callbackUrl } from "./callback-url.server";
 import { loginConfig } from "./login-config.server";
 

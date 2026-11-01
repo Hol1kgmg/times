@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
-import { backendFetch } from "#/shared/api/backend.server";
+import { backendFetch } from "#/shared/api/index.server";
 import { SESSION_EXPIRED } from "./errors";
 
 // Cookie は backend の不透明トークンと OAuth の state を運ぶだけ (specs/003 data-model.md)

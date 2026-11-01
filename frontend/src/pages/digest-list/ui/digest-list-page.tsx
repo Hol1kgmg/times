@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import { Chevron } from "#/shared/ui/chevron";
 import { HoverLink } from "#/shared/ui/hover-link";
 import { groupByMonth } from "../model/group-by-month";
-import type { DigestStatus } from "#/shared/api/schemas";
+import type { DigestStatus } from "#/shared/api";
 import type { YearGroup } from "../model/group-by-month";
 import styles from "./digest-list-page.module.css";
 

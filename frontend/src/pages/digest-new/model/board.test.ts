@@ -19,7 +19,7 @@ import {
   unmakeChild,
   UNSORTED,
 } from "./board";
-import { digest } from "#/shared/api/schemas";
+import { digest } from "#/shared/api";
 import type { Board, BoxId, Draft, Link } from "./board";
 
 const link = (id: string, title = `title ${id}`): Link => ({

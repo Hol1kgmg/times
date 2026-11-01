@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Digest } from "#/shared/api/schemas";
+import type { Digest } from "#/shared/api";
 import { digestMarkdown } from "#/shared/lib/digest-markdown";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";

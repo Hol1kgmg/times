@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { loadLinkPreviewCached } from "#/shared/api/link-preview.server";
-// validator はクライアントにも残るので、.server.ts を再 export する barrel ではなく schemas から取る
-import { newChildArticle } from "#/shared/api/schemas";
-import { requireAdminToken } from "#/shared/auth";
+import { loadLinkPreviewCached } from "#/shared/api/index.server";
+import { newChildArticle } from "#/shared/api";
+import { requireAdminToken } from "#/shared/auth/index.server";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 
 // 任意の URL を外部 fetch するので管理者に限る。トップの getLinkPreview は digest 内の URL に限っている

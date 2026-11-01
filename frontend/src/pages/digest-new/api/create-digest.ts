@@ -1,9 +1,8 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { backendFetch } from "#/shared/api";
-// validator はクライアントにも残るので、.server.ts を再 export する barrel ではなく schemas から取る
-import { newDigest } from "#/shared/api/schemas";
-import { requireAdminToken } from "#/shared/auth";
+import { backendFetch } from "#/shared/api/index.server";
+import { newDigest } from "#/shared/api";
+import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
 
 // 登録済みの日付・URL の 400 だけは例外にせず返す。例外はクライアントへ message しか届かず、どの URL か渡せないため

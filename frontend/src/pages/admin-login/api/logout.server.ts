@@ -1,6 +1,6 @@
 import { isNotFound, redirect } from "@tanstack/react-router";
-import { backendFetch } from "#/shared/api";
-import { clearAdminToken, readAdminToken } from "#/shared/auth";
+import { backendFetch } from "#/shared/api/index.server";
+import { clearAdminToken, readAdminToken } from "#/shared/auth/index.server";
 import { loginConfig } from "./login-config.server";
 
 // 冪等: Cookie がなくても、backend の session が既に無くても (401) 成功扱いで / へ

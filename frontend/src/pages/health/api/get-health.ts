@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
-import { backendFetch } from "#/shared/api";
+import { backendFetch } from "#/shared/api/index.server";
 
 // openapi.yaml と乖離したら typecheck で落ちる
 const health = z.object({ status: z.string() }) satisfies z.ZodType<ApiResponse<"getHealth">>;

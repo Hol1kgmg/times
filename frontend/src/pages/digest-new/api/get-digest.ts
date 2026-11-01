@@ -1,8 +1,10 @@
 import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { backendFetchRaw, digest } from "#/shared/api";
-import { requireAdminToken, SESSION_EXPIRED } from "#/shared/auth";
+import { digest } from "#/shared/api";
+import { backendFetchRaw } from "#/shared/api/index.server";
+import { SESSION_EXPIRED } from "#/shared/auth";
+import { requireAdminToken } from "#/shared/auth/index.server";
 
 // 保存直後に開き直したとき古い内容で上書きしないよう、トップと違ってキャッシュを通さない
 export const getDigest = createServerFn({ method: "GET" })

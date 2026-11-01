@@ -1,5 +1,5 @@
 import { notFound } from "@tanstack/react-router";
-import { readAuthConfig } from "#/shared/auth";
+import { readAuthConfig } from "#/shared/auth/index.server";
 
 // 設定未完、または path が秘匿パスと一致しなければ 404 (FR-012 / FR-014)。
 // 比較はサーバー関数の中でだけ行い、秘匿パスをクライアントに渡さない

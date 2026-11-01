@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { AdminUser } from "#/shared/auth";
-import { currentAdmin } from "#/shared/auth";
+import type { AdminUser } from "#/shared/auth/index.server";
+import { currentAdmin } from "#/shared/auth/index.server";
 import { loginConfig } from "./login-config.server";
 
 // 秘匿パスのページの beforeLoad。パス不一致は 404、ログイン済みなら user を返す

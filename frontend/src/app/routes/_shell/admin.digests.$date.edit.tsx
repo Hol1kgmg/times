@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { DigestEditPage, getDigest, resolveDigestNewPage } from "#/pages/digest-new";
-import { listDigests } from "#/shared/api/list-digests";
+import { listDigests } from "#/shared/api";
 
 export const Route = createFileRoute("/_shell/admin/digests/$date/edit")({
   beforeLoad: async () => await resolveDigestNewPage(),

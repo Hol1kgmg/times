@@ -1,5 +1,6 @@
 import { notFound } from "@tanstack/react-router";
 import { createServerOnlyFn } from "@tanstack/react-start";
+// #/shared/auth は get-current-admin 経由でこのファイルに戻ってきて循環するので、errors を直接取る
 import { SESSION_EXPIRED } from "#/shared/auth/errors";
 
 // backend は frontend のサーバー関数からだけ呼ぶ (adr/backend/0003)。

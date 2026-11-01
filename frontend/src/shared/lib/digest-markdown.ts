@@ -1,4 +1,4 @@
-import type { DigestContent, NewChildArticle } from "#/shared/api/schemas";
+import type { DigestContent, NewChildArticle } from "#/shared/api";
 import { groupByCategory } from "#/shared/lib/group-by-category";
 
 const link = (a: NewChildArticle) => {

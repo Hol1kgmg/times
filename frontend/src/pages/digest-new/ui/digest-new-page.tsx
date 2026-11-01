@@ -3,9 +3,8 @@ import { move } from "@dnd-kit/helpers";
 import { getRouteApi, isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-// barrel (#/shared/api) は .server.ts を再 export しており、クライアントで走るコードから import すると build が落ちる
-import { category, newChildArticle } from "#/shared/api/schemas";
-import type { DigestContent, DigestStatus } from "#/shared/api/schemas";
+import { category, newChildArticle } from "#/shared/api";
+import type { DigestContent, DigestStatus } from "#/shared/api";
 import { Chevron } from "#/shared/ui/chevron";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";

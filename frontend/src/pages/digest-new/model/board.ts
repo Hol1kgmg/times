@@ -1,5 +1,5 @@
-import { category } from "#/shared/api/schemas";
-import type { Category, Digest, DigestContent } from "#/shared/api/schemas";
+import { category } from "#/shared/api";
+import type { Category, Digest, DigestContent } from "#/shared/api";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { youTubeId } from "#/shared/lib/parse-link-preview";
 

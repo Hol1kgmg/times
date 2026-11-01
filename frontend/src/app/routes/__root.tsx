@@ -4,8 +4,7 @@ import kleeOne400Css from "@fontsource/klee-one/400.css?url";
 import kleeOne600Css from "@fontsource/klee-one/600.css?url";
 import kleeOneFixed400 from "../styles/fonts/klee-one-fixed-400.woff2?url";
 import kleeOneFixed600 from "../styles/fonts/klee-one-fixed-600.woff2?url";
-// barrel (#/shared/auth) は .server.ts を再 export しており、クライアントで走る beforeLoad から import すると build が落ちる
-import { getCurrentAdmin } from "#/shared/auth/get-current-admin";
+import { getCurrentAdmin } from "#/shared/auth";
 import { SITE_NAME, SITE_URL } from "#/shared/config/site";
 import appCss from "../styles/global.css?url";
 

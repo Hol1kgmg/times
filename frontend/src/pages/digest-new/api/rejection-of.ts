@@ -1,4 +1,4 @@
-import { problem } from "#/shared/api/schemas";
+import { problem } from "#/shared/api";
 
 export type Rejection =
   | { reason: "digest-already-exists" }
