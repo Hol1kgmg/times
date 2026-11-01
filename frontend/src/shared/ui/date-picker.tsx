@@ -10,6 +10,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { Temporal } from "temporal-polyfill/implementation";
 import { Chevron } from "#/shared/ui/chevron";
+import { HoverButton } from "#/shared/ui/hover-button";
 import { monthDays, stepEnabled } from "#/shared/lib/month-days";
 import styles from "./date-picker.module.css";
 import { afterFadeOut } from "./modal";
@@ -67,7 +68,7 @@ const Calendar = ({ ym, value, disabled, named, onPick, onKeyDown }: CalendarPro
         const style = i === 0 ? { gridColumnStart: lead + 1 } : undefined;
         const digits = <Morph name={named ? `day-${date}` : undefined}>{day.day}</Morph>;
         return interactive ? (
-          <button
+          <HoverButton
             key={date}
             aria-current={date === today ? "date" : undefined}
             aria-label={`${day.toLocaleString("ja-JP", { month: "long", day: "numeric", weekday: "short" })}${disabled.dates.has(date) ? ` ${disabled.label}` : ""}`}
@@ -83,7 +84,7 @@ const Calendar = ({ ym, value, disabled, named, onPick, onKeyDown }: CalendarPro
             onKeyDown={onKeyDown}
           >
             {digits}
-          </button>
+          </HoverButton>
         ) : (
           <span key={date} aria-hidden className={className} style={style}>
             {digits}
@@ -176,7 +177,7 @@ const YearView = ({
         >
           <section className={styles.month} data-month={m.toString()}>
             <h3 className={styles.monthHeading}>
-              <button
+              <HoverButton
                 className={styles.monthLink}
                 type="button"
                 onClick={() => {
@@ -184,7 +185,7 @@ const YearView = ({
                 }}
               >
                 <Morph name={morph && m.equals(ym) ? "period-month" : undefined}>{m.month}月</Morph>
-              </button>
+              </HoverButton>
             </h3>
             {/* 全 12 か月の日付に名前を付けると 365 個を撮って数秒固まるので、動かす 1 か月にだけ付ける */}
             <Calendar disabled={disabled} named={morph && m.equals(ym)} value={value} ym={m} />
@@ -342,7 +343,7 @@ export const DatePickerDialog = ({
           </div>
         )}
         <div className={styles.controls}>
-          <button
+          <HoverButton
             className={styles.today}
             disabled={view === "month" && ym.equals(thisMonth)}
             type="button"
@@ -351,8 +352,8 @@ export const DatePickerDialog = ({
             }}
           >
             今日
-          </button>
-          <button
+          </HoverButton>
+          <HoverButton
             aria-label={`前の${unit}`}
             className={styles.step}
             type="button"
@@ -361,8 +362,8 @@ export const DatePickerDialog = ({
             }}
           >
             <Chevron className={styles.prev} size={18} />
-          </button>
-          <button
+          </HoverButton>
+          <HoverButton
             aria-label={`次の${unit}`}
             className={styles.step}
             type="button"
@@ -371,7 +372,7 @@ export const DatePickerDialog = ({
             }}
           >
             <Chevron className={styles.next} size={18} />
-          </button>
+          </HoverButton>
         </div>
       </div>
       {view === "month" ? (

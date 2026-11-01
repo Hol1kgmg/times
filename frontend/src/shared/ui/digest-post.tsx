@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { mergeProps, useFocusRing, useHover } from "react-aria";
 import type { DigestContent, NewArticle, NewChildArticle } from "#/shared/api/schemas";
 import { groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
@@ -20,9 +21,7 @@ export const dateFormat = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "UTC",
 });
 
-// タッチ端末はタップでも mouseenter / focus が来るので、ホバーできる環境かをその場で見る
-const canAnimate = () =>
-  window.matchMedia("(hover: hover) and (prefers-reduced-motion: no-preference)").matches;
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const ArticleLink = ({
   article,
@@ -33,17 +32,16 @@ const ArticleLink = ({
   hot?: boolean;
   loadPreview: LoadPreview;
 }) => {
-  const [hovered, setHovered] = useState(false);
-  const [pointed, setPointed] = useState(false);
+  const [previewed, setPreviewed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const show = () => {
-    setHovered(true);
+    setPreviewed(true);
     setDismissed(false);
-    setPointed(canAnimate());
   };
-  const leave = () => {
-    setPointed(false);
-  };
+  const { hoverProps, isHovered } = useHover({ onHoverStart: show });
+  // タップでもフォーカスは来るので、動かすのはキーボードのフォーカスだけにする
+  const { focusProps, isFocusVisible } = useFocusRing();
+  const pointed = (isHovered || isFocusVisible) && !reducedMotion();
   // カードはリンクの下の行を覆うので、ポインターやフォーカスを動かさずに消せるようにする (WCAG 1.4.13)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -63,13 +61,11 @@ const ArticleLink = ({
         <a
           className={styles.title}
           data-dismissed={dismissed ? "" : undefined}
+          data-hovered={isHovered ? "" : undefined}
           href={article.url}
           rel="noopener noreferrer"
           target="_blank"
-          onBlur={leave}
-          onFocus={show}
-          onMouseEnter={show}
-          onMouseLeave={leave}
+          {...mergeProps(hoverProps, focusProps, { onFocus: show })}
         >
           {article.title.trim() === "" ? (
             <span className={styles.untitled}>タイトルを入れてください</span>
@@ -86,7 +82,7 @@ const ArticleLink = ({
             </span>
           )}
         </a>
-        {hovered && (
+        {previewed && (
           <Suspense fallback={null}>
             <PreviewCard
               className={styles.preview}

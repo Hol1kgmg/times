@@ -65,10 +65,8 @@
   color: var(--color-accent);
 }
 
-@media (hover: hover) {
-  .expand:hover {
-    color: var(--color-accent);
-  }
+.expand[data-hovered] {
+  color: var(--color-accent);
 }
 
 .expand:active {

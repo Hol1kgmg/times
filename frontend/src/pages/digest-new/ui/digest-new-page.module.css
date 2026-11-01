@@ -165,10 +165,8 @@
   cursor: not-allowed;
 }
 
-@media (hover: hover) {
-  .button:not(:disabled):hover {
-    color: var(--color-accent);
-  }
+.button:not(:disabled)[data-hovered] {
+  color: var(--color-accent);
 }
 
 /* 影をボタンごとに付けると、隣り合う辺に相手の影が落ちる */
@@ -252,11 +250,9 @@
   font-weight: 600;
 }
 
-@media (hover: hover) {
-  .saveMenuItem:hover {
-    background-color: var(--color-selected);
-    color: var(--color-accent);
-  }
+.saveMenuItem[data-hovered] {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
 }
 
 .fieldButton {

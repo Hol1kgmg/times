@@ -1,4 +1,5 @@
 import { Link, useMatchRoute, useRouteContext } from "@tanstack/react-router";
+import { HoverLink } from "#/shared/ui/hover-link";
 import { Logo } from "#/shared/ui/logo";
 import styles from "./sidebar.module.css";
 
@@ -12,36 +13,36 @@ export const ChannelNav = ({ onNavigate }: Props) => {
   return (
     <nav aria-label="チャンネル" className={styles.nav}>
       <span className={styles.group}>Channels</span>
-      <Link className={styles.link} to="/" onClick={onNavigate}>
+      <HoverLink className={styles.link} to="/" onClick={onNavigate}>
         <span className={styles.hash}>#</span>general
-      </Link>
+      </HoverLink>
       {user && (
         <>
-          <Link className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
+          <HoverLink className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
             <span className={styles.hash}>+</span>記事を登録
-          </Link>
-          <Link
+          </HoverLink>
+          <HoverLink
             activeOptions={{ exact: Boolean(matchRoute({ to: "/admin/digests/new" })) }}
             className={styles.link}
             to="/admin/digests"
             onClick={onNavigate}
           >
             <span className={styles.hash}>#</span>記事を編集
-          </Link>
+          </HoverLink>
           {loginPath !== undefined && (
-            <Link
+            <HoverLink
               className={styles.link}
               params={{ loginPath }}
               to="/$loginPath/auth/login"
               onClick={onNavigate}
             >
               <span className={styles.hash}>#</span>ログアウト
-            </Link>
+            </HoverLink>
           )}
           <span className={styles.group}>Dev</span>
-          <Link className={styles.link} to="/client" onClick={onNavigate}>
+          <HoverLink className={styles.link} to="/client" onClick={onNavigate}>
             <span className={styles.hash}>#</span>client-only
-          </Link>
+          </HoverLink>
         </>
       )}
     </nav>

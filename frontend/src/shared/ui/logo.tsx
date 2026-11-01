@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { useHovered } from "#/shared/lib/use-hovered";
 import styles from "./logo.module.css";
 
 interface Props {
@@ -17,6 +18,7 @@ const bellPath =
 export const Logo = ({ variant }: Props) => {
   const clip = useId();
   const cls = (name: keyof typeof styles) => (variant === "hover" ? styles[name] : undefined);
+  const hovered = useHovered();
   return (
     <svg
       className={styles[variant ?? "logo"]}
@@ -29,7 +31,7 @@ export const Logo = ({ variant }: Props) => {
           <rect height="200" rx="51.4" width="200" x="113" y="156" />
         </clipPath>
       </defs>
-      <g className={cls("icon")}>
+      <g className={cls("icon")} {...(variant === "hover" ? hovered : undefined)}>
         <rect fill="#ff6b35" height="200" rx="51.4" width="200" x="113" y="156" />
         <rect fill="#fff" height="28.6" rx="14.3" width="120" x="153" y="193.1" />
         <path

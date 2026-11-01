@@ -65,7 +65,7 @@
   text-align: center;
 }
 
-@media (hover: hover) {
+@media (--hover) {
   .hint {
     display: block;
   }

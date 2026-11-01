@@ -8,6 +8,7 @@ import { category, newChildArticle } from "#/shared/api/schemas";
 import type { DigestContent, DigestStatus } from "#/shared/api/schemas";
 import { Chevron } from "#/shared/ui/chevron";
 import { DigestPost } from "#/shared/ui/digest-post";
+import { HoverButton } from "#/shared/ui/hover-button";
 import { calendarIcon } from "#/shared/ui/icons/calendar";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { afterFadeOut } from "#/shared/ui/modal";
@@ -106,7 +107,7 @@ const PreviewDialog = ({ digest, onClose }: { digest: DigestContent; onClose: ()
         <h2 className={styles.dialogHeading} id={headingId}>
           プレビュー
         </h2>
-        <button
+        <HoverButton
           className={styles.button}
           type="button"
           onClick={() => {
@@ -114,7 +115,7 @@ const PreviewDialog = ({ digest, onClose }: { digest: DigestContent; onClose: ()
           }}
         >
           閉じる
-        </button>
+        </HoverButton>
       </div>
       <DigestPost digest={digest} loadPreview={loadDraftPreview} />
     </dialog>
@@ -396,7 +397,7 @@ const DigestForm = <S extends DigestStatus>({
               過去に登録したリンクが含まれてます。重複して登録はできないので削除してください
             </p>
           )}
-          <button
+          <HoverButton
             className={styles.button}
             disabled={entry.articles.length === 0 || entryDate === ""}
             type="button"
@@ -405,9 +406,9 @@ const DigestForm = <S extends DigestStatus>({
             }}
           >
             プレビュー
-          </button>
+          </HoverButton>
           <div className={styles.split}>
-            <button
+            <HoverButton
               aria-describedby={reasons.length > 0 ? blockersId : undefined}
               className={styles.button}
               disabled={cannotSave}
@@ -427,8 +428,8 @@ const DigestForm = <S extends DigestStatus>({
                   </span>
                 ))}
               </span>
-            </button>
-            <button
+            </HoverButton>
+            <HoverButton
               aria-label={`${submitLabel}方法を選ぶ`}
               className={`${styles.button} ${styles.splitMore}`}
               disabled={cannotSave}
@@ -436,7 +437,7 @@ const DigestForm = <S extends DigestStatus>({
               type="button"
             >
               <Chevron size={16} />
-            </button>
+            </HoverButton>
             <div
               ref={saveMenu}
               className={styles.saveMenu}
@@ -449,7 +450,7 @@ const DigestForm = <S extends DigestStatus>({
               }}
             >
               {saveActions.map((a) => (
-                <button
+                <HoverButton
                   key={a.status}
                   aria-pressed={a.status === action.status}
                   className={styles.saveMenuItem}
@@ -460,7 +461,7 @@ const DigestForm = <S extends DigestStatus>({
                   }}
                 >
                   {a.label}
-                </button>
+                </HoverButton>
               ))}
             </div>
           </div>
@@ -549,9 +550,9 @@ const DigestForm = <S extends DigestStatus>({
                 </svg>
               </button>
             </div>
-            <button className={styles.button} disabled={adding} type="submit">
+            <HoverButton className={styles.button} disabled={adding} type="submit">
               {adding ? "取得中" : "追加"}
-            </button>
+            </HoverButton>
           </form>
           {addError !== undefined && <p className={styles.message}>{addError}</p>}
           {renderBox(UNSORTED)}
