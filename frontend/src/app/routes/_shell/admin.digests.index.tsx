@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { resolveDigestNewPage } from "#/pages/digest-new";
+import { resolveDigestNewPage } from "#/pages/digest-editor";
 import { DigestListPage } from "#/pages/digest-list";
 import { listDigests } from "#/shared/api";
 

@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod";
-import { DigestEditPage, getDigest, resolveDigestNewPage } from "#/pages/digest-new";
+import { DigestEditPage, getDigest, resolveDigestNewPage } from "#/pages/digest-editor";
 import { listDigests } from "#/shared/api";
 
 export const Route = createFileRoute("/_shell/admin/digests/$date/edit")({
