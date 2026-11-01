@@ -9,7 +9,7 @@ interface Props {
 }
 
 // 広い画面: サイドバー常時表示 / 狭い画面: ヘッダーを伸ばしたメニューで出す
-const Shell = ({ children }: Props) => {
+export const RootLayout = ({ children }: Props) => {
   const [open, setOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -66,5 +66,3 @@ const Shell = ({ children }: Props) => {
     </div>
   );
 };
-
-export const RootLayout = Shell;

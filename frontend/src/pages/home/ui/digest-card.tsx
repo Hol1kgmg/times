@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { Digest } from "#/shared/api";
-import { digestMarkdown } from "#/shared/lib/digest-markdown";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { loadLinkPreview } from "../api/load-link-preview";
+import { digestMarkdown } from "../model/digest-markdown";
 import { CollapsiblePanel } from "./collapsible-panel";
 import styles from "./digest-card.module.css";
 
