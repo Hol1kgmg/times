@@ -11,7 +11,7 @@ import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { calendarIcon } from "#/shared/ui/icons/calendar";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
-import { afterFadeOut } from "#/shared/ui/modal";
+import { useModal } from "#/shared/ui/modal";
 import { createDigest } from "../api/create-digest";
 import { fetchDraftPreview } from "../api/fetch-draft-preview";
 import { loadDraftPreview } from "../api/load-draft-preview";
@@ -92,18 +92,10 @@ const blockerText = (b: Blocker) => {
 };
 
 const PreviewDialog = ({ digest, onClose }: { digest: DigestContent; onClose: () => void }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { dialogProps, close } = useModal(onClose);
   const headingId = useId();
-  useEffect(() => {
-    dialogRef.current?.showModal();
-  }, []);
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={headingId}
-      className={styles.dialog}
-      onClose={afterFadeOut(onClose)}
-    >
+    <dialog {...dialogProps} aria-labelledby={headingId} className={styles.dialog}>
       <div className={styles.dialogHeader}>
         <h2 className={styles.dialogHeading} id={headingId}>
           プレビュー
@@ -112,7 +104,7 @@ const PreviewDialog = ({ digest, onClose }: { digest: DigestContent; onClose: ()
           className={styles.button}
           type="button"
           onClick={() => {
-            dialogRef.current?.close();
+            close();
           }}
         >
           閉じる

@@ -13,7 +13,7 @@ import { Chevron } from "#/shared/ui/chevron";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { monthDays, stepEnabled } from "#/shared/lib/month-days";
 import styles from "./date-picker.module.css";
-import { afterFadeOut } from "./modal";
+import { useModal } from "./modal";
 
 export interface DisabledDates {
   dates: ReadonlySet<string>;
@@ -207,7 +207,7 @@ export const DatePickerDialog = ({
   onPick: (date: string) => void;
   onClose: () => void;
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { ref: dialogRef, dialogProps, close } = useModal(onClose);
   const thisMonth = Temporal.Now.plainDateISO().toPlainYearMonth();
   const [view, setView] = useState<View>("month");
   const [ym, setYm] = useState(() =>
@@ -219,16 +219,16 @@ export const DatePickerDialog = ({
     return button !== null && button !== undefined;
   };
   const initialFocus = useRef(value === "" ? Temporal.Now.plainDateISO().toString() : value);
+  // useModal の showModal より後に動くよう、effect はその後に宣言する
   useEffect(() => {
     const dialog = dialogRef.current;
-    dialog?.showModal();
     // showModal は先頭のボタン (年へ戻る) にフォーカスするので、選択中か今日の日付へ移す
     const enabled = "[data-date]:not(:disabled)";
     (
       dialog?.querySelector<HTMLButtonElement>(`${enabled}[data-date="${initialFocus.current}"]`) ??
       dialog?.querySelector<HTMLButtonElement>(enabled)
     )?.focus();
-  }, []);
+  }, [dialogRef]);
   // 月をまたぐ移動は transition の後に描かれるので、行き先が DOM に出たコミットでフォーカスする
   const pendingFocus = useRef<string>(undefined);
   useEffect(() => {
@@ -306,10 +306,9 @@ export const DatePickerDialog = ({
 
   return (
     <dialog
-      ref={dialogRef}
+      {...dialogProps}
       aria-label="日付を選ぶ"
       className={styles.dialog}
-      onClose={afterFadeOut(onClose)}
       onPointerDown={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
         const outside =
@@ -384,7 +383,7 @@ export const DatePickerDialog = ({
           onKeyDown={move}
           onPick={(date) => {
             onPick(date);
-            dialogRef.current?.close();
+            close();
           }}
           onShare={gatherWeekdays}
         />

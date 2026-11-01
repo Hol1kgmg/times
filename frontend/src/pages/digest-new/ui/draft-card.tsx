@@ -1,11 +1,11 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
-import { afterFadeOut } from "#/shared/ui/modal";
+import { useModal } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import { loadDraftPreview } from "../api/load-draft-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
@@ -67,27 +67,19 @@ const EditDialog = ({
   onEdit: (next: { url: string; title: string }) => Rejected | null;
   onClose: () => void;
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { dialogProps, close } = useModal(onClose);
   const headingId = useId();
   const [title, setTitle] = useState(link.title);
   const [url, setUrl] = useState(link.url);
   const [duplicate, setDuplicate] = useState(false);
-  useEffect(() => {
-    dialogRef.current?.showModal();
-  }, []);
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={headingId}
-      className={styles.dialog}
-      onClose={afterFadeOut(onClose)}
-    >
+    <dialog {...dialogProps} aria-labelledby={headingId} className={styles.dialog}>
       <form
         className={styles.form}
         onSubmit={(e) => {
           e.preventDefault();
           if (onEdit({ title: title.trim(), url }) === null) {
-            dialogRef.current?.close();
+            close();
           } else {
             setDuplicate(true);
           }
@@ -130,7 +122,7 @@ const EditDialog = ({
             className={styles.button}
             type="button"
             onClick={() => {
-              dialogRef.current?.close();
+              close();
             }}
           >
             やめる
