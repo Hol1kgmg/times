@@ -35,7 +35,7 @@ import { PreviewDialog } from "./preview-dialog";
 import { SaveSplitButton } from "./save-split-button";
 import type { SaveAction } from "./save-split-button";
 import { UrlAddForm } from "./url-add-form";
-import styles from "./digest-new-page.module.css";
+import styles from "./digest-editor-page.module.css";
 
 // toISOString は UTC 日付になり JST の 0〜9 時に前日を返す。sv-SE ロケールはローカル日付を YYYY-MM-DD で出す
 const today = () => new Date().toLocaleDateString("sv-SE");
