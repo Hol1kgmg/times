@@ -23,6 +23,7 @@
 - **エラー文言は backend の `detail` をそのまま UI に出さない**。UI は「何を直せばよいか」だけを短く出す。
 - **サーバー関数の返り値は `schemas.ts` の `parse` を通す** (adr/frontend/0001)。`res.json()` をそのまま返さない。
 - **ブランド型は `parse` でだけ付ける**。`as ItemId` 禁止。
+- **誰が使えるかは型で表す**。管理者専用の API は `AdminToken` (`requireAdminToken` が返す) でしか呼べず、管理者向けの UI は `AdminViewer` を受け取る部品に分ける。トークンはクライアントに渡さないので、`Viewer` には持たせない。
 
 ## テストの置き場所
 
@@ -31,7 +32,7 @@
 | go test (unit) | 変換関数、エラー写像、認証ロジック | 対象と同じ package の `*_test.go` | 分岐・ループ・境界があるとき |
 | go test (router) | OpenAPI 検証 (400 / 401)、Problem Details の形 | `cmd/server/main_test.go` | `openapi.yaml` に操作を足したとき 1 件 |
 | Vitest | 純粋関数、zod スキーマの境界、サーバー関数のエラー変換 | 対象の隣の `*.test.ts` | 分岐・境界があるとき |
-| Playwright | 画面をまたぐ操作、ログイン、フォーム送信 → 表示 | `frontend/e2e/*.spec.ts` | 画面につき 1 本。その画面の主経路 (P1) を通す |
+| Playwright | 機能どうしのつながりと、状態が次の操作に引き継がれること (登録 → 表示、ログイン → セッション → ログアウト) | `frontend/e2e/*.spec.ts` | つながりを新しく作ったとき 1 本 |
 
 ### ルール
 
@@ -39,7 +40,8 @@
 - **自明な 1 行、型が保証するもの、HTML 属性だけの挙動はテストしない**。
 - **DB に接続するテストは書かない** (constitution V)。handler のテストは sqlc の Queries をモックせず、変換関数とエラー写像を切り出して試す。DB を通す確認 (トランザクション、制約違反) は e2e が担う。CI で compose の `db` が動くようになったら見直す。
 - **テスト名は仕様の言葉で書く**。`it("rejects a category outside the fixed set")` のように、何が守られるかを書く。実装名を書かない。
-- **e2e は画面につき 1 本**。その画面の主経路を最初から最後まで通す。前提のログインは共通化する。異常系は e2e ではなく unit (zod / go test) で押さえる。
+- **e2e はつながりにつき 1 本**。1 つの機能の中の分岐 (404、エラーの振り分け、表示の出し分け) は書かず、unit (zod / Vitest / go test) か型で押さえる。ただし SQL は e2e でしか通らないので、DB に読み書きする経路は e2e に 1 本残す。
+- **ログイン状態を確かめる e2e は `admin-login` の 1 本だけ**。ほかの e2e はログインを前提 (`loggedInState`) に使うだけで、ログイン状態や未ログインの振る舞いを確かめない。画面 × ログイン状態の組み合わせで e2e を増やさないため。
 - **テストのための export をしない**。テストしたいものが private なら、切り出して独立した関数にする。
 - **モックは外部 I/O だけ** (GitHub、`fetch`)。自分のコードはモックしない。
 
@@ -51,10 +53,10 @@
 just be-gen            # openapi.yaml か SQL を変えたとき。差分は同じコミットに含める
 just lint && just test
 just fe-typecheck
-just fe-test-e2e       # 画面の遷移・フォーム・ログインに触れたとき
+just fe-test-e2e       # サーバー関数と backend の受け渡し・SQL・セッションと Cookie に触れたとき
 ```
 
-- e2e は変更に関わる spec だけを回す (`just fe-test-e2e <ファイル名>`)。トップの Digest の表示 (並び・見出し・リンク・HOT) を変えたら `digest-new`、ログインなら `admin-login`、トップのそれ以外は `index`。見た目だけの変更では回さない
+- e2e は変更に関わる spec だけを回す (`just fe-test-e2e <ファイル名>`)。登録とトップの表示のつながり (登録の送信・最新の Digest の取得) なら `digest-new`、編集の保存と読み直しなら `digest-edit`、ログイン・セッション・Cookie なら `admin-login`。画面の中の分岐・表示・見た目だけの変更では回さない
 - e2e は backend を切り替えて回す。開発用 (`just be-dev`、DB `times`) と e2e 用 (`just be-dev-e2e`、DB `times_e2e`) は同じ 8080 を使うため、同時には動かせない。
   1. 開発用の backend が動いていたら止める (`lsof -iTCP:8080 -sTCP:LISTEN -P` で確認)。ユーザーが別のターミナルで動かしていて止められないときは、止めてもらうよう伝えて待つ
   2. `just be-dev-e2e` をバックグラウンドで起動し、`/health` が返るのを待つ
@@ -62,6 +64,6 @@ just fe-test-e2e       # 画面の遷移・フォーム・ログインに触れ�
   4. 結果に関わらず `docker compose stop api` で e2e 用を止め、1 で止めた開発用を `just be-dev` で起動し直す
 
 - 新しい API 操作: `openapi.yaml` + sqlc クエリ + handler + router テスト 1 件 + `schemas.ts` のスキーマ。
-- 新しい画面: route + page + サーバー関数 (zod) + e2e 1 本。
+- 新しい画面: route + page + サーバー関数 (zod)。e2e は新しいつながりを作ったときだけ 1 本。
 - 新しい業務ルール: DB 制約 (可能なら) + handler のエラー写像 + そのテスト。
 - テストが落ちたまま、または飛ばしたまま報告しない。落ちたら出力を添えて報告する。

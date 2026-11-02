@@ -139,7 +139,7 @@ just be-test -count=1                             # キャッシュを使わず�
 just be-gen            # OpenAPI か SQL を変えたとき。生成物に差分が出たら一緒にコミットする
 just lint && just test
 just fe-typecheck
-just fe-test-e2e       # 画面の遷移やログインに触れたとき
+just fe-test-e2e       # サーバー関数と backend の受け渡し・SQL・セッションと Cookie に触れたとき
 ```
 
 - pre-commit (lefthook) は lint、markuplint、typecheck、Vitest、gofmt、go vet、go test、gitleaks を実行する。
