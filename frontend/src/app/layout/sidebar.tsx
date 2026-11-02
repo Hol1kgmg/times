@@ -39,10 +39,6 @@ export const ChannelNav = ({ onNavigate }: Props) => {
               <span className={styles.hash}>#</span>ログアウト
             </HoverLink>
           )}
-          <span className={styles.group}>Dev</span>
-          <HoverLink className={styles.link} to="/client" onClick={onNavigate}>
-            <span className={styles.hash}>#</span>client-only
-          </HoverLink>
         </>
       )}
     </nav>

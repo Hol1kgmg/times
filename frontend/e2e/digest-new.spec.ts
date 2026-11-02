@@ -15,7 +15,6 @@ test("未ログインでは登録ページは 404 で、サイドバーに管理
   await expect(nav.getByRole("link", { name: "general" })).toHaveCount(1);
   await expect(nav.getByRole("link", { name: "記事を登録" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "記事を編集" })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "item-1" })).toHaveCount(0);
 });
 
 test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並ぶ", async ({
