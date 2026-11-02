@@ -13,7 +13,7 @@ export const PreviewDialog = ({
   digest: DigestContent;
   onClose: () => void;
 }) => {
-  const { dialogProps, close } = useModal(onClose);
+  const { dialogProps, close } = useModal(onClose, { closeOnOutside: true });
   const headingId = useId();
   return (
     <dialog {...dialogProps} aria-labelledby={headingId} className={styles.dialog}>

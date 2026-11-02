@@ -205,7 +205,7 @@ export const DatePickerDialog = ({
   onPick: (date: string) => void;
   onClose: () => void;
 }) => {
-  const { ref: dialogRef, dialogProps, close } = useModal(onClose);
+  const { ref: dialogRef, dialogProps, close } = useModal(onClose, { closeOnOutside: true });
   const today = Temporal.Now.plainDateISO();
   const [view, setView] = useState<View>("month");
   const [focused, setFocused] = useState(() =>
@@ -272,20 +272,7 @@ export const DatePickerDialog = ({
   const unit = view === "year" ? "年" : "月";
 
   return (
-    <dialog
-      {...dialogProps}
-      aria-label="日付を選ぶ"
-      className={styles.dialog}
-      onPointerDown={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        const outside =
-          e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
-        // ::backdrop を押しても target は dialog 自身になるので、座標で枠の外かを見る。closedby は Safari が未対応
-        if (e.target === e.currentTarget && outside) {
-          e.currentTarget.close();
-        }
-      }}
-    >
+    <dialog {...dialogProps} aria-label="日付を選ぶ" className={styles.dialog}>
       <div className={styles.toolbar}>
         {view === "year" ? (
           <h2 className={styles.period}>

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { SyntheticEvent } from "react";
+import type { PointerEvent, SyntheticEvent } from "react";
 
 const settle = async (dialog: HTMLDialogElement, onClose: () => void) => {
   await Promise.allSettled(dialog.getAnimations().map(async (a) => await a.finished));
@@ -13,14 +13,28 @@ export const afterFadeOut =
     void settle(currentTarget, onClose);
   };
 
-export const useModal = (onClose: () => void) => {
+const closeOnBackdrop = (e: PointerEvent<HTMLDialogElement>) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const outside =
+    e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  // ::backdrop を押しても target は dialog 自身になるので、座標で枠の外かを見る。closedby は Safari が未対応
+  if (e.target === e.currentTarget && outside) {
+    e.currentTarget.close();
+  }
+};
+
+export const useModal = (onClose: () => void, { closeOnOutside = false } = {}) => {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     ref.current?.showModal();
   }, []);
   return {
     ref,
-    dialogProps: { ref, onClose: afterFadeOut(onClose) },
+    dialogProps: {
+      ref,
+      onClose: afterFadeOut(onClose),
+      onPointerDown: closeOnOutside ? closeOnBackdrop : undefined,
+    },
     close: () => {
       ref.current?.close();
     },
