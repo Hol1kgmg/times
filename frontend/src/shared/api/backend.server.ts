@@ -1,6 +1,7 @@
 import { notFound } from "@tanstack/react-router";
 import { createServerOnlyFn } from "@tanstack/react-start";
 // #/shared/auth は get-current-admin 経由でこのファイルに戻ってきて循環するので、errors を直接取る
+import type { AdminToken } from "#/shared/auth/admin-token";
 import { SESSION_EXPIRED } from "#/shared/auth/errors";
 
 // backend は frontend のサーバー関数からだけ呼ぶ (adr/backend/0003)。
@@ -8,7 +9,7 @@ import { SESSION_EXPIRED } from "#/shared/auth/errors";
 const baseUrl = () => process.env.BACKEND_URL ?? "http://localhost:8080";
 
 interface Auth {
-  token?: string;
+  token?: AdminToken;
 }
 
 // 応答をそのまま返す。ステータスで分岐したい呼び出し側 (ログインの 403 / 502) が使う
@@ -21,7 +22,7 @@ export const backendFetchRaw = createServerOnlyFn(
       headers.set("X-Backend-Token", shared);
     }
     // 管理者の session トークン。照合は backend が行う (adr/backend/0007)
-    if (auth?.token !== undefined && auth.token !== "") {
+    if (auth?.token !== undefined) {
       headers.set("Authorization", `Bearer ${auth.token}`);
     }
     return await fetch(new URL(path, baseUrl()), { ...init, headers });

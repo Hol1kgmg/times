@@ -1,7 +1,10 @@
 import { isNotFound } from "@tanstack/react-router";
 import { describe, expect, it, vi } from "vitest";
+import { adminToken } from "#/shared/auth/admin-token";
 import { SESSION_EXPIRED } from "#/shared/auth/errors";
 import { backendFetch } from "./backend.server";
+
+const token = adminToken.parse("t");
 
 const problem = (status: number, type: string) =>
   Response.json(
@@ -18,7 +21,7 @@ const stubFetch = (res: Response) => {
 describe(backendFetch, () => {
   it("maps 401 unauthorized with a token to notFound(SESSION_EXPIRED)", async () => {
     const fetch = stubFetch(problem(401, "/problems/unauthorized"));
-    const err: unknown = await backendFetch("/auth/sessions/current", {}, { token: "t" }).catch(
+    const err: unknown = await backendFetch("/auth/sessions/current", {}, { token }).catch(
       (error: unknown) => error,
     );
     expect(isNotFound(err)).toBeTruthy();
@@ -42,7 +45,7 @@ describe(backendFetch, () => {
         { status: 400, headers: { "content-type": "application/problem+json" } },
       ),
     );
-    const err: unknown = await backendFetch("/digests", { method: "POST" }, { token: "t" }).catch(
+    const err: unknown = await backendFetch("/digests", { method: "POST" }, { token }).catch(
       (error: unknown) => error,
     );
     expect(err instanceof Error && err.cause).toMatchObject({
@@ -52,8 +55,8 @@ describe(backendFetch, () => {
 
   it("throws a plain Error on 403 forbidden", async () => {
     stubFetch(problem(403, "/problems/forbidden"));
-    await expect(
-      backendFetch("/auth/sessions", { method: "POST" }, { token: "t" }),
-    ).rejects.toThrow("backend 403: POST /auth/sessions");
+    await expect(backendFetch("/auth/sessions", { method: "POST" }, { token })).rejects.toThrow(
+      "backend 403: POST /auth/sessions",
+    );
   });
 });

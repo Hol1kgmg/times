@@ -7,7 +7,7 @@ import { loginConfig } from "./login-config.server";
 export const runLogout = async (path: string) => {
   loginConfig(path);
   const token = readAdminToken();
-  if (token !== undefined && token !== "") {
+  if (token !== undefined) {
     try {
       await backendFetch("/auth/sessions/current", { method: "DELETE" }, { token });
     } catch (error) {

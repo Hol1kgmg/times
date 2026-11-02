@@ -13,7 +13,7 @@ const description = "見かけて気になった技術や趣味の記事を、�
 // 全文書 SSR: <html> から描画する
 export const Route = createRootRoute({
   // ログイン中はサイドバーに管理者向けリンクを出す
-  beforeLoad: async () => await getCurrentAdmin(),
+  beforeLoad: async () => ({ viewer: await getCurrentAdmin() }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },

@@ -4,6 +4,7 @@ import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
 import { backendFetch } from "#/shared/api/index.server";
+import { adminToken } from "./admin-token";
 import { SESSION_EXPIRED } from "./errors";
 
 // Cookie は backend の不透明トークンと OAuth の state を運ぶだけ (specs/003 data-model.md)
@@ -14,7 +15,7 @@ const attrs = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as co
 const ADMIN_MAX_AGE = 30 * 24 * 60 * 60;
 const LOGIN_MAX_AGE = 10 * 60;
 
-export const readAdminToken = () => getCookie(ADMIN_COOKIE);
+export const readAdminToken = () => adminToken.safeParse(getCookie(ADMIN_COOKIE)).data;
 export const writeAdminToken = (token: string) => {
   setCookie(ADMIN_COOKIE, token, { ...attrs, maxAge: ADMIN_MAX_AGE });
 };
@@ -44,7 +45,7 @@ export type AdminUser = z.infer<typeof adminUser>;
 // Cookie のトークンを backend に照合する。有効なら user、無効 (401) なら Cookie を消して undefined
 export const currentAdmin = async (): Promise<AdminUser | undefined> => {
   const token = readAdminToken();
-  if (token === undefined || token === "") {
+  if (token === undefined) {
     return undefined;
   }
   try {
@@ -72,7 +73,7 @@ export const requireAdminPage = createServerFn({ method: "GET" }).handler(async 
 // Cookie の有無だけ見る。照合は backendFetch(path, init, { token }) で backend が行う
 export const requireAdminToken = () => {
   const token = readAdminToken();
-  if (token === undefined || token === "") {
+  if (token === undefined) {
     throw notFound({ data: { reason: SESSION_EXPIRED } });
   }
   return token;
