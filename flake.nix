@@ -153,7 +153,7 @@
         # GitHub Actions が `nix eval --raw .#node.version` で参照する。
         # flake.lock の nixpkgs 更新に CI の Node.js バージョンを自動追従させるため。
         # CI の setup-node にも同じバージョンを渡すため、ここを唯一の定義箇所にする
-        packages.node = pkgs.nodejs_24;
+        packages.node = pkgs.nodejs_26;
 
         # backend-ci 用。default は gcloud や skills まで含み CI の環境構築だけで約 2 分かかるため最小構成に絞る
         devShells.backend = pkgs.mkShell {
