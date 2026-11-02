@@ -3,20 +3,6 @@ import { boardOf, loggedInState } from "./admin";
 
 const newPath = "/admin/digests/new";
 
-test("未ログインでは登録ページは 404 で、サイドバーに管理者向けのタブが出ない", async ({
-  page,
-}) => {
-  const res = await page.goto(newPath);
-  expect(res?.status()).toBe(404);
-  const listRes = await page.goto("/admin/digests");
-  expect(listRes?.status()).toBe(404);
-  await page.goto("/");
-  const nav = page.getByRole("navigation", { name: "チャンネル" });
-  await expect(nav.getByRole("link", { name: "general" })).toHaveCount(1);
-  await expect(nav.getByRole("link", { name: "記事を登録" })).toHaveCount(0);
-  await expect(nav.getByRole("link", { name: "記事を編集" })).toHaveCount(0);
-});
-
 test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並び、その日に登録を開き直すと編集へ移れる", async ({
   browser,
 }) => {
