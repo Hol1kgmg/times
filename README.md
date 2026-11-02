@@ -39,12 +39,19 @@ just db-up          # Postgres を起動してマイグレーションを適用
 
 ## 開発サーバー
 
-別々のターミナルで起動します。
+別々のターミナルで起動します。どれも portless のプロキシを経由し、git worktree ではブランチ名が前置されます（例: `feat/fix-ui` → `http://fix-ui.times.localhost:1355`）。
 
 ```bash
-just fe-dev    # frontend: http://localhost:3000
-just be-dev    # backend:  http://localhost:8080
+just be-dev   # backend:  http://api.times.localhost:1355
+just fe-dev   # frontend: http://times.localhost:1355
 ```
+
+管理者ログインは既定で GitHub モックを向きます（モックの「管理者として承認」で入れます）。モックは `be-dev` が `http://github.times.localhost:1355` で一緒に起動し、止めると一緒に止まります。本物の GitHub で確かめるときは本体の worktree で `GITHUB_AUTH=real just be-dev` / `GITHUB_AUTH=real just fe-dev` を使います（[docs/admin-login.md](docs/admin-login.md)）。
+`PORTLESS=0` を付けるとプロキシを通さず、従来どおり 3000 / 8080 / 3100 で起動します。
+compose の api (`just be-up`、8080、本物の GitHub) に向けるときは `BACKEND_URL=http://localhost:8080 GITHUB_AUTH=real just fe-dev` を使います。
+
+スマホなど同じ LAN の端末から開くときは `just fe-dev-host`（`http://<Mac の LAN IP>:3000`。IP は `ipconfig getifaddr en0`）を使います。backend とモックの向き先は `fe-dev` と同じです。端末のブラウザが開く承認画面用に、GitHub モックを 3100 番で一緒に起動し、止めると一緒に止まります（3100 が使用中ならそれを使います）。
+DB は本体の worktree で `just db-up` したものを全 worktree で共有します。マイグレーションを足したブランチは、ほかの worktree の DB の形も変える点に注意してください。
 
 ## 開発環境
 

@@ -116,6 +116,26 @@ lint: fe-lint be-lint
 # Format all code
 format: fe-format be-format
 
+# --- portless / GitHub auth (fe-dev, be-dev) ---
+
+repo := file_name(parent_directory(`git rev-parse --path-format=absolute --git-common-dir`))
+
+# PORTLESS=0 ではプロキシを通さないので portless get の URL には届かない
+_url name port:
+    @if [ "${PORTLESS:-}" = 0 ]; then echo http://localhost:{{port}}; else portless get {{name}}; fi
+
+# OAuth App の callback URL は 1 つしか登録できず、worktree ではホスト名が変わるため real は本体に限る
+_github-auth:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "${GITHUB_AUTH:-mock}" in
+        mock) ;;
+        real)
+            [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ] \
+                || { echo "GITHUB_AUTH=real は本体の worktree でだけ使う (docs/admin-login.md)" >&2; exit 1; } ;;
+        *) echo "GITHUB_AUTH は mock か real" >&2; exit 1 ;;
+    esac
+
 # --- frontend ---
 
 # Install frontend dependencies
@@ -138,13 +158,37 @@ fe-remove *args:
 fe-upgrade *args:
     pnpm -C frontend update {{args}}
 
-# Start the development server
-fe-dev *args:
-    pnpm -C frontend dev {{args}}
+# Start the development server at http://<repo>.localhost:1355 (GITHUB_AUTH=real for real GitHub, BACKEND_URL to override the API)
+fe-dev *args: (_fe-dev "proxy" args)
 
-# Start the development server bound to 0.0.0.0
-fe-dev-host *args:
-    pnpm -C frontend dev:host {{args}}
+# Start the development server at http://<LAN IP>:3000 for other devices, with the GitHub mock on 3100
+fe-dev-host *args: (_fe-dev "lan" args)
+
+_fe-dev mode *args: _github-auth
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export BACKEND_URL=${BACKEND_URL:-$({{just_executable()}} _url api.{{repo}} 8080)}
+    if [ "${GITHUB_AUTH:-mock}" = mock ]; then
+        export GITHUB_CLIENT_ID=test
+        if [ {{mode}} = lan ]; then
+            # 承認画面はスマホのブラウザが開くので、*.localhost ではなく LAN の IP で 3100 のモックを向く
+            ip=$(ipconfig getifaddr en0) || { echo "en0 の LAN IP が取れない" >&2; exit 1; }
+            export GITHUB_BASE_URL=http://$ip:3100
+        else
+            export GITHUB_BASE_URL=$({{just_executable()}} _url github.{{repo}} 3100)
+        fi
+    fi
+    cd frontend
+    if [ {{mode}} = lan ]; then
+        # モックは状態を持たないので、3100 で別のモック (e2e など) が動いていればそれを使う
+        if [ "${GITHUB_AUTH:-mock}" = mock ] && ! lsof -tiTCP:3100 -sTCP:LISTEN >/dev/null; then
+            PORT=3100 node e2e/github-mock.ts &
+            trap "kill $!" EXIT
+        fi
+        pnpm dev:host {{args}}
+        exit
+    fi
+    exec portless run --name {{repo}} sh -c 'pnpm dev --port "${PORT:-3000}" "$@"' _ {{args}}
 
 # Build for production
 fe-build:
@@ -209,9 +253,22 @@ fe-og-image:
 
 # --- backend ---
 
-# Start the API server (needs `just db-up`)
-be-dev *args:
-    cd backend && go run ./cmd/server {{args}}
+# Start the API server at http://api.<repo>.localhost:1355 with the GitHub mock (needs `just db-up`; GITHUB_AUTH=real for real GitHub)
+be-dev *args: _github-auth
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "${GITHUB_AUTH:-mock}" = mock ]; then
+        mock=$({{just_executable()}} _url github.{{repo}} 3100)
+        # モックは code=admin を octocat として返す (frontend/e2e/github-mock.ts)
+        export GITHUB_BASE_URL=$mock GITHUB_API_URL=$mock GITHUB_CLIENT_ID=test GITHUB_CLIENT_SECRET=test ADMIN_GITHUB_LOGIN=octocat
+        # モックは状態を持たないので、同じ URL で別のモック (e2e など) が動いていればそれを使う
+        if ! curl -sf -o /dev/null "$mock/login/oauth/authorize"; then
+            (cd frontend && exec portless run --name github.{{repo}} node e2e/github-mock.ts) &
+            trap "kill $!" EXIT
+        fi
+    fi
+    cd backend
+    portless run --name api.{{repo}} go run ./cmd/server {{args}}
 
 # Regenerate oapi-codegen, sqlc, and frontend API types (openapi-typescript)
 be-gen: be-gen-go
