@@ -17,7 +17,7 @@ test("未ログインでは登録ページは 404 で、サイドバーに管理
   await expect(nav.getByRole("link", { name: "記事を編集" })).toHaveCount(0);
 });
 
-test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並ぶ", async ({
+test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並び、その日に登録を開き直すと編集へ移れる", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -82,5 +82,12 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   const links = panel.getByRole("link");
   await expect(links).toHaveText([security, related, `${other}HOT`]);
   await expect(links.filter({ hasText: "HOT" })).toHaveText([`${other}HOT`]);
+
+  // 登録した日を「今日」にして開き直すと、登録済みと伝えて編集へ移れる
+  await page.clock.setFixedTime(new Date(`${date}T12:00:00`));
+  await page.goto(newPath);
+  await page.getByRole("dialog", { name: "今日の記事は登録済みです。編集しますか？" }).waitFor();
+  await page.getByRole("link", { name: "編集する" }).click();
+  await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await context.close();
 });

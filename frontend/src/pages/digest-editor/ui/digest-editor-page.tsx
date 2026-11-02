@@ -33,6 +33,7 @@ import { DraftCard } from "./draft-card";
 import type { CardActions } from "./draft-card";
 import { PreviewDialog } from "./preview-dialog";
 import { SaveSplitButton } from "./save-split-button";
+import { TodayTakenDialog } from "./today-taken-dialog";
 import type { SaveAction } from "./save-split-button";
 import { UrlAddForm } from "./url-add-form";
 import styles from "./digest-editor-page.module.css";
@@ -245,6 +246,14 @@ const DigestForm = <S extends DigestStatus>({
           />
         </div>
       </header>
+      {editedDate === undefined && initialDate === undefined && taken.has(defaultDate) && (
+        <TodayTakenDialog
+          date={defaultDate}
+          onClose={() => {
+            setEditedDate("");
+          }}
+        />
+      )}
       {previewing && (
         <PreviewDialog
           digest={entry}
