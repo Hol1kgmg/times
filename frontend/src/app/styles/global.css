@@ -184,7 +184,8 @@ button {
 
 .modal[open] {
   opacity: 1;
-  scale: 1;
+  /* 1 でも fixed の基準がダイアログになり、記事プレビューがスクロールの中に閉じ込められて切れる */
+  scale: none;
 }
 
 .modal::backdrop {
