@@ -206,38 +206,51 @@
   line-height: 1;
 }
 
+/* border-spacing は表の外周にも付くので、外周の分を外へ逃がして曜日の見出しと列を揃える */
+.grid {
+  width: calc(100% + var(--space-half) * 2);
+  margin: calc(var(--space-half) * -1);
+  border-spacing: var(--space-half);
+  table-layout: fixed;
+}
+
+.grid td {
+  padding: 0;
+}
+
 .cellLarge {
   composes: t-body from global;
   position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 1;
-  padding: 0;
-  border: none;
   border-radius: var(--radius-control);
-  background: none;
   color: var(--color-text);
-  font-family: inherit;
   cursor: pointer;
   transition: transform 0.1s ease-out;
 }
 
-.cellLarge:disabled {
+.cellLarge[data-outside-month] {
+  visibility: hidden;
+}
+
+.cellLarge[data-unavailable] {
   color: var(--color-text-faint);
   cursor: not-allowed;
 }
 
-.selected {
+.selected,
+.cellLarge[data-selected] {
   color: var(--color-accent);
   font-weight: 600;
 }
 
-.cellLarge.selected {
+.cellLarge[data-selected] {
   background-color: var(--color-selected);
 }
 
 /* 数字に添える装飾なので、非テキストの 3:1 を満たさないロゴ色でよい */
-.cellLarge.disabled::after {
+.cellLarge[data-unavailable]::after {
   position: absolute;
   bottom: var(--space-1);
   left: 50%;
@@ -249,12 +262,12 @@
   translate: -50% 0;
 }
 
-.cellLarge:active:not(:disabled),
+.cellLarge[data-pressed],
 .step:active {
   transform: scale(1.1);
 }
 
-.cellLarge:not(:disabled)[data-hovered] {
+.cellLarge[data-hovered] {
   background-color: var(--color-selected);
   color: var(--color-accent);
 }
@@ -372,7 +385,7 @@
   }
 
   .step:active,
-  .cellLarge:active:not(:disabled),
+  .cellLarge[data-pressed],
   .month:has(.monthLink:active) {
     transform: none;
   }

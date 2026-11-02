@@ -6,39 +6,31 @@ import {
   useState,
   ViewTransition,
 } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { parseDate } from "@internationalized/date";
+import {
+  Calendar,
+  CalendarCell,
+  CalendarGrid,
+  CalendarGridBody,
+  I18nProvider,
+} from "react-aria-components";
 import { Temporal } from "temporal-polyfill/implementation";
 import { Chevron } from "#/shared/ui/chevron";
 import { HoverButton } from "#/shared/ui/hover-button";
-import { monthDays, stepEnabled } from "#/shared/lib/month-days";
+import { monthDays } from "#/shared/lib/month-days";
 import styles from "./date-picker.module.css";
 import { useModal } from "./modal";
 
-export interface DisabledDates {
-  dates: ReadonlySet<string>;
-  // 読み上げで選べない理由として日付の後ろに付ける
-  label: string;
-}
-
 const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-
-const keySteps: Partial<Record<string, number>> = {
-  ArrowLeft: -1,
-  ArrowRight: 1,
-  ArrowUp: -7,
-  ArrowDown: 7,
-};
 
 type View = "year" | "month";
 
-interface CalendarProps {
+interface MiniMonthProps {
   ym: Temporal.PlainYearMonth;
   value: string;
-  disabled: DisabledDates;
   named: boolean;
-  onPick?: (date: string) => void;
-  onKeyDown?: (e: KeyboardEvent<HTMLButtonElement>) => void;
 }
 
 // 箱ごと撮ると年表示と月表示で縦横比が違い、字が歪んで二重に見える。字だけを包んで年表示と月表示で同じ名前を付ける
@@ -55,39 +47,19 @@ const Morph = ({ name, children }: { name: string | undefined; children: ReactNo
   </span>
 );
 
-const Calendar = ({ ym, value, disabled, named, onPick, onKeyDown }: CalendarProps) => {
+const MiniMonth = ({ ym, value, named }: MiniMonthProps) => {
   const { lead, days } = monthDays(ym.year, ym.month);
-  const interactive = onPick !== undefined;
-  const cell = interactive ? styles.cellLarge : styles.cell;
-  const today = Temporal.Now.plainDateISO().toString();
   return (
-    <div className={styles.calendar}>
+    <div aria-hidden className={styles.calendar}>
       {days.map((day, i) => {
         const date = day.toString();
-        const className = `${cell} ${disabled.dates.has(date) ? styles.disabled : ""} ${date === value ? styles.selected : ""}`;
-        const style = i === 0 ? { gridColumnStart: lead + 1 } : undefined;
-        const digits = <Morph name={named ? `day-${date}` : undefined}>{day.day}</Morph>;
-        return interactive ? (
-          <HoverButton
+        return (
+          <span
             key={date}
-            aria-current={date === today ? "date" : undefined}
-            aria-label={`${day.toLocaleString("ja-JP", { month: "long", day: "numeric", weekday: "short" })}${disabled.dates.has(date) ? ` ${disabled.label}` : ""}`}
-            aria-pressed={date === value}
-            className={className}
-            data-date={date}
-            disabled={disabled.dates.has(date)}
-            style={style}
-            type="button"
-            onClick={() => {
-              onPick(date);
-            }}
-            onKeyDown={onKeyDown}
+            className={`${styles.cell} ${date === value ? styles.selected : ""}`}
+            style={i === 0 ? { gridColumnStart: lead + 1 } : undefined}
           >
-            {digits}
-          </HoverButton>
-        ) : (
-          <span key={date} aria-hidden className={className} style={style}>
-            {digits}
+            <Morph name={named ? `day-${date}` : undefined}>{day.day}</Morph>
           </span>
         );
       })}
@@ -98,7 +70,6 @@ const Calendar = ({ ym, value, disabled, named, onPick, onKeyDown }: CalendarPro
 interface ViewProps {
   ym: Temporal.PlainYearMonth;
   value: string;
-  disabled: DisabledDates;
   morph: boolean;
   onShare: () => void;
 }
@@ -108,17 +79,22 @@ const slide = { next: styles.slideNext, prev: styles.slidePrev, default: "none" 
 const weekdaysAt = "[data-weekdays]";
 const cardAt = (m: Temporal.PlainYearMonth) => `[data-month="${m.toString()}"]`;
 
+const toCalendarDate = (date: Temporal.PlainDate) => parseDate(date.toString());
+
 const MonthView = ({
   ym,
   value,
   disabled,
   morph,
   onShare,
+  focused,
+  onFocusChange,
   onPick,
-  onKeyDown,
 }: ViewProps & {
+  disabled: ReadonlySet<string>;
+  focused: Temporal.PlainDate;
+  onFocusChange: (date: Temporal.PlainDate) => void;
   onPick: (date: string) => void;
-  onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void;
 }) => (
   <div className={styles.monthView}>
     <div aria-hidden className={styles.weekdays} data-weekdays>
@@ -141,16 +117,39 @@ const MonthView = ({
         onShare={onShare}
       >
         <div className={`${styles.monthPanel} ${morph ? "" : styles.clip}`}>
-          <ViewTransition key={ym.toString()} default="none" enter={slide} exit={slide}>
+          {/* 週の始まりと読み上げを、閲覧者のブラウザの言語ではなく曜日の見出しに揃える */}
+          <I18nProvider locale="ja-JP">
             <Calendar
-              disabled={disabled}
-              named={morph}
-              value={value}
-              ym={ym}
-              onKeyDown={onKeyDown}
-              onPick={onPick}
-            />
-          </ViewTransition>
+              aria-label="日付"
+              focusedValue={toCalendarDate(focused)}
+              isDateUnavailable={(d) => disabled.has(d.toString())}
+              value={value === "" ? null : parseDate(value)}
+              onChange={(d) => {
+                onPick(d.toString());
+              }}
+              onFocusChange={(d) => {
+                onFocusChange(Temporal.PlainDate.from(d.toString()));
+              }}
+            >
+              <ViewTransition key={ym.toString()} default="none" enter={slide} exit={slide}>
+                <CalendarGrid className={styles.grid}>
+                  <CalendarGridBody>
+                    {(date) => (
+                      <CalendarCell className={styles.cellLarge} date={date}>
+                        {({ formattedDate, isOutsideMonth }) => (
+                          <Morph
+                            name={morph && !isOutsideMonth ? `day-${date.toString()}` : undefined}
+                          >
+                            {formattedDate}
+                          </Morph>
+                        )}
+                      </CalendarCell>
+                    )}
+                  </CalendarGridBody>
+                </CalendarGrid>
+              </ViewTransition>
+            </Calendar>
+          </I18nProvider>
         </div>
       </ViewTransition>
     </div>
@@ -160,7 +159,6 @@ const MonthView = ({
 const YearView = ({
   ym,
   value,
-  disabled,
   morph,
   onShare,
   onOpenMonth,
@@ -188,7 +186,7 @@ const YearView = ({
               </HoverButton>
             </h3>
             {/* 全 12 か月の日付に名前を付けると 365 個を撮って数秒固まるので、動かす 1 か月にだけ付ける */}
-            <Calendar disabled={disabled} named={morph && m.equals(ym)} value={value} ym={m} />
+            <MiniMonth named={morph && m.equals(ym)} value={value} ym={m} />
           </section>
         </ViewTransition>
       ))}
@@ -203,39 +201,22 @@ export const DatePickerDialog = ({
   onClose,
 }: {
   value: string;
-  disabled: DisabledDates;
+  disabled: ReadonlySet<string>;
   onPick: (date: string) => void;
   onClose: () => void;
 }) => {
   const { ref: dialogRef, dialogProps, close } = useModal(onClose);
-  const thisMonth = Temporal.Now.plainDateISO().toPlainYearMonth();
+  const today = Temporal.Now.plainDateISO();
   const [view, setView] = useState<View>("month");
-  const [ym, setYm] = useState(() =>
-    value === "" ? thisMonth : Temporal.PlainDate.from(value).toPlainYearMonth(),
+  const [focused, setFocused] = useState(() =>
+    value === "" ? today : Temporal.PlainDate.from(value),
   );
-  const focusDate = (date: string) => {
-    const button = dialogRef.current?.querySelector<HTMLButtonElement>(`[data-date="${date}"]`);
-    button?.focus();
-    return button !== null && button !== undefined;
-  };
-  const initialFocus = useRef(value === "" ? Temporal.Now.plainDateISO().toString() : value);
+  const ym = focused.toPlainYearMonth();
   // useModal の showModal より後に動くよう、effect はその後に宣言する
   useEffect(() => {
-    const dialog = dialogRef.current;
-    // showModal は先頭のボタン (年へ戻る) にフォーカスするので、選択中か今日の日付へ移す
-    const enabled = "[data-date]:not(:disabled)";
-    (
-      dialog?.querySelector<HTMLButtonElement>(`${enabled}[data-date="${initialFocus.current}"]`) ??
-      dialog?.querySelector<HTMLButtonElement>(enabled)
-    )?.focus();
+    // showModal は先頭のボタン (年へ戻る) にフォーカスするので、Calendar が Tab の止まり先にしたセルへ移す
+    dialogRef.current?.querySelector<HTMLElement>('[role="grid"] [tabindex="0"]')?.focus();
   }, [dialogRef]);
-  // 月をまたぐ移動は transition の後に描かれるので、行き先が DOM に出たコミットでフォーカスする
-  const pendingFocus = useRef<string>(undefined);
-  useEffect(() => {
-    if (pendingFocus.current !== undefined && focusDate(pendingFocus.current)) {
-      pendingFocus.current = undefined;
-    }
-  });
 
   const [morph, setMorph] = useState(false);
 
@@ -264,42 +245,28 @@ export const DatePickerDialog = ({
   };
 
   // React の <ViewTransition> は transition の中の更新でだけ動く
-  const go = (v: View, to: Temporal.PlainYearMonth) => {
+  const go = (v: View, to: Temporal.PlainDate) => {
+    const toYm = to.toPlainYearMonth();
     // 別の年の月へは数字の行き先が年表示の DOM にないので、送りとして滑らせる
     const switching = v !== view && to.year === ym.year;
     if (switching) {
-      leaving.current = center(view === "month" ? weekdaysAt : cardAt(to));
+      leaving.current = center(view === "month" ? weekdaysAt : cardAt(toYm));
     }
     // 撮る前に名前を付け替える。年と月の切り替えは数字を 1 つずつ動かし、月送りは日付の面ごと滑らせる
     flushSync(() => {
       setMorph(switching);
       if (switching) {
-        setYm(to);
+        setFocused(to);
       }
     });
     startTransition(() => {
       addTransitionType("date-picker");
       if (!switching) {
-        addTransitionType(Temporal.PlainYearMonth.compare(to, ym) > 0 ? "next" : "prev");
+        addTransitionType(Temporal.PlainYearMonth.compare(toYm, ym) > 0 ? "next" : "prev");
       }
       setView(v);
-      setYm(to);
+      setFocused(to);
     });
-  };
-  const move = (e: KeyboardEvent<HTMLButtonElement>) => {
-    const days = keySteps[e.key];
-    const from = e.currentTarget.dataset.date;
-    if (days === undefined || from === undefined) {
-      return;
-    }
-    e.preventDefault();
-    const to = stepEnabled(Temporal.PlainDate.from(from), days, disabled.dates);
-    if (to.toPlainYearMonth().equals(ym)) {
-      focusDate(to.toString());
-    } else {
-      pendingFocus.current = to.toString();
-      go("month", to.toPlainYearMonth());
-    }
   };
   const step = view === "year" ? { years: 1 } : { months: 1 };
   const unit = view === "year" ? "年" : "月";
@@ -330,7 +297,7 @@ export const DatePickerDialog = ({
               className={styles.back}
               type="button"
               onClick={() => {
-                go("year", ym);
+                go("year", focused);
               }}
             >
               <Chevron className={styles.prev} size={18} />
@@ -344,10 +311,10 @@ export const DatePickerDialog = ({
         <div className={styles.controls}>
           <HoverButton
             className={styles.today}
-            disabled={view === "month" && ym.equals(thisMonth)}
+            disabled={view === "month" && ym.equals(today.toPlainYearMonth())}
             type="button"
             onClick={() => {
-              go("month", thisMonth);
+              go("month", today);
             }}
           >
             今日
@@ -357,7 +324,7 @@ export const DatePickerDialog = ({
             className={styles.step}
             type="button"
             onClick={() => {
-              go(view, ym.subtract(step));
+              go(view, focused.subtract(step));
             }}
           >
             <Chevron className={styles.prev} size={18} />
@@ -367,7 +334,7 @@ export const DatePickerDialog = ({
             className={styles.step}
             type="button"
             onClick={() => {
-              go(view, ym.add(step));
+              go(view, focused.add(step));
             }}
           >
             <Chevron className={styles.next} size={18} />
@@ -377,10 +344,18 @@ export const DatePickerDialog = ({
       {view === "month" ? (
         <MonthView
           disabled={disabled}
+          focused={focused}
           morph={morph}
           value={value}
           ym={ym}
-          onKeyDown={move}
+          onFocusChange={(date) => {
+            // 矢印キーで月をまたぐときも、月送りのボタンと同じく滑らせる
+            if (date.toPlainYearMonth().equals(ym)) {
+              setFocused(date);
+            } else {
+              go("month", date);
+            }
+          }}
           onPick={(date) => {
             onPick(date);
             close();
@@ -389,12 +364,11 @@ export const DatePickerDialog = ({
         />
       ) : (
         <YearView
-          disabled={disabled}
           morph={morph}
           value={value}
           ym={ym}
           onOpenMonth={(m) => {
-            go("month", m);
+            go("month", focused.with({ month: m.month }));
           }}
           onShare={gatherWeekdays}
         />

@@ -51,7 +51,7 @@ export const DateField = ({ value, invalid, taken, onChange }: DateFieldProps) =
       {picking && (
         <Suspense>
           <DatePickerDialog
-            disabled={{ dates: taken, label: "登録済み" }}
+            disabled={taken}
             value={value}
             onClose={() => {
               setPicking(false);

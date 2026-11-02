@@ -13,15 +13,3 @@ export const monthDays = (year: number, month: number): MonthDays => {
     days: Array.from({ length: first.daysInMonth }, (_, i) => first.add({ days: i })),
   };
 };
-
-export const stepEnabled = (
-  from: Temporal.PlainDate,
-  days: number,
-  disabled: ReadonlySet<string>,
-): Temporal.PlainDate => {
-  let to = from.add({ days });
-  while (disabled.has(to.toString())) {
-    to = to.add({ days });
-  }
-  return to;
-};

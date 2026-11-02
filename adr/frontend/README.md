@@ -13,3 +13,4 @@
 | 0005 | [固定の UI 文字は Klee One のサブセットを preload して先に出し、記事タイトルの遅れは許容する](0005-preload-klee-one-subset-for-fixed-ui-text.md) | accepted |
 | 0006 | [記事プレビューの待ち時間と Esc での消去は CSS と小さな JS で作り、interestfor はまだ使わない](0006-delay-and-dismiss-link-preview-without-interestfor.md) | accepted |
 | 0007 | [ホバーのきっかけは react-aria の useHover で操作ごとに判定し、ホバー前提の UI を出すかはメディアクエリで決める](0007-split-hover-trigger-and-hover-ui-presence.md) | accepted |
+| 0008 | [ヘッドレス UI は React Aria Components を採用し、日付ピッカーの月表示から置き換える](0008-adopt-react-aria-components-starting-with-date-picker.md) | accepted |
