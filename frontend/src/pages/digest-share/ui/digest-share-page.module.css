@@ -1,0 +1,5 @@
+.page {
+  padding: var(--space-4);
+  /* Fixed のサブセットはトップとシェルの文字だけなので、ほかの画面の字は Klee One から取る (adr/frontend/0005) */
+  font-family: var(--font-dynamic);
+}

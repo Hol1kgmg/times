@@ -67,7 +67,7 @@ func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkPa
 }
 
 const createDigest = `-- name: CreateDigest :one
-INSERT INTO digests (entry_date, created_by, status) VALUES ($1, $2, $3) RETURNING id, entry_date, created_at, created_by, status
+INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3, CASE WHEN $3 = 'published' THEN now() END) RETURNING id, entry_date, created_at, created_by, status, published_at
 `
 
 type CreateDigestParams struct {
@@ -85,6 +85,7 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 		&i.CreatedAt,
 		&i.CreatedBy,
 		&i.Status,
+		&i.PublishedAt,
 	)
 	return i, err
 }
@@ -99,7 +100,7 @@ func (q *Queries) DeleteArticlesByDigest(ctx context.Context, digestID uuid.UUID
 }
 
 const getDigestByDate = `-- name: GetDigestByDate :one
-SELECT id, entry_date, created_at, created_by, status FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1
+SELECT id, entry_date, created_at, created_by, status, published_at FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1
 `
 
 // ponytail: 管理者 1 人の前提で created_by を見ない。複数になったら条件を足す
@@ -112,12 +113,34 @@ func (q *Queries) GetDigestByDate(ctx context.Context, entryDate time.Time) (Dig
 		&i.CreatedAt,
 		&i.CreatedBy,
 		&i.Status,
+		&i.PublishedAt,
 	)
 	return i, err
 }
 
+const getFeedDigestByDate = `-- name: GetFeedDigestByDate :one
+SELECT id FROM digests
+WHERE status = 'published' AND published_at IS NOT NULL
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower($1))
+  AND entry_date = $2
+LIMIT 1
+`
+
+type GetFeedDigestByDateParams struct {
+	AdminLogin string
+	EntryDate  time.Time
+}
+
+// フィードに載る Digest の日付にだけ画像を作る (specs/010 FR-010)
+func (q *Queries) GetFeedDigestByDate(ctx context.Context, arg GetFeedDigestByDateParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getFeedDigestByDate, arg.AdminLogin, arg.EntryDate)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getLatestDigest = `-- name: GetLatestDigest :one
-SELECT id, entry_date, created_at, created_by, status FROM digests WHERE status = 'published' ORDER BY entry_date DESC, created_at DESC LIMIT 1
+SELECT id, entry_date, created_at, created_by, status, published_at FROM digests WHERE status = 'published' ORDER BY entry_date DESC, created_at DESC LIMIT 1
 `
 
 // 同じ日付が複数あれば後に登録したものを採用する (specs/002 Edge Cases)
@@ -130,6 +153,7 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 		&i.CreatedAt,
 		&i.CreatedBy,
 		&i.Status,
+		&i.PublishedAt,
 	)
 	return i, err
 }
@@ -225,8 +249,42 @@ func (q *Queries) ListDigests(ctx context.Context) ([]ListDigestsRow, error) {
 	return items, nil
 }
 
+const listFeedDigests = `-- name: ListFeedDigests :many
+SELECT id, entry_date, published_at::timestamptz AS published_at FROM digests
+WHERE status = 'published' AND published_at IS NOT NULL
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower($1))
+ORDER BY published_at DESC LIMIT 20
+`
+
+type ListFeedDigestsRow struct {
+	ID          uuid.UUID
+	EntryDate   time.Time
+	PublishedAt time.Time
+}
+
+// 公開時刻を持つ = 下書きから公開した Digest だけが通知になる。対象は ListPublishedDigests と同じく管理者の Digest
+func (q *Queries) ListFeedDigests(ctx context.Context, adminLogin string) ([]ListFeedDigestsRow, error) {
+	rows, err := q.db.Query(ctx, listFeedDigests, adminLogin)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFeedDigestsRow
+	for rows.Next() {
+		var i ListFeedDigestsRow
+		if err := rows.Scan(&i.ID, &i.EntryDate, &i.PublishedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPublishedDigests = `-- name: ListPublishedDigests :many
-SELECT id, entry_date, created_at, created_by, status FROM digests
+SELECT id, entry_date, created_at, created_by, status, published_at FROM digests
 WHERE status = 'published'
   AND created_by IN (SELECT id FROM users WHERE lower(login) = lower($1))
   AND ($2::date IS NULL OR entry_date < $2)
@@ -255,6 +313,7 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 			&i.CreatedAt,
 			&i.CreatedBy,
 			&i.Status,
+			&i.PublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -297,7 +356,11 @@ func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLs
 }
 
 const updateDigest = `-- name: UpdateDigest :one
-UPDATE digests SET entry_date = $1, status = COALESCE($2, status) WHERE created_by = $3 AND entry_date = $4 RETURNING id, entry_date, created_at, created_by, status
+UPDATE digests SET
+  entry_date = $1,
+  status = COALESCE($2, status),
+  published_at = CASE WHEN status = 'draft' AND COALESCE($2, status) = 'published' THEN now() ELSE published_at END
+WHERE created_by = $3 AND entry_date = $4 RETURNING id, entry_date, created_at, created_by, status, published_at
 `
 
 type UpdateDigestParams struct {
@@ -307,7 +370,7 @@ type UpdateDigestParams struct {
 	OldDate   time.Time
 }
 
-// status を省略した更新は今のステータスを保つ
+// status を省略した更新は今のステータスを保つ。右辺の status は更新前の値で、下書きからの公開だけ公開時刻を記録する (specs/010 FR-001/002)
 func (q *Queries) UpdateDigest(ctx context.Context, arg UpdateDigestParams) (Digest, error) {
 	row := q.db.QueryRow(ctx, updateDigest,
 		arg.NewDate,
@@ -322,6 +385,7 @@ func (q *Queries) UpdateDigest(ctx context.Context, arg UpdateDigestParams) (Dig
 		&i.CreatedAt,
 		&i.CreatedBy,
 		&i.Status,
+		&i.PublishedAt,
 	)
 	return i, err
 }

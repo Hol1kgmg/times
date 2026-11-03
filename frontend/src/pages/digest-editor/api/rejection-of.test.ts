@@ -23,6 +23,12 @@ describe(rejectionOf, () => {
     });
   });
 
+  it("tells the page that a future date cannot be published", () => {
+    expect(rejectionOf(failed("/problems/future-publish"))).toStrictEqual({
+      reason: "future-publish",
+    });
+  });
+
   it("leaves other failures to the generic error message", () => {
     expect(rejectionOf(failed("/problems/validation-failed"))).toBeUndefined();
   });

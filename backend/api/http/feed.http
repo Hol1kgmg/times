@@ -1,0 +1,5 @@
+### フィード → 200 RSS 2.0 (公開時刻の新しい順に 20 件。0 件でも channel だけ返る)
+GET {{host}}/feed
+
+### 画像 → 200 image/png / 404 Problem type=/problems/not-found (フィードに載らない日付) / 400 (日付の形式違反)
+GET {{host}}/feed/images/2026-10-17

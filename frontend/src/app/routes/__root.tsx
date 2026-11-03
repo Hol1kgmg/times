@@ -5,7 +5,7 @@ import kleeOne600Css from "@fontsource/klee-one/600.css?url";
 import kleeOneFixed400 from "../styles/fonts/klee-one-fixed-400.woff2?url";
 import kleeOneFixed600 from "../styles/fonts/klee-one-fixed-600.woff2?url";
 import { getCurrentAdmin } from "#/shared/auth";
-import { SITE_NAME, SITE_URL } from "#/shared/config/site";
+import { FEED_PATH, SITE_NAME, SITE_URL } from "#/shared/config/site";
 import appCss from "../styles/global.css?url";
 
 const description = "見かけて気になった技術や趣味の記事を、日ごとにゆるくまとめてます。";
@@ -35,6 +35,8 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      // リーダーがサイトの URL からフィードを見つけるため
+      { rel: "alternate", type: "application/rss+xml", title: SITE_NAME, href: FEED_PATH },
       // フォントの preload は同一オリジンでも crossOrigin が無いと CSS からの取得と別物になり二重に落とす
       ...[kleeOneFixed400, kleeOneFixed600].map((href) => ({
         rel: "preload",

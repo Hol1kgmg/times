@@ -203,7 +203,7 @@ fe-font-subset:
             --output-file="$out/klee-one-fixed-${pair%%:*}.woff2"
     done
 
-# Regenerate the OG image (public/og.png) from docs/logo.svg
+# Regenerate the OG image (public/og.png) and the feed image base (backend/internal/feed/og-base.png) from docs/logo.svg
 fe-og-image:
     cd frontend && node scripts/og-image.ts
 
@@ -237,6 +237,17 @@ be-format:
 be-tidy:
     cd backend && go mod tidy
 
+# Subset Klee One SemiBold to the date characters for the feed image (backend/internal/feed/date-600.ttf)
+be-og-font:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    # fe-font-subset と同じコミットに固定し、サイトの日付と字形を揃える
+    curl -fsSL https://raw.githubusercontent.com/google/fonts/130fcfb0ff422fec96b335616b2ca99f91914792/ofl/kleeone/KleeOne-SemiBold.ttf -o "$tmp/font.ttf"
+    # x/image の opentype は woff2 を読めないので TTF のまま書き出す
+    pyftsubset "$tmp/font.ttf" --text="0123456789月日()日月火水木金土" --output-file=backend/internal/feed/date-600.ttf
+
 # Build and start db + migrate + api
 be-up:
     docker compose up --build
@@ -245,7 +256,8 @@ be-up:
 be-dev-e2e:
     # 開発用の DB に書くとトップの「最新の Digest」が e2e のデータに置き換わるので、別の DB を使う
     docker compose up -d --wait db
-    docker compose exec db sh -c "psql -U times -tAc \"SELECT 1 FROM pg_database WHERE datname = 'times_e2e'\" | grep -q 1 || createdb -U times times_e2e"
+    # 未来の日付は公開できない (specs/010) ので、前回の Digest より後の日付を毎回取れるよう空から始める
+    docker compose exec db sh -c "dropdb -U times --if-exists --force times_e2e && createdb -U times times_e2e"
     DB_NAME=times_e2e GITHUB_CLIENT_ID=test GITHUB_CLIENT_SECRET=test ADMIN_GITHUB_LOGIN=octocat \
         GITHUB_BASE_URL=http://host.docker.internal:3100 GITHUB_API_URL=http://host.docker.internal:3100 \
         docker compose up --build api

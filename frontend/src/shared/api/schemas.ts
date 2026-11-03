@@ -103,6 +103,7 @@ export const problem = z.object({
     "/problems/not-found",
     "/problems/url-already-registered",
     "/problems/digest-already-exists",
+    "/problems/future-publish",
   ]),
   title: z.string(),
   status: z.number().int(),

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cachedJson } from "./cache.server";
+import { cachedJson, cachedResponse } from "./cache.server";
 
 const stubCaches = () => {
   const cache = {
@@ -64,5 +64,25 @@ describe(cachedJson, () => {
     await expect(cachedJson("https://example.test/a", 300, load)).resolves.toBeNull();
     await expect(cachedJson("https://example.test/a", 300, load)).resolves.toBeNull();
     expect(load).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe(cachedResponse, () => {
+  it("serves a 200 from the cache on the second call but reloads a 404 every time", async () => {
+    const cache = stubCaches();
+    const ok = vi.fn<() => Promise<Response>>().mockResolvedValue(new Response("png"));
+    await cachedResponse("https://example.test/ok", 300, ok);
+    cache.match.mockResolvedValue(cache.put.mock.calls[0]?.[1]);
+    const second = await cachedResponse("https://example.test/ok", 300, ok);
+    expect(ok).toHaveBeenCalledOnce();
+    expect(second.headers.get("cache-control")).toBe("public, max-age=300");
+
+    cache.match.mockReset();
+    const missing = vi
+      .fn<() => Promise<Response>>()
+      .mockResolvedValue(new Response(null, { status: 404 }));
+    await cachedResponse("https://example.test/missing", 300, missing);
+    await cachedResponse("https://example.test/missing", 300, missing);
+    expect(missing).toHaveBeenCalledTimes(2);
   });
 });

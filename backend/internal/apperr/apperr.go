@@ -29,6 +29,7 @@ var Types = map[string]int{
 	// 業務ルール違反だが、入力を直せば通るので 409 ではなく 400 に揃える
 	"/problems/url-already-registered": http.StatusBadRequest,
 	"/problems/digest-already-exists":  http.StatusBadRequest,
+	"/problems/future-publish":         http.StatusBadRequest,
 }
 
 func newError(typ, detail string) error {
@@ -43,6 +44,7 @@ func UpstreamFailed(detail string) error   { return newError("/problems/upstream
 func DigestAlreadyExists(detail string) error {
 	return newError("/problems/digest-already-exists", detail)
 }
+func FuturePublish(detail string) error { return newError("/problems/future-publish", detail) }
 
 func URLAlreadyRegistered(urls []string) error {
 	typ := "/problems/url-already-registered"

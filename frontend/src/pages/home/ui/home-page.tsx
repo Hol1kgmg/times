@@ -1,4 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
+import { FEED_PATH } from "#/shared/config/site";
+import { useHovered } from "#/shared/lib/use-hovered";
+import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { Logo } from "#/shared/ui/logo";
 import { About } from "./about";
 import { DigestCard } from "./digest-card";
@@ -6,6 +9,9 @@ import styles from "./home-page.module.css";
 
 // getRouteApi でルート定義 (app 層) を import せずに loader の型を得る
 const route = getRouteApi("/");
+
+// tabler の rss (MIT)
+const rssIcon = "M5 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M4 4a16 16 0 0 1 16 16M4 11a9 9 0 0 1 9 9";
 
 // トップはシェルの外の入り口ページ (adr/frontend/0003)
 export const HomePage = () => {
@@ -27,6 +33,11 @@ export const HomePage = () => {
       <About />
       <footer className={styles.footer}>
         <Logo />
+        {/* フィードは server route なので、router の Link だと画面として描こうとする */}
+        <a className={styles.feed} href={FEED_PATH} {...useHovered()}>
+          <LineIcon d={rssIcon} size={16} />
+          RSS
+        </a>
       </footer>
     </div>
   );

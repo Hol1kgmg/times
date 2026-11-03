@@ -99,8 +99,11 @@ const DigestForm = <S extends DigestStatus>({
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
   const [registered, setRegistered] = useState<ReadonlySet<string>>(new Set());
-  // 登録済みと断られた日付。日付を変えれば印も消える
-  const [takenDate, setTakenDate] = useState<string>();
+  // 日付で断られた理由。日付を変えれば印も消える
+  const [dateRejection, setDateRejection] = useState<{
+    entryDate: string;
+    reason: "digest-already-exists" | "future-publish";
+  }>();
   const [previewing, setPreviewing] = useState(false);
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
@@ -124,7 +127,8 @@ const DigestForm = <S extends DigestStatus>({
   const registeredLeft = entry.articles
     .flatMap((a) => [a.url, ...a.children.map((c) => c.url)])
     .filter((u) => registered.has(u)).length;
-  const dateTaken = entryDate !== "" && entryDate === takenDate;
+  const dateError =
+    entryDate !== "" && entryDate === dateRejection?.entryDate ? dateRejection.reason : undefined;
   useBlocker({
     // oxlint-disable-next-line eslint/no-alert -- 確認はこの画面の 2 か所だけで、管理者 1 名の画面なので専用のダイアログは作らない
     shouldBlockFn: () => !window.confirm(leaveMessage),
@@ -175,10 +179,10 @@ const DigestForm = <S extends DigestStatus>({
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が遷移する
       const rejected = await save(entry, status);
-      if (rejected.reason === "digest-already-exists") {
-        setTakenDate(entry.entryDate);
-      } else {
+      if (rejected.reason === "url-already-registered") {
         setRegistered(new Set(rejected.duplicateUrls));
+      } else {
+        setDateRejection({ entryDate: entry.entryDate, reason: rejected.reason });
       }
       setSubmitting(false);
     } catch (error) {
@@ -206,7 +210,12 @@ const DigestForm = <S extends DigestStatus>({
       <header ref={header} className={styles.header}>
         <div className={styles.title}>
           <h1 className={styles.heading}>{heading}</h1>
-          <DateField invalid={dateTaken} taken={taken} value={entryDate} onChange={setEditedDate} />
+          <DateField
+            invalid={dateError !== undefined}
+            taken={taken}
+            value={entryDate}
+            onChange={setEditedDate}
+          />
         </div>
         <div className={styles.submit}>
           {reasons.length > 0 && (
@@ -215,9 +224,11 @@ const DigestForm = <S extends DigestStatus>({
             </p>
           )}
           {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
-          {dateTaken && (
+          {dateError !== undefined && (
             <p className={styles.error} role="alert">
-              その日の Digest は登録済みです。日付を変えてください
+              {dateError === "digest-already-exists"
+                ? "その日の Digest は登録済みです。日付を変えてください"
+                : "未来の日付は公開できないです。日付を直すか、下書きで保存してください"}
             </p>
           )}
           {registeredLeft > 0 && (

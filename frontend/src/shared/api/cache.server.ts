@@ -26,3 +26,23 @@ export const cachedJson = createServerOnlyFn(
     return value;
   },
 );
+
+// 画像などバイナリの応答を載せる。200 以外は載せず、毎回 load に任せる
+export const cachedResponse = createServerOnlyFn(
+  async (key: string, ttlSeconds: number, load: () => Promise<Response>): Promise<Response> => {
+    const cache = await openCache();
+    const req = new Request(key);
+    const hit = await cache?.match(req);
+    if (hit !== undefined) {
+      return hit;
+    }
+    const res = await load();
+    if (res.status !== 200) {
+      return res;
+    }
+    const stored = new Response(res.body, res);
+    stored.headers.set("cache-control", `public, max-age=${ttlSeconds}`);
+    await cache?.put(req, stored.clone());
+    return stored;
+  },
+);
