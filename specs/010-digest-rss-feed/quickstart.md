@@ -28,12 +28,12 @@ dev (Node) には Cache API がないので即時に反映される。Workers �
 
 ## 4. 日ごとのページ
 
-1. 1 の item の `link` (`/digest/<日付>`) を開く → すぐトップに移る
+1. 1 で公開し 2 で公開に戻した Digest の item の `link` (`/digest/<日付>`) を開く → すぐトップに移る。`link` は本番のドメインなので、ローカルではパスを `localhost:3000` につなげて開く
 2. `curl -s localhost:3000/digest/<日付>` → 200 で、`og:image` が `/feed/images/<日付>.png?v=1`、`robots` が `noindex`
 
 ## 5. 対象外の日付
 
-- 下書きの日付・存在しない日付で `/feed/images/<日付>.png` と `/digest/<日付>` を開く → どちらも 404。backend のアクセスログに出ない
+- 下書きの日付・存在しない日付で `/feed/images/<日付>.png` と `/digest/<日付>` を開く → どちらも 404。backend には `GET /feed` だけが届き、`/feed/images/<日付>` は届かない (dev はキャッシュがないので `/feed` が毎回届く。Workers では 300 秒に 1 回)
 - `/feed/images/<載っている日付>.png?x=1` → 画像が返る (キーは日付だけ)
 
 ## 6. WAF のレート制限 (本番、ブラウザで操作)
