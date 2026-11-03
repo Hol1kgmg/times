@@ -29,9 +29,7 @@ const centerOf = async (locator: Locator) => {
 // 登録画面・編集画面の箱とカードの操作
 export const boardOf = (page: Page) => {
   const boxOf = (name: string) =>
-    page
-      .locator("section")
-      .filter({ has: page.getByRole("button", { name: new RegExp(`^${name}`, "u") }) });
+    page.getByRole("heading", { level: 2, name: new RegExp(`^${name}`, "u") }).locator("..");
   const unsorted = boxOf("未分類");
   // dnd-kit はポインターの移動量でドラッグを始めるので刻んで動かす。
   // 途中で通った箱に記事が入ると下の箱がずれるので、着いてから見出しの位置を測り直す

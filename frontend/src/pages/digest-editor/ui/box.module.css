@@ -47,23 +47,11 @@
   transform: rotate(180deg);
 }
 
-/* height: auto は transition できないので grid の 0fr → 1fr で高さを補間する */
+/* height: auto は transition できないので、RAC が開閉の間だけ実寸にする --disclosure-panel-height で補間する */
 .panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  visibility: hidden;
-  transition:
-    grid-template-rows 0.2s ease-out,
-    visibility 0.2s;
-}
-
-.heading:has(> .toggle[aria-expanded="true"]) + .panel {
-  grid-template-rows: 1fr;
-  visibility: visible;
-}
-
-.panelInner {
+  height: var(--disclosure-panel-height);
   overflow: hidden;
+  transition: height 0.2s ease-out;
 }
 
 .list {
