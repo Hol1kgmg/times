@@ -35,6 +35,8 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      // リーダーがサイトの URL からフィードを見つけるため
+      { rel: "alternate", type: "application/rss+xml", title: SITE_NAME, href: "/feed.xml" },
       // フォントの preload は同一オリジンでも crossOrigin が無いと CSS からの取得と別物になり二重に落とす
       ...[kleeOneFixed400, kleeOneFixed600].map((href) => ({
         rel: "preload",
