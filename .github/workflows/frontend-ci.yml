@@ -49,7 +49,8 @@ jobs:
           node-version: ${{ needs.node-version.outputs.version }}
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: pnpm --dir frontend install --frozen-lockfile --strict-peer-dependencies
+      # minimumReleaseAge の再検証はレジストリの遅延で install を止める。lockfile 更新時は pnpm 本体と dependabot の cooldown が守る
+      - run: pnpm --dir frontend install --frozen-lockfile --strict-peer-dependencies --trust-lockfile
       # routeTree.gen.ts と openapi.gen.ts は gitignore 対象なので typecheck / test の前に生成する。
       # openapi.gen.ts は postinstall でも生成されるが、install のキャッシュ状態に依存しないよう明示する
       - run: pnpm --dir frontend generate-routes
