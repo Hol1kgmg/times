@@ -256,7 +256,8 @@ be-up:
 be-dev-e2e:
     # 開発用の DB に書くとトップの「最新の Digest」が e2e のデータに置き換わるので、別の DB を使う
     docker compose up -d --wait db
-    docker compose exec db sh -c "psql -U times -tAc \"SELECT 1 FROM pg_database WHERE datname = 'times_e2e'\" | grep -q 1 || createdb -U times times_e2e"
+    # 未来の日付は公開できない (specs/010) ので、前回の Digest より後の日付を毎回取れるよう空から始める
+    docker compose exec db sh -c "dropdb -U times --if-exists --force times_e2e && createdb -U times times_e2e"
     DB_NAME=times_e2e GITHUB_CLIENT_ID=test GITHUB_CLIENT_SECRET=test ADMIN_GITHUB_LOGIN=octocat \
         GITHUB_BASE_URL=http://host.docker.internal:3100 GITHUB_API_URL=http://host.docker.internal:3100 \
         docker compose up --build api

@@ -10,12 +10,8 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   const page = await context.newPage();
   // 同じ DB を使い回すので、実行ごとに URL を変えて重複 (400) を避ける
   const run = Date.now();
-  // 1 日 1 Digest で、トップに最新として出したいので、実行ごとに前回より後の日付にする (1 分ごとに 1 日進む)
-  const date = new Date(
-    Date.UTC(2100, 0, 1) + Math.floor((run - Date.UTC(2026, 9, 28)) / 60_000) * 86_400_000,
-  )
-    .toISOString()
-    .slice(0, 10);
+  // 未来の日付は公開できない (specs/010)。e2e の DB は起動ごとに空なので、JST との時差をまたがない 1 年前で最新になる
+  const date = new Date(run - 365 * 86_400_000).toISOString().slice(0, 10);
   const { unsorted, dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
 
   await page.goto("/");
