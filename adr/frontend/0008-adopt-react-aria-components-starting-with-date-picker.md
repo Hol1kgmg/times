@@ -49,4 +49,4 @@ decision-makers: 'Hol1kgmg'
 
 ## Revisit
 
-Select・Menu・Combobox などを新しく作るときは RAC の部品から作る。モーダルを RAC に寄せるかは、`<dialog>` で足りなくなったときに見直す。
+Select・Menu・Combobox などを新しく作るときは RAC の部品から作る。既存の部品の置き換えと、モーダル・日付の型の決定の更新は ADR 0009。モーダルを RAC に寄せるかは、`<dialog>` で足りなくなったときに見直す。

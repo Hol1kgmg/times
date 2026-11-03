@@ -9,7 +9,7 @@
 
 - 有彩色はオレンジ 2 段だけ。ロゴ色 `--color-brand` はロゴ・bot アバター・`.dev`・アイコンに、操作色 `--color-accent` (`--color-brand` の別名。白地で 2.8:1 と AA 未達は承知のうえ、adr/frontend/0003) はリンク・選択中・ステータスに使う。地に敷くのは `--color-brand-faint` だけ (例外はホットトピックの HOT の吹き出し) で、面としては強調面、行やセル (サイドバー・カレンダーの日付など) としてはホバー・選択中に `--color-selected` を通して使う。他の有彩色は使わない。例外は `--color-danger` (赤) で、送信を断られて直す必要のある箇所の枠線とエラー文にだけ使う。地には敷かない。橙はアクセントと見分けられず、エラーに気付けないため。
 - 状態は枠線・背景の濃淡・小さな影・アクセント色だけで表す。グラデーション、強い影、波線などの装飾は使わない。
-- 色の変化 (アクセント色・濃淡) はホバー中・押し続けている間の表現にだけ使う。ホバーの見た目は `:hover` ではなく `[data-hovered]` に付け、要素には `useHovered` / `HoverButton` / `HoverLink` で属性を出す。`:hover` も `@media (hover: hover)` もタッチ付きの PC ではタップで付いて残るので、操作ごとにタッチを除く react-aria の `useHover` で判定する (adr/frontend/0007)。
+- 色の変化 (アクセント色・濃淡) はホバー中・押し続けている間の表現にだけ使う。ホバーの見た目は `:hover` ではなく `[data-hovered]` に付け、属性は React Aria Components の部品 (`Button` / `Link`、ルート内のリンクは `RouterLink`) が出す。部品にない要素だけ `useHovered` で出す。`:hover` も `@media (hover: hover)` もタッチ付きの PC ではタップで付いて残るので、操作ごとにタッチを除く react-aria の `useHover` で判定する (adr/frontend/0007)。
 - 操作領域 (入力欄・ボタン) は角丸で区切り、本文や一覧と見た目で区別する。
 - 押す対象の位置を操作の途中で動かさない。中身で高さや幅が変わる面は、いちばん大きい場合の大きさを普段から取っておく。押そうとした先がずれて押し間違えるため。
 - 押せない要素は種類を問わず、文字を `--color-text-faint` にしてカーソルを `not-allowed` にする。
@@ -29,11 +29,11 @@
 - **透かして浮かせる面**: 半透明の地 `--color-surface-floating` + `--backdrop-floating` + `--shadow-floating`、境界線なし。本文の上に重なって追従する面 (モバイルヘッダー) にだけ使う。
 - **枠のグリッド**: 1 つずつ境界線 + `--radius-control` の枠に入れ、幅に合わせて折り返すグリッドに並べる。枠ごと押せるときは、見出しのボタンの当たり判定を `::after` で枠全体に広げ、ホバー中は枠線を `--color-accent` にする。見出しは button の中に入れられないため。
 - **ボタン**: `--color-surface-raised` の地 + 境界線 + `--radius-control` + `--shadow-menu`、文字は `.t-body` の `--color-text`。押せないときは `--color-surface` の地に戻して影を消す (文字とカーソルは原則の押せない形)。枠やカードと同じ見た目だと押せるか分からないため。
-- **入力欄**: 付属するボタン (カレンダーなど) は同じ角丸の枠の中に入れ、1px 線で区切る。状態は外枠に出し、フォーカス中は `--color-accent`、断られたら `--color-danger` にする。
+- **入力欄**: 付属するボタン (カレンダーなど) は同じ角丸の枠の中に入れ、1px 線で区切る。状態は外枠に出し、フォーカス中は `--color-accent`、断られたら `--color-danger` にする。テキスト入力は素の `<input>` にする。React Aria Components の `TextField` はブラウザの入力ミスの吹き出しを止めるため (adr/frontend/0009)。
 - **選択の型**: 選択中とホバーは同じ地 (`--color-selected`) と `--color-accent` の文字にし、選択中だけ文字を 600 にして見分ける (サイドバー、日付)。
 - **選べない理由**: 見た目は小さな印 (`--color-brand` のドットなど) だけにし、理由の言葉は読み上げ用のラベルに入れる。一覧の中に説明文を並べない。ラベルを部品が作るとき (React Aria Components の `Calendar`) は、部品の「選べない」の読み上げで代える。
 - **アイコン**: animate-ui の単色アイコン (`--color-brand`)。
-- **モーダル**: `<dialog>` の `showModal()`。本体は浮かせたカードの型 (`global.css` の `.modal` を `composes` する)、`::backdrop` は `--backdrop-floating` でぼかすだけで暗くしない。外側のクリックでは閉じず、ボタンと Esc で閉じる。入力の途中で誤って消えないようにするため。例外は入力を持たないモーダル (日付ピッカー、プレビュー) で、外側のクリックでも閉じる (`useModal` の `closeOnOutside`)。日付ピッカーは閉じるボタンも置かない。
+- **モーダル**: `shared/ui/modal` の `ModalDialog` (React Aria Components の `ModalOverlay` + `Modal` + `Dialog`)。本体は浮かせたカードの型 (`global.css` の `.modal` を `composes` する)、背景は `--backdrop-floating` でぼかすだけで暗くしない。外側のクリックでは閉じず、ボタンと Esc で閉じる。入力の途中で誤って消えないようにするため。例外は入力を持たないモーダル (日付ピッカー、プレビュー) で、外側のクリックでも閉じる (`closeOnOutside`)。日付ピッカーは `<dialog>` の `showModal()` と `useModal` のまま (adr/frontend/0009) で、閉じるボタンも置かない。
 - **長い一覧の折りたたみ**: 内部スクロールは使わない (入れ子のスクロールは操作しづらい)。高さで切って下端をフェードさせ、展開ボタンを出す。
 - **ホバー前提の補助**: ホバーで出るもの (プレビュー、その案内) を置くか、隠しておくものを最初から出すかは `@media (--hover)` で決める。出すきっかけは `[data-hovered]` (原則のホバーの見た目と同じ) で見る。`any-hover` は主な入力がタッチの端末でも一致し、静止画で出すべきものが隠れたままになるので使わない。
 
@@ -56,8 +56,8 @@
 
 - **押したときの反応**: `:active` (React Aria Components の部品では `[data-pressed]`) の小さな拡大 (`transform`)。拡大率は面が大きいほど控えめにする。ブラウザ既定のタップハイライト (灰色) は `global.css` で `a, button` から一括で消す。トークン外の色で、状態の型から外れるため。
 - **アイコン**: 枠や行のホバーで 1 回だけ動かす。動かし続けない。
-- **開閉**: button (`aria-expanded`) + grid の `0fr` → `1fr` で高さを補間する。シェブロンは同じ時間で回す。`<details>` は閉じる側をアニメーションできないので使わない。
-- **モーダル**: フェードと小さな縮小からの戻り。開閉は `shared/ui/modal` の `useModal` を通す (`onClose` はフェードアウトの後に呼ばれる)。
+- **開閉**: React Aria Components の `Disclosure` + `DisclosurePanel` で、`height: var(--disclosure-panel-height)` を補間する。シェブロンは同じ時間で回す。`<details>` は閉じる側をアニメーションできないので使わない。例外はモバイルヘッダーで、`DisclosurePanel` の `hidden="until-found"` はページ内検索でメニューを開いて本文を `inert` にしてしまうので、自前の `aria-expanded` のまま。
+- **モーダル**: フェードと小さな縮小からの戻り (`[data-entering]` / `[data-exiting]`)。`ModalDialog` も `useModal` も、`onClose` はフェードアウトの後に呼ばれる。
 - **中身の入れ替え**: 同じ面の中で中身を入れ替えるとき (カレンダーの月送り、年と月の切り替え) は React の `<ViewTransition>` を使う。
 
 ## キーボード
@@ -156,7 +156,7 @@
 
 ### 日付ピッカー (Digest の登録・編集)
 
-- 日付欄は `<input type="date">` に入力欄の型でカレンダーボタンを付け、ブラウザ既定のピッカーのボタンは隠す。2 つ並ぶため。ピッカーは日付を選ぶと閉じる。
+- 日付欄は React Aria Components の `DateField` に入力欄の型でカレンダーボタンを付ける。欄が欠けている間は空の日付として扱い、保存させない。ピッカーは日付を選ぶと閉じる。
 - 月表示は React Aria Components の `Calendar` で作り、年表示と、その切り替えの動きは自前で持つ。外枠はモーダルの型の `<dialog>` のままにする (adr/frontend/0008)。
 - 登録済みの日付は選べない理由の型 (数字の下に `--color-brand` のドット、`isDateUnavailable`) で示す。編集中の Digest 自身の日付は、そのまま保存できるので選べるままにする。
 
