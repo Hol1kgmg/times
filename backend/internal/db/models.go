@@ -29,11 +29,12 @@ type ArticleLink struct {
 }
 
 type Digest struct {
-	ID        uuid.UUID
-	EntryDate time.Time
-	CreatedAt time.Time
-	CreatedBy int64
-	Status    string
+	ID          uuid.UUID
+	EntryDate   time.Time
+	CreatedAt   time.Time
+	CreatedBy   int64
+	Status      string
+	PublishedAt *time.Time
 }
 
 type Session struct {

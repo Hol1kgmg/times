@@ -178,6 +178,9 @@ func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestOb
 	if err != nil {
 		return nil, constraintViolation(err)
 	}
+	if !publishable(d, time.Now()) {
+		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
+	}
 	if err := q.DeleteArticlesByDigest(ctx, d.ID); err != nil {
 		return nil, err
 	}
@@ -211,6 +214,9 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	d, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: req.Body.EntryDate.Time, CreatedBy: p.UserID, Status: string(status)})
 	if err != nil {
 		return nil, constraintViolation(err)
+	}
+	if !publishable(d, time.Now()) {
+		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
 	}
 	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
@@ -265,6 +271,14 @@ func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int6
 		}
 	}
 	return rows, links, nil
+}
+
+var jst = time.FixedZone("JST", 9*60*60)
+
+// 書き込み後の行で見るので、status の省略 (今のまま) や日付だけの変更でも同じく断れる。今日は JST で決める (specs/010 FR-006)
+func publishable(d db.Digest, now time.Time) bool {
+	today, _ := time.Parse(time.DateOnly, now.In(jst).Format(time.DateOnly))
+	return d.Status != "published" || !d.EntryDate.After(today)
 }
 
 // 登録済みの日付・URL (unique) と空文字 (check) は入力の誤りなので 400 にする

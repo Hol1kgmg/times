@@ -52,7 +52,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Digest"
         "400":
-          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)。日付と URL が両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)、今日 (JST) より後の日付で公開しようとした (future-publish)。日付と URL が両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -156,7 +156,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Digest"
         "400":
-          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)。両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)。両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -558,6 +558,7 @@ components:
             - /problems/upstream-failed
             - /problems/url-already-registered
             - /problems/digest-already-exists
+            - /problems/future-publish
         title:
           type: string
         status:

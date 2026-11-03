@@ -18,8 +18,12 @@ SELECT id, entry_date, status FROM digests ORDER BY entry_date DESC, created_at 
 SELECT * FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1;
 
 -- name: UpdateDigest :one
--- status を省略した更新は今のステータスを保つ
-UPDATE digests SET entry_date = sqlc.arg(new_date), status = COALESCE(sqlc.narg(status), status) WHERE created_by = sqlc.arg(created_by) AND entry_date = sqlc.arg(old_date) RETURNING *;
+-- status を省略した更新は今のステータスを保つ。右辺の status は更新前の値で、下書きからの公開だけ公開時刻を記録する (specs/010 FR-001/002)
+UPDATE digests SET
+  entry_date = sqlc.arg(new_date),
+  status = COALESCE(sqlc.narg(status), status),
+  published_at = CASE WHEN status = 'draft' AND COALESCE(sqlc.narg(status), status) = 'published' THEN now() ELSE published_at END
+WHERE created_by = sqlc.arg(created_by) AND entry_date = sqlc.arg(old_date) RETURNING *;
 
 -- name: DeleteArticlesByDigest :exec
 DELETE FROM articles WHERE digest_id = $1;
@@ -29,7 +33,7 @@ DELETE FROM articles WHERE digest_id = $1;
 SELECT url FROM articles WHERE created_by = $1 AND url = ANY(sqlc.arg(urls)::text[]);
 
 -- name: CreateDigest :one
-INSERT INTO digests (entry_date, created_by, status) VALUES ($1, $2, $3) RETURNING *;
+INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3, CASE WHEN $3 = 'published' THEN now() END) RETURNING *;
 
 -- name: CreateArticle :one
 INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;

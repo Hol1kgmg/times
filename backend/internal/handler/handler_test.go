@@ -102,3 +102,27 @@ func TestToDigest(t *testing.T) {
 		t.Errorf("nil description must be omitted: %v", got.Articles[1])
 	}
 }
+
+// 今日 (JST) より後の日付だけ公開できない。境目は JST の 0 時で、下書きは日付を問わない (specs/010 FR-006)
+func TestPublishable(t *testing.T) {
+	date := func(day int) time.Time { return time.Date(2026, 11, day, 0, 0, 0, 0, time.UTC) }
+	beforeMidnight := time.Date(2026, 11, 3, 14, 59, 0, 0, time.UTC) // JST 11-03 23:59
+	midnight := time.Date(2026, 11, 3, 15, 0, 0, 0, time.UTC)        // JST 11-04 00:00
+	tests := []struct {
+		name   string
+		status string
+		date   time.Time
+		now    time.Time
+		want   bool
+	}{
+		{"today before midnight", "published", date(3), beforeMidnight, true},
+		{"tomorrow before midnight", "published", date(4), beforeMidnight, false},
+		{"tomorrow after midnight", "published", date(4), midnight, true},
+		{"draft dated tomorrow", "draft", date(4), beforeMidnight, true},
+	}
+	for _, tt := range tests {
+		if got := publishable(db.Digest{Status: tt.status, EntryDate: tt.date}, tt.now); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
