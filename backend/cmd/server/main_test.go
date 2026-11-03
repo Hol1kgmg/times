@@ -40,6 +40,15 @@ func (s stub) DeleteCurrentSession(ctx context.Context, _ api.DeleteCurrentSessi
 	return api.DeleteCurrentSession204Response{}, nil
 }
 
+// フィードは DB を触るので差し替える。配線 (Content-Type とパスの検証) だけ確認する
+func (s stub) GetFeed(context.Context, api.GetFeedRequestObject) (api.GetFeedResponseObject, error) {
+	return api.GetFeed200ApplicationrssXmlResponse{Body: strings.NewReader("<rss/>")}, nil
+}
+
+func (s stub) GetFeedImage(context.Context, api.GetFeedImageRequestObject) (api.GetFeedImageResponseObject, error) {
+	return api.GetFeedImage200ImagepngResponse{Body: strings.NewReader("")}, nil
+}
+
 func newStub(err error) stub {
 	return stub{Server: handler.New(nil, auth.Client{}, ""), err: err}
 }
@@ -97,6 +106,18 @@ func TestRouter(t *testing.T) {
 
 	if p := problem(t, do(r, "GET", "/digests/latest", "")); p.Detail == nil || *p.Detail != "gone" {
 		t.Errorf("404 detail: got %v, want gone", p.Detail)
+	}
+}
+
+// フィードはログインなしで RSS として取れ、画像は日付でないパスを 400 で断る (specs/010 FR-005/010)
+func TestFeedRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r, _ := newRouter(newStub(nil), "", noLookup(t))
+	if w := do(r, "GET", "/feed", ""); w.Code != 200 || w.Header().Get("Content-Type") != "application/rss+xml" {
+		t.Errorf("feed: got %d %q", w.Code, w.Header().Get("Content-Type"))
+	}
+	if w := do(r, "GET", "/feed/images/not-a-date", ""); w.Code != 400 || problem(t, w).Type != api.ProblemsvalidationFailed {
+		t.Errorf("image: got %d %s", w.Code, w.Body)
 	}
 }
 

@@ -118,6 +118,27 @@ func (q *Queries) GetDigestByDate(ctx context.Context, entryDate time.Time) (Dig
 	return i, err
 }
 
+const getFeedDigestByDate = `-- name: GetFeedDigestByDate :one
+SELECT id FROM digests
+WHERE status = 'published' AND published_at IS NOT NULL
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower($1))
+  AND entry_date = $2
+LIMIT 1
+`
+
+type GetFeedDigestByDateParams struct {
+	AdminLogin string
+	EntryDate  time.Time
+}
+
+// フィードに載る Digest の日付にだけ画像を作る (specs/010 FR-010)
+func (q *Queries) GetFeedDigestByDate(ctx context.Context, arg GetFeedDigestByDateParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getFeedDigestByDate, arg.AdminLogin, arg.EntryDate)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getLatestDigest = `-- name: GetLatestDigest :one
 SELECT id, entry_date, created_at, created_by, status, published_at FROM digests WHERE status = 'published' ORDER BY entry_date DESC, created_at DESC LIMIT 1
 `
@@ -218,6 +239,40 @@ func (q *Queries) ListDigests(ctx context.Context) ([]ListDigestsRow, error) {
 	for rows.Next() {
 		var i ListDigestsRow
 		if err := rows.Scan(&i.ID, &i.EntryDate, &i.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFeedDigests = `-- name: ListFeedDigests :many
+SELECT id, entry_date, published_at::timestamptz AS published_at FROM digests
+WHERE status = 'published' AND published_at IS NOT NULL
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower($1))
+ORDER BY published_at DESC LIMIT 20
+`
+
+type ListFeedDigestsRow struct {
+	ID          uuid.UUID
+	EntryDate   time.Time
+	PublishedAt time.Time
+}
+
+// 公開時刻を持つ = 下書きから公開した Digest だけが通知になる。対象は ListPublishedDigests と同じく管理者の Digest
+func (q *Queries) ListFeedDigests(ctx context.Context, adminLogin string) ([]ListFeedDigestsRow, error) {
+	rows, err := q.db.Query(ctx, listFeedDigests, adminLogin)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFeedDigestsRow
+	for rows.Next() {
+		var i ListFeedDigestsRow
+		if err := rows.Scan(&i.ID, &i.EntryDate, &i.PublishedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

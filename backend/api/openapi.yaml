@@ -217,6 +217,44 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /feed:
+    get:
+      operationId: getFeed
+      description: 公開の通知を RSS 2.0 で返す。公開時刻の新しい順に 20 件。frontend の /feed.xml が中継する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/rss+xml:
+              schema:
+                type: string
+  /feed/images/{entryDate}:
+    get:
+      operationId: getFeedImage
+      description: フィードに載る Digest の日付を入れた画像 (1200×630)。フィードに載らない日付は 404
+      parameters:
+        - name: entryDate
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Not Found (フィードに載る Digest がその日付にない)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /auth/sessions:
     post:
       operationId: createSession

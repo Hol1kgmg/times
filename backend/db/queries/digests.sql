@@ -49,3 +49,18 @@ INSERT INTO article_links (parent_id, child_id, position) VALUES ($1, $2, $3);
 SELECT l.* FROM article_links l
 JOIN articles a ON a.id = l.child_id
 WHERE a.digest_id = $1 ORDER BY l.parent_id, l.position;
+
+-- name: ListFeedDigests :many
+-- 公開時刻を持つ = 下書きから公開した Digest だけが通知になる。対象は ListPublishedDigests と同じく管理者の Digest
+SELECT id, entry_date, published_at::timestamptz AS published_at FROM digests
+WHERE status = 'published' AND published_at IS NOT NULL
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower(sqlc.arg(admin_login)))
+ORDER BY published_at DESC LIMIT 20;
+
+-- name: GetFeedDigestByDate :one
+-- フィードに載る Digest の日付にだけ画像を作る (specs/010 FR-010)
+SELECT id FROM digests
+WHERE status = 'published' AND published_at IS NOT NULL
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower(sqlc.arg(admin_login)))
+  AND entry_date = sqlc.arg(entry_date)
+LIMIT 1;
