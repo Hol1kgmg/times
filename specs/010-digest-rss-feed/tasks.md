@@ -98,7 +98,7 @@ description: "Task list for 010-digest-rss-feed"
 - [x] T031 完了判定を回す: `just be-gen` (差分なし)、`just lint && just test`、`just fe-typecheck`
 - [x] T032 e2e を回す: `.agents/rules/quality.md` の手順で backend を e2e 用に切り替え、`just fe-test-e2e digest-new` と `just fe-test-e2e digest-edit` (CreateDigest / UpdateDigest の SQL を変えたため)。終わったら `docker compose stop api` と `just be-dev` で戻す
 - [x] T033 試作の画像 (`/feed/images/<日付>.png`) をユーザーに見せ、レイアウトを決める。決まったら T003 の HTML/CSS と T013 の定数を直し、`imageVersion` はリリース前なので 1 のまま
-- [ ] T034 本番のデプロイ後、quickstart.md の 6 の WAF のレート制限の手順をユーザーに案内する (ダッシュボードで操作、CLI は使わない)
+- [x] T034 本番のデプロイ後、quickstart.md の 6 の WAF のレート制限の手順をユーザーに案内する (ダッシュボードで操作、CLI は使わない)
 - [x] T035 `TODO.md` に関係する項目があれば `[x]` にして日付と要点を添える
 
 ---
