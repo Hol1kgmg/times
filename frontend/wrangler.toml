@@ -5,6 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 keep_names = false
 # 環境変数 (BACKEND_URL, BACKEND_TOKEN) はダッシュボードで管理する。deploy で消さない
 keep_vars = true
+# WAF のレート制限はゾーン (z-times.dev) にしかかからず、workers.dev からだと素通りされる
+workers_dev = false
 
 [assets]
 directory = "dist/client"
