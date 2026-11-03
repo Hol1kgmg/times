@@ -135,6 +135,11 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* RAC はホバーや開閉でもフォーカスを移し、ブラウザがそれを :focus-visible と見なすので、部品の判定に従う */
+[data-rac]:not([data-focus-visible]) {
+  outline: none;
+}
+
 /* タイポグラフィ: 用途別クラス。.agents/rules/frontend-ui-design.md 参照 */
 .t-date {
   font-size: 18px;
