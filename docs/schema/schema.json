@@ -31,6 +31,11 @@
           "name": "status",
           "type": "text",
           "nullable": false
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "nullable": true
         }
       ],
       "indexes": [
@@ -71,6 +76,17 @@
           "referenced_table": "",
           "columns": [
             "created_by"
+          ]
+        },
+        {
+          "name": "digests_draft_not_published",
+          "type": "CHECK",
+          "def": "CHECK (((status \u003c\u003e 'draft'::text) OR (published_at IS NULL)))",
+          "table": "public.digests",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "published_at"
           ]
         },
         {

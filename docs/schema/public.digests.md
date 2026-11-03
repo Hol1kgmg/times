@@ -9,6 +9,7 @@
 | created_at | timestamp with time zone | now() | false |  |  |  |
 | created_by | bigint |  | false |  | [public.users](public.users.md) |  |
 | status | text |  | false |  |  |  |
+| published_at | timestamp with time zone |  | true |  |  |  |
 
 ## Constraints
 
@@ -16,6 +17,7 @@
 | ---- | ---- | ---------- |
 | digests_created_at_not_null | n | NOT NULL created_at |
 | digests_created_by_not_null | n | NOT NULL created_by |
+| digests_draft_not_published | CHECK | CHECK (((status <> 'draft'::text) OR (published_at IS NULL))) |
 | digests_entry_date_not_null | n | NOT NULL entry_date |
 | digests_id_not_null | n | NOT NULL id |
 | digests_status_check | CHECK | CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'private'::text]))) |
