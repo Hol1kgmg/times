@@ -26,6 +26,12 @@ const centerOf = async (locator: Locator) => {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 };
 
+// DateField は欄ごとの spinbutton で、年の欄から数字を打つと月・日の欄へ進む
+export const fillDate = async (page: Page, date: string) => {
+  await page.getByRole("spinbutton", { name: /^年/u }).click();
+  await page.keyboard.type(date.replaceAll("-", ""));
+};
+
 // 登録画面・編集画面の箱とカードの操作
 export const boardOf = (page: Page) => {
   const boxOf = (name: string) =>
@@ -55,7 +61,7 @@ export const boardOf = (page: Page) => {
       .getByRole("button", { name: "メニュー" })
       .first()
       .click();
-    await page.getByRole("button", { name: item }).click();
+    await page.getByRole("menuitem", { name: item }).click();
   };
   // e2e.example は名前解決できないのでタイトルは取れず、手で入れる経路を通る
   const collect = async (url: string, title: string) => {
@@ -65,7 +71,7 @@ export const boardOf = (page: Page) => {
     const card = unsorted.getByRole("listitem").last();
     await expect(card.getByText("タイトルを入れてください")).toBeVisible();
     await card.getByRole("button", { name: "メニュー" }).click();
-    await page.getByRole("button", { name: "編集" }).click();
+    await page.getByRole("menuitem", { name: "編集" }).click();
     // 閉じたダイアログはフェードアウトの間 DOM に残るので、開いているものに絞って閉じきるまで待つ
     const dialog = page.getByRole("dialog", { name: "記事を編集" });
     await dialog.getByLabel("タイトル").fill(title);

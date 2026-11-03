@@ -18,8 +18,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  /* メニューとプレビューの位置を各行に結ぶ。名前を行内に閉じないと最後の行に寄る */
-  anchor-scope: --menu, --link;
+  /* プレビューの位置を各行に結ぶ。名前を行内に閉じないと最後の行に寄る */
+  anchor-scope: --link;
 }
 
 .handle {
@@ -152,50 +152,43 @@
   color: var(--color-text-muted);
   font-family: inherit;
   cursor: pointer;
-  anchor-name: --menu;
 }
 
 .more[data-hovered] {
   background-color: var(--color-fill-subtle);
 }
 
+/* Popover は body へ出るので、ページの font-dynamic を受け継がない */
 .menu {
-  margin: 0;
   padding: var(--space-half);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background-color: var(--color-surface);
   box-shadow: var(--shadow-menu);
   color: var(--color-text);
-  inset: auto;
-  position-anchor: --menu;
-  position-area: bottom span-left;
-  position-try-fallbacks: flip-block;
+  font-family: var(--font-dynamic);
 }
 
-.menu:popover-open {
+.menuList {
   display: flex;
   flex-direction: column;
+  outline: none;
 }
 
 .item {
   composes: t-body from global;
   padding: var(--space-1) var(--space-2);
-  border: 0;
   border-radius: var(--radius-card);
-  background: none;
   color: var(--color-text);
-  font-family: inherit;
-  text-align: start;
   cursor: pointer;
 }
 
-.item:disabled {
+.item[data-disabled] {
   color: var(--color-text-faint);
   cursor: not-allowed;
 }
 
-.item:not(:disabled)[data-hovered] {
+.item:not([data-disabled])[data-hovered] {
   background-color: var(--color-fill-subtle);
 }
 

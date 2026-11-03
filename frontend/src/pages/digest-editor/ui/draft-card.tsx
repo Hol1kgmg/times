@@ -1,10 +1,16 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
-import { Button, Link as AriaLink } from "react-aria-components";
+import {
+  Link as AriaLink,
+  Menu as AriaMenu,
+  MenuItem as AriaMenuItem,
+  Button,
+  MenuTrigger,
+  Popover,
+} from "react-aria-components";
 import { loadAnyLinkPreview } from "#/shared/api";
 import { Favicon } from "#/shared/ui/favicon";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
 import { useModal } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
@@ -30,33 +36,32 @@ interface MenuItem {
   disabled?: boolean;
 }
 
-const Menu = ({ items }: { items: MenuItem[] }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const id = useId();
-  return (
-    <>
-      <HoverButton aria-label="メニュー" className={styles.more} popoverTarget={id} type="button">
-        ···
-      </HoverButton>
-      <div ref={menuRef} className={styles.menu} id={id} popover="auto">
+const Menu = ({ items }: { items: MenuItem[] }) => (
+  <MenuTrigger>
+    <Button aria-label="メニュー" className={styles.more}>
+      ···
+    </Button>
+    <Popover className={styles.menu} offset={0} placement="bottom end">
+      <AriaMenu
+        className={styles.menuList}
+        disabledKeys={items.filter((item) => item.disabled === true).map((item) => item.label)}
+      >
         {items.map((item) => (
-          <HoverButton
+          <AriaMenuItem
             key={item.label}
             className={styles.item}
-            disabled={item.disabled}
-            type="button"
-            onClick={() => {
-              menuRef.current?.hidePopover();
+            id={item.label}
+            onAction={() => {
               item.onSelect();
             }}
           >
             {item.label}
-          </HoverButton>
+          </AriaMenuItem>
         ))}
-      </div>
-    </>
-  );
-};
+      </AriaMenu>
+    </Popover>
+  </MenuTrigger>
+);
 
 const EditDialog = ({
   link,
