@@ -5,6 +5,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/apperr"
@@ -57,6 +58,32 @@ func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestReque
 		return nil, err
 	}
 	return api.GetLatestDigest200JSONResponse(out), nil
+}
+
+func (s *Server) ListPublishedDigests(ctx context.Context, req api.ListPublishedDigestsRequestObject) (api.ListPublishedDigestsResponseObject, error) {
+	// openapi.yaml の default は oapi-codegen が埋めないので、同じ値をここで使う
+	lim := 7
+	if req.Params.Limit != nil {
+		lim = *req.Params.Limit
+	}
+	var before *time.Time
+	if req.Params.Before != nil {
+		before = &req.Params.Before.Time
+	}
+	rows, err := s.q.ListPublishedDigests(ctx, db.ListPublishedDigestsParams{AdminLogin: s.adminLogin, Before: before, Lim: int32(lim)})
+	if err != nil {
+		return nil, err
+	}
+	// ponytail: Digest ごとに記事を引く (最大 1 + 31×2 クエリ)。遅くなったら ANY でまとめて引いて振り分ける
+	digests := make([]api.Digest, 0, len(rows))
+	for _, d := range rows {
+		out, err := s.withArticles(ctx, d)
+		if err != nil {
+			return nil, err
+		}
+		digests = append(digests, out)
+	}
+	return api.ListPublishedDigests200JSONResponse{Digests: digests}, nil
 }
 
 func (s *Server) ListDigests(ctx context.Context, _ api.ListDigestsRequestObject) (api.ListDigestsResponseObject, error) {

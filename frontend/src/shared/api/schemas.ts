@@ -53,6 +53,10 @@ export const digestSummary = z.object({
   status: digestStatus,
 }) satisfies z.ZodType<Schemas["DigestSummary"]>;
 
+export const digestPage = z.object({
+  digests: digest.array(),
+}) satisfies z.ZodType<Schemas["DigestPage"]>;
+
 export const digestList = z.object({
   digests: digestSummary.array(),
 }) satisfies z.ZodType<Schemas["DigestList"]>;

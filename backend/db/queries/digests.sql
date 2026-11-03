@@ -2,6 +2,14 @@
 -- 同じ日付が複数あれば後に登録したものを採用する (specs/002 Edge Cases)
 SELECT * FROM digests WHERE status = 'published' ORDER BY entry_date DESC, created_at DESC LIMIT 1;
 
+-- name: ListPublishedDigests :many
+-- ponytail: 管理者はユーザー名で判定する。同じ login の行が 2 つあれば混ざる (spec Assumptions)
+SELECT * FROM digests
+WHERE status = 'published'
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower(sqlc.arg(admin_login)))
+  AND (sqlc.narg(before)::date IS NULL OR entry_date < sqlc.narg(before))
+ORDER BY entry_date DESC LIMIT sqlc.arg(lim);
+
 -- name: ListDigests :many
 SELECT id, entry_date, status FROM digests ORDER BY entry_date DESC, created_at DESC;
 

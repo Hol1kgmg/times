@@ -202,6 +202,11 @@ type DigestList struct {
 	Digests []DigestSummary `json:"digests"`
 }
 
+// DigestPage defines model for DigestPage.
+type DigestPage struct {
+	Digests []Digest `json:"digests"`
+}
+
 // DigestStatus draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
 type DigestStatus string
 
@@ -319,6 +324,12 @@ type ListAllArticleDomainsParams struct {
 	Limit *DomainLimit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListPublishedDigestsParams defines parameters for ListPublishedDigests.
+type ListPublishedDigestsParams struct {
+	Before *openapi_types.Date `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
 type CreateSessionJSONRequestBody = NewSession
 
@@ -354,6 +365,9 @@ type ServerInterface interface {
 
 	// (GET /digests/latest)
 	GetLatestDigest(c *gin.Context)
+
+	// (GET /digests/published)
+	ListPublishedDigests(c *gin.Context, params ListPublishedDigestsParams)
 
 	// (GET /digests/{entryDate})
 	GetDigestByDate(c *gin.Context, entryDate openapi_types.Date)
@@ -522,6 +536,41 @@ func (siw *ServerInterfaceWrapper) GetLatestDigest(c *gin.Context) {
 	siw.Handler.GetLatestDigest(c)
 }
 
+// ListPublishedDigests operation middleware
+func (siw *ServerInterfaceWrapper) ListPublishedDigests(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPublishedDigestsParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", c.Request.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter before: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListPublishedDigests(c, params)
+}
+
 // GetDigestByDate operation middleware
 func (siw *ServerInterfaceWrapper) GetDigestByDate(c *gin.Context) {
 
@@ -616,6 +665,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/digests", wrapper.ListDigests)
 	router.POST(options.BaseURL+"/digests", wrapper.CreateDigest)
 	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
+	router.GET(options.BaseURL+"/digests/published", wrapper.ListPublishedDigests)
 	router.GET(options.BaseURL+"/digests/:entryDate", wrapper.GetDigestByDate)
 	router.PUT(options.BaseURL+"/digests/:entryDate", wrapper.UpdateDigest)
 	router.GET(options.BaseURL+"/articles/domains", wrapper.ListArticleDomains)
@@ -991,6 +1041,60 @@ func (response GetLatestDigest404ApplicationProblemPlusJSONResponse) VisitGetLat
 	return err
 }
 
+type ListPublishedDigestsRequestObject struct {
+	Params ListPublishedDigestsParams
+}
+
+type ListPublishedDigestsResponseObject interface {
+	VisitListPublishedDigestsResponse(w http.ResponseWriter) error
+}
+
+type ListPublishedDigests200JSONResponse DigestPage
+
+func (response ListPublishedDigests200JSONResponse) VisitListPublishedDigestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPublishedDigests400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListPublishedDigests400ApplicationProblemPlusJSONResponse) VisitListPublishedDigestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPublishedDigests401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListPublishedDigests401ApplicationProblemPlusJSONResponse) VisitListPublishedDigestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetDigestByDateRequestObject struct {
 	EntryDate openapi_types.Date `json:"entryDate"`
 }
@@ -1175,6 +1279,9 @@ type StrictServerInterface interface {
 
 	// (GET /digests/latest)
 	GetLatestDigest(ctx context.Context, request GetLatestDigestRequestObject) (GetLatestDigestResponseObject, error)
+
+	// (GET /digests/published)
+	ListPublishedDigests(ctx context.Context, request ListPublishedDigestsRequestObject) (ListPublishedDigestsResponseObject, error)
 
 	// (GET /digests/{entryDate})
 	GetDigestByDate(ctx context.Context, request GetDigestByDateRequestObject) (GetDigestByDateResponseObject, error)
@@ -1453,6 +1560,32 @@ func (sh *strictHandler) GetLatestDigest(ctx *gin.Context) {
 	}
 }
 
+// ListPublishedDigests operation middleware
+func (sh *strictHandler) ListPublishedDigests(ctx *gin.Context, params ListPublishedDigestsParams) {
+	var request ListPublishedDigestsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPublishedDigests(ctx, request.(ListPublishedDigestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPublishedDigests")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListPublishedDigestsResponseObject); ok {
+		if err := validResponse.VisitListPublishedDigestsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetDigestByDate operation middleware
 func (sh *strictHandler) GetDigestByDate(ctx *gin.Context, entryDate openapi_types.Date) {
 	var request GetDigestByDateRequestObject
@@ -1541,57 +1674,59 @@ func (sh *strictHandler) GetHealth(ctx *gin.Context) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

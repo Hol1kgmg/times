@@ -2,6 +2,7 @@ import type { operations } from "./openapi.gen";
 
 export { listAllArticleDomains, listArticleDomains } from "./list-article-domains";
 export { listDigests } from "./list-digests";
+export { listPublishedDigests } from "./list-published-digests";
 export * from "./schemas";
 // backend/api/openapi.yaml から生成 (just be-gen / lefthook)。手で編集しない
 export type { components, operations, paths } from "./openapi.gen";

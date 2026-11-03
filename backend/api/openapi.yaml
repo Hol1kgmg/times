@@ -76,6 +76,36 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digests/published:
+    get:
+      operationId: listPublishedDigests
+      description: 管理者が作成した公開の Digest を、記事ごと日付の新しい順に返す。limit は Digest の件数で数え、1 件の記事は切らない。before を渡すとその日付より前 (その日付を含まない) を返す。ログインユーザーなら誰でも使える (今ログインできるのは管理者だけ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 31
+            default: 7
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigestPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   # 更新のキーも日付にする。gin は同じ位置に名前の違うパスパラメーター (:entryDate と :id) を置くと panic する
   /digests/{entryDate}:
     parameters:
@@ -338,6 +368,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Article"
+    DigestPage:
+      type: object
+      required: [digests]
+      properties:
+        digests:
+          type: array
+          items:
+            $ref: "#/components/schemas/Digest"
     DigestList:
       type: object
       required: [digests]

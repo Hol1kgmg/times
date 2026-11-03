@@ -72,6 +72,7 @@ func TestRouter(t *testing.T) {
 		{"GET", "/digests", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/articles/domains", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/articles/domains/all", "", http.StatusUnauthorized, api.Problemsunauthorized},
+		{"GET", "/digests/published", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/2026-10-17", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/not-a-date", "", http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
 		{"PUT", "/digests/2026-10-17", `{"entryDate":"2026-10-17","articles":[]}`, http.StatusUnauthorized, api.Problemsunauthorized},

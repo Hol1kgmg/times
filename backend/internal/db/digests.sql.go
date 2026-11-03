@@ -225,6 +225,47 @@ func (q *Queries) ListDigests(ctx context.Context) ([]ListDigestsRow, error) {
 	return items, nil
 }
 
+const listPublishedDigests = `-- name: ListPublishedDigests :many
+SELECT id, entry_date, created_at, created_by, status FROM digests
+WHERE status = 'published'
+  AND created_by IN (SELECT id FROM users WHERE lower(login) = lower($1))
+  AND ($2::date IS NULL OR entry_date < $2)
+ORDER BY entry_date DESC LIMIT $3
+`
+
+type ListPublishedDigestsParams struct {
+	AdminLogin string
+	Before     *time.Time
+	Lim        int32
+}
+
+// ponytail: 管理者はユーザー名で判定する。同じ login の行が 2 つあれば混ざる (spec Assumptions)
+func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDigestsParams) ([]Digest, error) {
+	rows, err := q.db.Query(ctx, listPublishedDigests, arg.AdminLogin, arg.Before, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Digest
+	for rows.Next() {
+		var i Digest
+		if err := rows.Scan(
+			&i.ID,
+			&i.EntryDate,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRegisteredURLs = `-- name: ListRegisteredURLs :many
 SELECT url FROM articles WHERE created_by = $1 AND url = ANY($2::text[])
 `
