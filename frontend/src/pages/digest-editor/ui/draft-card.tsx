@@ -12,7 +12,7 @@ import {
 import { loadAnyLinkPreview } from "#/shared/api";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
-import { useModal } from "#/shared/ui/modal";
+import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
 import styles from "./draft-card.module.css";
@@ -72,71 +72,72 @@ const EditDialog = ({
   onEdit: (next: { url: string; title: string }) => Rejected | null;
   onClose: () => void;
 }) => {
-  const { dialogProps, close } = useModal(onClose);
   const headingId = useId();
   const [title, setTitle] = useState(link.title);
   const [url, setUrl] = useState(link.url);
   const [duplicate, setDuplicate] = useState(false);
   return (
-    <dialog {...dialogProps} aria-labelledby={headingId} className={styles.dialog}>
-      <form
-        className={styles.form}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (onEdit({ title: title.trim(), url }) === null) {
-            close();
-          } else {
-            setDuplicate(true);
-          }
-        }}
-      >
-        <h2 className={styles.heading} id={headingId}>
-          記事を編集
-        </h2>
-        <label className={styles.field}>
-          <span className={styles.label}>タイトル</span>
-          <input
-            className={styles.input}
-            maxLength={300}
-            required
-            type="text"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-            }}
-          />
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>URL</span>
-          <input
-            className={styles.input}
-            maxLength={2000}
-            pattern="https?://.+"
-            required
-            title="http か https で始まる URL"
-            type="url"
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-            }}
-          />
-        </label>
-        {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
-        <div className={styles.formActions}>
-          <Button
-            className={styles.button}
-            onPress={() => {
+    <ModalDialog className={styles.dialog} labelledBy={headingId} onClose={onClose}>
+      {({ close }) => (
+        <form
+          className={styles.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (onEdit({ title: title.trim(), url }) === null) {
               close();
-            }}
-          >
-            やめる
-          </Button>
-          <Button className={styles.button} type="submit">
-            確定
-          </Button>
-        </div>
-      </form>
-    </dialog>
+            } else {
+              setDuplicate(true);
+            }
+          }}
+        >
+          <h2 className={styles.heading} id={headingId}>
+            記事を編集
+          </h2>
+          <label className={styles.field}>
+            <span className={styles.label}>タイトル</span>
+            <input
+              className={styles.input}
+              maxLength={300}
+              required
+              type="text"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+              }}
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>URL</span>
+            <input
+              className={styles.input}
+              maxLength={2000}
+              pattern="https?://.+"
+              required
+              title="http か https で始まる URL"
+              type="url"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+              }}
+            />
+          </label>
+          {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
+          <div className={styles.formActions}>
+            <Button
+              className={styles.button}
+              onPress={() => {
+                close();
+              }}
+            >
+              やめる
+            </Button>
+            <Button className={styles.button} type="submit">
+              確定
+            </Button>
+          </div>
+        </form>
+      )}
+    </ModalDialog>
   );
 };
 

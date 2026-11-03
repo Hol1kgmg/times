@@ -1,0 +1,23 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  backdrop-filter: var(--backdrop-floating);
+  transition: opacity 0.2s ease-out;
+}
+
+.overlay:is([data-entering], [data-exiting]) {
+  opacity: 0;
+}
+
+.dialog {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    transition: none;
+  }
+}
