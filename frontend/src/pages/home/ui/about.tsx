@@ -1,31 +1,23 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { useId, useState } from "react";
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { category } from "#/shared/api";
 import type { Category } from "#/shared/api";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
-import { Ellipsis } from "./icons/ellipsis";
+import { categoryIcons } from "#/shared/ui/category-icons";
 import { HotBubble } from "#/shared/ui/icons/hot-bubble";
-import { Palette } from "./icons/palette";
-import { Rocket } from "./icons/rocket";
-import { ShieldCheck } from "./icons/shield-check";
-import { Sparkles } from "./icons/sparkles";
-import { Terminal } from "./icons/terminal";
 
-const categoryDetails = {
-  セキュリティ: { Icon: ShieldCheck, text: "注意喚起とか脆弱性の話" },
-  IT系: { Icon: Terminal, text: "設計や開発まわりの記事・スライド" },
-  UI系: { Icon: Palette, text: "デザインやフロントエンドの表現" },
-  AI系: { Icon: Sparkles, text: "AI とかエージェントまわり" },
-  "面白そうなツール・サービス": { Icon: Rocket, text: "ちょっと触ってみたいもの" },
-  その他: { Icon: Ellipsis, text: "どれにも入らなかったもの" },
-} satisfies Record<
-  Category,
-  { Icon: ComponentType<{ className?: string; role?: string; size?: number }>; text: string }
->;
+const categoryTexts = {
+  セキュリティ: "注意喚起とか脆弱性の話",
+  IT系: "設計や開発まわりの記事・スライド",
+  UI系: "デザインやフロントエンドの表現",
+  AI系: "AI とかエージェントまわり",
+  "面白そうなツール・サービス": "ちょっと触ってみたいもの",
+  その他: "どれにも入らなかったもの",
+} satisfies Record<Category, string>;
 
 const faqs = [
   {
@@ -83,7 +75,7 @@ const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: 
 
 // <li> は呼び出し側に置く。markuplint はコンポーネントの中を追わず、<ul> 直下を不正と判定する
 const CategoryItem = ({ c }: { c: Category }) => {
-  const { Icon, text } = categoryDetails[c];
+  const Icon = categoryIcons[c];
   return (
     <AnimateIcon animateOnHover asChild>
       <div className={styles.category} {...useHovered()}>
@@ -91,7 +83,7 @@ const CategoryItem = ({ c }: { c: Category }) => {
           <Icon className={styles.categoryIcon} role="none" size={18} />
           {c}
         </span>
-        {text}
+        {categoryTexts[c]}
       </div>
     </AnimateIcon>
   );

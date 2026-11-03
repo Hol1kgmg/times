@@ -40,7 +40,7 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
   );
 };
 
-// bot の 1 投稿という Slack の構造を借りる。チャンネル名は出さない (adr/frontend/0003)
+// カテゴリごとの bot の投稿という Slack の構造を借りる。チャンネル名は出さない (adr/frontend/0003)
 export const DigestCard = ({ digest }: { digest: Digest | null }) => (
   <CollapsiblePanel>
     <section aria-label="最新の Digest">

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { mergeProps, useFocusRing, useHover } from "react-aria";
 import type { DigestContent, NewArticle, NewChildArticle } from "#/shared/api";
-import { groupByCategory } from "#/shared/lib/group-by-category";
+import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
+import { categoryIcons } from "#/shared/ui/category-icons";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { HotBubble } from "#/shared/ui/icons/hot-bubble";
@@ -107,31 +108,27 @@ export const DigestPost = ({
         <time className={styles.date} dateTime={digest.entryDate}>
           {dateFormat.format(new Date(digest.entryDate))}
         </time>
-        <span className={styles.count}>
-          {digest.articles.reduce((n, a) => n + 1 + a.children.length, 0)} 件
-        </span>
+        <span className={styles.count}>{countArticles(digest.articles)} 件</span>
       </span>
       <span className={styles.end}>{action}</span>
     </div>
-    <article className={styles.post}>
-      <img alt="" height={36} src="/favicon.svg" width={36} />
-      <span className={styles.author}>z_times.dev</span>
-      <div className={styles.body}>
-        <ul className={styles.sections}>
-          {groupByCategory(digest.articles).map(([name, articles]) => (
-            <li key={name} className={styles.section}>
-              <h3 className={styles.label}>{name}</h3>
-              <ul className={styles.list}>
-                {articles.map((a) => (
-                  <li key={a.url}>
-                    <Entry article={a} loadPreview={loadPreview} />
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </article>
+    {groupByCategory(digest.articles).map(([name, articles]) => {
+      const Icon = categoryIcons[name];
+      return (
+        <article key={name} className={styles.post}>
+          <span className={styles.botIcon}>
+            <Icon role="none" size={20} />
+          </span>
+          <h3 className={styles.author}>{name}</h3>
+          <ul className={styles.entries}>
+            {articles.map((a) => (
+              <li key={a.url}>
+                <Entry article={a} loadPreview={loadPreview} />
+              </li>
+            ))}
+          </ul>
+        </article>
+      );
+    })}
   </>
 );

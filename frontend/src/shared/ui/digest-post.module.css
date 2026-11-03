@@ -1,45 +1,19 @@
-.section {
+.entries,
+.children {
   display: flex;
   flex-direction: column;
-  gap: var(--space-half);
-}
-
-.label {
-  composes: t-label from global;
-  margin: 0;
-}
-
-.sections {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.list,
-.children {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.list {
-  padding-left: var(--space-3);
-}
-
-@media (--narrow) {
-  .list {
-    padding-left: 0;
-  }
+.entries {
+  grid-column: 2;
 }
 
 .children {
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   margin-left: var(--space-1);
   padding-left: var(--space-2);
   border-left: 1px solid var(--color-border);
@@ -217,21 +191,31 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-3) var(--space-2);
   align-items: center;
-  padding: var(--space-1) 0;
+  padding: var(--space-1) var(--space-4);
+}
+
+@media (--narrow) {
+  .post {
+    padding-inline: 0;
+  }
+}
+
+.post + .post {
+  margin-top: var(--space-3);
+}
+
+.botIcon {
+  display: grid;
+  place-items: center;
+  width: calc(var(--space-4) + var(--space-2));
+  aspect-ratio: 1;
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-control);
+  color: var(--color-brand);
 }
 
 .author {
   composes: t-label from global;
+  margin: 0;
   color: var(--color-text);
-}
-
-.body {
-  grid-column: 2;
-}
-
-/* アバターの列を記事の下まで伸ばすと、狭い幅でタイトルが折り返しすぎる */
-@media (--narrow) {
-  .body {
-    grid-column: 1 / -1;
-  }
 }

@@ -6,3 +6,6 @@ export const groupByCategory = <T extends { category: Category }>(items: readonl
   category.options
     .map((name): [Category, T[]] => [name, items.filter((a) => a.category === name)])
     .filter(([, articles]) => articles.length > 0);
+
+export const countArticles = (items: readonly { children: readonly unknown[] }[]) =>
+  items.reduce((n, a) => n + 1 + a.children.length, 0);
