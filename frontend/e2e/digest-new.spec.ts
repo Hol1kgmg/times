@@ -3,7 +3,7 @@ import { boardOf, loggedInState } from "./admin";
 
 const newPath = "/admin/digests/new";
 
-test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並び、その日に登録を開き直すと編集へ移れる", async ({
+test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並び、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -53,21 +53,26 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   await page.waitForURL((url) => url.pathname === "/");
 
   const panel = page.getByRole("region", { name: "最新の Digest" });
-  await expect(
-    panel.getByText(
-      new Intl.DateTimeFormat("ja-JP", {
-        month: "long",
-        day: "numeric",
-        weekday: "short",
-        timeZone: "UTC",
-      }).format(new Date(date)),
-      { exact: true },
-    ),
-  ).toBeVisible();
+  const dateLabel = new Intl.DateTimeFormat("ja-JP", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "UTC",
+  }).format(new Date(date));
+  await expect(panel.getByText(dateLabel, { exact: true })).toBeVisible();
   await expect(panel.getByRole("heading", { level: 3 })).toHaveText(["セキュリティ", "その他"]);
   const links = panel.getByRole("link");
   await expect(links).toHaveText([security, related, `${other}HOT`]);
   await expect(links.filter({ hasText: "HOT" })).toHaveText([`${other}HOT`]);
+
+  await page.getByRole("link", { name: "timeline" }).click();
+  await page.waitForURL((url) => url.pathname === "/timeline");
+  await expect(page.getByRole("region", { name: dateLabel })).toBeInViewport();
+  const dates = await page
+    .locator("main time")
+    .evaluateAll((els) => els.map((el) => el.getAttribute("datetime") ?? ""));
+  expect(dates).toStrictEqual(dates.toSorted((a, b) => a.localeCompare(b)));
+  expect(dates.at(-1)).toBe(date);
 
   // 登録した日を「今日」にして開き直すと、登録済みと伝えて編集へ移れる
   await page.clock.setFixedTime(new Date(`${date}T12:00:00`));

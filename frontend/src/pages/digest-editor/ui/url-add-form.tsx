@@ -1,11 +1,10 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { newChildArticle } from "#/shared/api";
+import { fetchAnyLinkPreview, newChildArticle } from "#/shared/api";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
-import { fetchDraftPreview } from "../api/fetch-draft-preview";
 import { addDraft, draftTitle, MAX_DRAFTS, settleTitle, stripTracking } from "../model/board";
 import type { Board, Rejected } from "../model/board";
 import styles from "./url-add-form.module.css";
@@ -23,7 +22,7 @@ interface UrlAddFormProps {
 }
 
 export const UrlAddForm = ({ board, setBoard }: UrlAddFormProps) => {
-  const getPreview = useServerFn(fetchDraftPreview);
+  const getPreview = useServerFn(fetchAnyLinkPreview);
   const [url, setUrl] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string>();

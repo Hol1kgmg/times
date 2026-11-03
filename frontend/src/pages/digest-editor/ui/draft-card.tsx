@@ -1,13 +1,13 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { loadAnyLinkPreview } from "#/shared/api";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
 import { useModal } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
-import { loadDraftPreview } from "../api/load-draft-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
 import styles from "./draft-card.module.css";
 
@@ -157,7 +157,7 @@ const LinkRow = ({
     url: link.url,
     title: link.title === "" ? host : link.title,
     className: styles.preview,
-    load: loadDraftPreview,
+    load: loadAnyLinkPreview,
   });
   const hovered = useHovered({ onHoverStart: show });
   const untitled = link.status !== "loading" && link.title.trim() === "";

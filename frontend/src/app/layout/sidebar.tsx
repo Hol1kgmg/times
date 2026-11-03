@@ -45,7 +45,20 @@ export const ChannelNav = ({ onNavigate }: Props) => {
       <HoverLink className={styles.link} to="/" onClick={onNavigate}>
         <span className={styles.hash}>#</span>general
       </HoverLink>
-      {viewer.kind === "admin" && <AdminTabs admin={viewer} onNavigate={onNavigate} />}
+      {viewer.kind === "admin" && (
+        <>
+          {/* 既定では遷移後に router が先頭へ戻し、画面が出した最下段の位置を上書きする */}
+          <HoverLink
+            className={styles.link}
+            resetScroll={false}
+            to="/timeline"
+            onClick={onNavigate}
+          >
+            <span className={styles.hash}>#</span>timeline
+          </HoverLink>
+          <AdminTabs admin={viewer} onNavigate={onNavigate} />
+        </>
+      )}
     </nav>
   );
 };

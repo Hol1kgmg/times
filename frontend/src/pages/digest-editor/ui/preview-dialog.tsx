@@ -1,9 +1,9 @@
 import { useId } from "react";
+import { loadAnyLinkPreview } from "#/shared/api";
 import type { DigestContent } from "#/shared/api";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { useModal } from "#/shared/ui/modal";
-import { loadDraftPreview } from "../api/load-draft-preview";
 import styles from "./preview-dialog.module.css";
 
 export const PreviewDialog = ({
@@ -31,7 +31,7 @@ export const PreviewDialog = ({
           閉じる
         </HoverButton>
       </div>
-      <DigestPost digest={digest} loadPreview={loadDraftPreview} />
+      <DigestPost digest={digest} loadPreview={loadAnyLinkPreview} />
     </dialog>
   );
 };
