@@ -1,8 +1,8 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { Button } from "react-aria-components";
 import { fetchAnyLinkPreview, newChildArticle } from "#/shared/api";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { addDraft, draftTitle, MAX_DRAFTS, settleTitle, stripTracking } from "../model/board";
@@ -99,12 +99,11 @@ export const UrlAddForm = ({ board, setBoard }: UrlAddFormProps) => {
               setUrl(e.target.value);
             }}
           />
-          <button
+          <Button
             aria-label={url === "" ? "クリップボードから追加" : "入力を消去"}
             className={styles.fieldButton}
-            disabled={adding}
-            type="button"
-            onClick={() => {
+            isDisabled={adding}
+            onPress={() => {
               if (url === "") {
                 void onPaste();
               } else {
@@ -113,11 +112,11 @@ export const UrlAddForm = ({ board, setBoard }: UrlAddFormProps) => {
             }}
           >
             <LineIcon d={url === "" ? clipboardIcon : clearIcon} size={20} />
-          </button>
+          </Button>
         </div>
-        <HoverButton className={styles.button} disabled={adding} type="submit">
+        <Button className={styles.button} isDisabled={adding} type="submit">
           {adding ? "取得中" : "追加"}
-        </HoverButton>
+        </Button>
       </form>
       {addError !== undefined && <p className={styles.message}>{addError}</p>}
     </>

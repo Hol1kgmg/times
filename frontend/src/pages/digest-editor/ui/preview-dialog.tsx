@@ -1,8 +1,8 @@
 import { useId } from "react";
+import { Button } from "react-aria-components";
 import { loadAnyLinkPreview } from "#/shared/api";
 import type { DigestContent } from "#/shared/api";
 import { DigestPost } from "#/shared/ui/digest-post";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { useModal } from "#/shared/ui/modal";
 import styles from "./preview-dialog.module.css";
 
@@ -21,15 +21,14 @@ export const PreviewDialog = ({
         <h2 className={styles.dialogHeading} id={headingId}>
           プレビュー
         </h2>
-        <HoverButton
+        <Button
           className={styles.button}
-          type="button"
-          onClick={() => {
+          onPress={() => {
             close();
           }}
         >
           閉じる
-        </HoverButton>
+        </Button>
       </div>
       <DigestPost digest={digest} loadPreview={loadAnyLinkPreview} />
     </dialog>

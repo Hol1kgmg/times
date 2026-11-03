@@ -51,7 +51,7 @@
   transition: transform 0.1s ease-out;
 }
 
-.calendarButton:active {
+.calendarButton[data-pressed] {
   transform: scale(1.1);
 }
 
@@ -60,7 +60,7 @@
     transition: none;
   }
 
-  .calendarButton:active {
+  .calendarButton[data-pressed] {
     transform: none;
   }
 }

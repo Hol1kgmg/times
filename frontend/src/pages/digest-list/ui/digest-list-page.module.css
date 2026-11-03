@@ -132,7 +132,7 @@
   color: var(--color-accent);
 }
 
-.day:active {
+.day[data-pressed] {
   transform: scale(1.03);
 }
 
@@ -148,7 +148,7 @@
     transition: none;
   }
 
-  .day:active {
+  .day[data-pressed] {
     transform: none;
   }
 }

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useId, useState } from "react";
+import { Button } from "react-aria-components";
 import { calendarIcon } from "#/shared/ui/icons/calendar";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import styles from "./date-field.module.css";
@@ -37,16 +38,15 @@ export const DateField = ({ value, invalid, taken, onChange }: DateFieldProps) =
             onChange(e.target.value);
           }}
         />
-        <button
+        <Button
           aria-label="カレンダーから選ぶ"
           className={styles.calendarButton}
-          type="button"
-          onClick={() => {
+          onPress={() => {
             setPicking(true);
           }}
         >
           <LineIcon d={calendarIcon} size={20} />
-        </button>
+        </Button>
       </div>
       {picking && (
         <Suspense>

@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react";
+import { Button } from "react-aria-components";
 import type { DigestStatus } from "#/shared/api";
 import { Chevron } from "#/shared/ui/chevron";
 import { HoverButton } from "#/shared/ui/hover-button";
@@ -29,12 +30,11 @@ export const SaveSplitButton = <S extends DigestStatus>({
   const [action, setAction] = useState(saveActions[0]);
   return (
     <div className={styles.split}>
-      <HoverButton
+      <Button
         aria-describedby={describedBy}
         className={styles.button}
-        disabled={disabled}
-        type="button"
-        onClick={() => {
+        isDisabled={disabled}
+        onPress={() => {
           onSave(action.status);
         }}
       >
@@ -49,7 +49,7 @@ export const SaveSplitButton = <S extends DigestStatus>({
             </span>
           ))}
         </span>
-      </HoverButton>
+      </Button>
       <HoverButton
         aria-label={`${submitLabel}方法を選ぶ`}
         className={`${styles.button} ${styles.splitMore}`}

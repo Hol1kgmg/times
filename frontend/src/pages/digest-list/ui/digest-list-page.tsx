@@ -1,7 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { Chevron } from "#/shared/ui/chevron";
-import { HoverLink } from "#/shared/ui/hover-link";
+import { RouterLink } from "#/shared/ui/router-link";
 import { groupByMonth } from "../model/group-by-month";
 import type { DigestStatus } from "#/shared/api";
 import type { YearGroup } from "../model/group-by-month";
@@ -52,7 +52,7 @@ const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }
               <ul className={styles.days}>
                 {m.items.map((d) => (
                   <li key={d.id}>
-                    <HoverLink
+                    <RouterLink
                       className={styles.day}
                       params={{ date: d.entryDate }}
                       to="/admin/digests/$date/edit"
@@ -61,7 +61,7 @@ const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }
                       {statusMark[d.status] !== undefined && (
                         <span className={styles.status}>{statusMark[d.status]}</span>
                       )}
-                    </HoverLink>
+                    </RouterLink>
                   </li>
                 ))}
               </ul>

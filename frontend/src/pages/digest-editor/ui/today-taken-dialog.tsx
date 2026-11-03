@@ -1,6 +1,6 @@
 import { useId } from "react";
-import { HoverButton } from "#/shared/ui/hover-button";
-import { HoverLink } from "#/shared/ui/hover-link";
+import { Button } from "react-aria-components";
+import { RouterLink } from "#/shared/ui/router-link";
 import { useModal } from "#/shared/ui/modal";
 import styles from "./today-taken-dialog.module.css";
 
@@ -14,18 +14,17 @@ export const TodayTakenDialog = ({ date, onClose }: { date: string; onClose: () 
       </p>
       <div className={styles.actions}>
         {/* showModal は DOM 順で最初の要素にフォーカスするので、勧める方を先に置く */}
-        <HoverLink className={styles.button} params={{ date }} to="/admin/digests/$date/edit">
+        <RouterLink className={styles.button} params={{ date }} to="/admin/digests/$date/edit">
           編集する
-        </HoverLink>
-        <HoverButton
+        </RouterLink>
+        <Button
           className={styles.button}
-          type="button"
-          onClick={() => {
+          onPress={() => {
             close();
           }}
         >
           別の日付で登録する
-        </HoverButton>
+        </Button>
       </div>
     </dialog>
   );

@@ -1,8 +1,8 @@
 import { useSortable } from "@dnd-kit/react/sortable";
 import { useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { Button, Link as AriaLink } from "react-aria-components";
 import { loadAnyLinkPreview } from "#/shared/api";
-import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
@@ -118,18 +118,17 @@ const EditDialog = ({
         </label>
         {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
         <div className={styles.formActions}>
-          <button
+          <Button
             className={styles.button}
-            type="button"
-            onClick={() => {
+            onPress={() => {
               close();
             }}
           >
             やめる
-          </button>
-          <button className={styles.button} type="submit">
+          </Button>
+          <Button className={styles.button} type="submit">
             確定
-          </button>
+          </Button>
         </div>
       </form>
     </dialog>
@@ -159,21 +158,20 @@ const LinkRow = ({
     className: styles.preview,
     load: loadAnyLinkPreview,
   });
-  const hovered = useHovered({ onHoverStart: show });
   const untitled = link.status !== "loading" && link.title.trim() === "";
   return (
     <div className={styles.row} data-registered={registered ? "" : undefined}>
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
       <span className={styles.text}>
-        <a
+        <AriaLink
           className={styles.title}
           data-dismissed={dismissed ? "" : undefined}
           href={link.url}
           rel="noopener noreferrer"
           target="_blank"
           onFocus={show}
-          {...hovered}
+          onHoverStart={show}
         >
           <span className={styles.titleText} title={link.title}>
             {link.title === "" ? host : link.title}
@@ -184,7 +182,7 @@ const LinkRow = ({
               <Flame aria-label="ホット" role="img" size={14} />
             </span>
           )}
-        </a>
+        </AriaLink>
         {card}
         <span className={styles.meta}>
           <span className={styles.host}>{host}</span>

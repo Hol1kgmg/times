@@ -1,9 +1,9 @@
 import { getRouteApi, isNotFound, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { Button } from "react-aria-components";
 import { category } from "#/shared/api";
 import type { DigestContent, DigestStatus } from "#/shared/api";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { createDigest } from "../api/create-digest";
 import type { Rejection } from "../api/rejection-of";
 import { updateDigest } from "../api/update-digest";
@@ -236,16 +236,15 @@ const DigestForm = <S extends DigestStatus>({
               過去に登録したリンクが含まれてます。重複して登録はできないので削除してください
             </p>
           )}
-          <HoverButton
+          <Button
             className={styles.button}
-            disabled={entry.articles.length === 0 || entryDate === ""}
-            type="button"
-            onClick={() => {
+            isDisabled={entry.articles.length === 0 || entryDate === ""}
+            onPress={() => {
               setPreviewing(true);
             }}
           >
             プレビュー
-          </HoverButton>
+          </Button>
           <SaveSplitButton
             describedBy={reasons.length > 0 ? blockersId : undefined}
             disabled={cannotSave}

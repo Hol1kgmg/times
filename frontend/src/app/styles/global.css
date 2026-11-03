@@ -233,7 +233,8 @@ button {
   transition: transform 0.1s ease-out;
 }
 
-.button:active:not(:disabled) {
+/* :active は popoverTarget のため素の button のまま残るメニューの開閉ボタンの分 */
+.button:is([data-pressed], :active):not(:disabled) {
   transform: scale(1.05);
 }
 
@@ -253,7 +254,7 @@ button {
     transition: none;
   }
 
-  .button:active:not(:disabled) {
+  .button:is([data-pressed], :active):not(:disabled) {
     transform: none;
   }
 }
