@@ -139,6 +139,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /articles/domains:
+    get:
+      operationId: listArticleDomains
+      description: 公開の Digest の記事の URL のドメインを、記事の件数の多い順に返す。ログインユーザーなら誰でも使える (今ログインできるのは管理者だけ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DomainQuery"
+        - $ref: "#/components/parameters/DomainLimit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainList"
+        "400":
+          description: 形式違反 (validation-failed)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /articles/domains/all:
+    get:
+      operationId: listAllArticleDomains
+      description: 登録済みの記事の URL のドメインを、Digest のステータスを問わず記事の件数の多い順に返す。管理者専用
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DomainQuery"
+        - $ref: "#/components/parameters/DomainLimit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainList"
+        "400":
+          description: 形式違反 (validation-failed)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /auth/sessions:
     post:
       operationId: createSession
@@ -202,6 +250,22 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+  parameters:
+    DomainQuery:
+      name: q
+      in: query
+      description: ドメインに含まれる文字列。大文字小文字を区別しない
+      schema:
+        type: string
+        maxLength: 100
+    DomainLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
   responses:
     BadRequest:
       description: Bad Request
@@ -294,6 +358,24 @@ components:
           format: date
         status:
           $ref: "#/components/schemas/DigestStatus"
+    DomainList:
+      type: object
+      required: [domains]
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/DomainCount"
+    DomainCount:
+      type: object
+      required: [host, count]
+      properties:
+        host:
+          type: string
+          minLength: 1
+        count:
+          type: integer
+          minimum: 1
     DigestStatus:
       type: string
       enum: [draft, published, private]

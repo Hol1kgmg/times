@@ -226,6 +226,17 @@ type DigestUpdate struct {
 // DigestUpdateStatus 省略すると今のステータスのまま
 type DigestUpdateStatus string
 
+// DomainCount defines model for DomainCount.
+type DomainCount struct {
+	Count int    `json:"count"`
+	Host  string `json:"host"`
+}
+
+// DomainList defines model for DomainList.
+type DomainList struct {
+	Domains []DomainCount `json:"domains"`
+}
+
 // NewArticle defines model for NewArticle.
 type NewArticle struct {
 	Category Category           `json:"category"`
@@ -282,11 +293,31 @@ type Session struct {
 	User      AdminUser `json:"user"`
 }
 
+// DomainLimit defines model for DomainLimit.
+type DomainLimit = int
+
+// DomainQuery defines model for DomainQuery.
+type DomainQuery = string
+
 // BadRequest defines model for BadRequest.
 type BadRequest = Problem
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Problem
+
+// ListArticleDomainsParams defines parameters for ListArticleDomains.
+type ListArticleDomainsParams struct {
+	// Q ドメインに含まれる文字列。大文字小文字を区別しない
+	Q     *DomainQuery `form:"q,omitempty" json:"q,omitempty"`
+	Limit *DomainLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListAllArticleDomainsParams defines parameters for ListAllArticleDomains.
+type ListAllArticleDomainsParams struct {
+	// Q ドメインに含まれる文字列。大文字小文字を区別しない
+	Q     *DomainQuery `form:"q,omitempty" json:"q,omitempty"`
+	Limit *DomainLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // CreateSessionJSONRequestBody defines body for CreateSession for application/json ContentType.
 type CreateSessionJSONRequestBody = NewSession
@@ -299,6 +330,12 @@ type UpdateDigestJSONRequestBody = DigestUpdate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (GET /articles/domains)
+	ListArticleDomains(c *gin.Context, params ListArticleDomainsParams)
+
+	// (GET /articles/domains/all)
+	ListAllArticleDomains(c *gin.Context, params ListAllArticleDomainsParams)
 
 	// (POST /auth/sessions)
 	CreateSession(c *gin.Context)
@@ -336,6 +373,76 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// ListArticleDomains operation middleware
+func (siw *ServerInterfaceWrapper) ListArticleDomains(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListArticleDomainsParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", c.Request.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter q: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListArticleDomains(c, params)
+}
+
+// ListAllArticleDomains operation middleware
+func (siw *ServerInterfaceWrapper) ListAllArticleDomains(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAllArticleDomainsParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", c.Request.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter q: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListAllArticleDomains(c, params)
+}
 
 // CreateSession operation middleware
 func (siw *ServerInterfaceWrapper) CreateSession(c *gin.Context) {
@@ -511,6 +618,8 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/digests/latest", wrapper.GetLatestDigest)
 	router.GET(options.BaseURL+"/digests/:entryDate", wrapper.GetDigestByDate)
 	router.PUT(options.BaseURL+"/digests/:entryDate", wrapper.UpdateDigest)
+	router.GET(options.BaseURL+"/articles/domains", wrapper.ListArticleDomains)
+	router.GET(options.BaseURL+"/articles/domains/all", wrapper.ListAllArticleDomains)
 	router.POST(options.BaseURL+"/auth/sessions", wrapper.CreateSession)
 	router.DELETE(options.BaseURL+"/auth/sessions/current", wrapper.DeleteCurrentSession)
 	router.GET(options.BaseURL+"/auth/sessions/current", wrapper.GetCurrentSession)
@@ -519,6 +628,110 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 type BadRequestApplicationProblemPlusJSONResponse Problem
 
 type UnauthorizedApplicationProblemPlusJSONResponse Problem
+
+type ListArticleDomainsRequestObject struct {
+	Params ListArticleDomainsParams
+}
+
+type ListArticleDomainsResponseObject interface {
+	VisitListArticleDomainsResponse(w http.ResponseWriter) error
+}
+
+type ListArticleDomains200JSONResponse DomainList
+
+func (response ListArticleDomains200JSONResponse) VisitListArticleDomainsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListArticleDomains400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListArticleDomains400ApplicationProblemPlusJSONResponse) VisitListArticleDomainsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListArticleDomains401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListArticleDomains401ApplicationProblemPlusJSONResponse) VisitListArticleDomainsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAllArticleDomainsRequestObject struct {
+	Params ListAllArticleDomainsParams
+}
+
+type ListAllArticleDomainsResponseObject interface {
+	VisitListAllArticleDomainsResponse(w http.ResponseWriter) error
+}
+
+type ListAllArticleDomains200JSONResponse DomainList
+
+func (response ListAllArticleDomains200JSONResponse) VisitListAllArticleDomainsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAllArticleDomains400ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAllArticleDomains400ApplicationProblemPlusJSONResponse) VisitListAllArticleDomainsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAllArticleDomains401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAllArticleDomains401ApplicationProblemPlusJSONResponse) VisitListAllArticleDomainsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type CreateSessionRequestObject struct {
 	Body *CreateSessionJSONRequestBody
@@ -939,6 +1152,12 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
+	// (GET /articles/domains)
+	ListArticleDomains(ctx context.Context, request ListArticleDomainsRequestObject) (ListArticleDomainsResponseObject, error)
+
+	// (GET /articles/domains/all)
+	ListAllArticleDomains(ctx context.Context, request ListAllArticleDomainsRequestObject) (ListAllArticleDomainsResponseObject, error)
+
 	// (POST /auth/sessions)
 	CreateSession(ctx context.Context, request CreateSessionRequestObject) (CreateSessionResponseObject, error)
 
@@ -1022,6 +1241,58 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictGinServerOptions
+}
+
+// ListArticleDomains operation middleware
+func (sh *strictHandler) ListArticleDomains(ctx *gin.Context, params ListArticleDomainsParams) {
+	var request ListArticleDomainsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListArticleDomains(ctx, request.(ListArticleDomainsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListArticleDomains")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListArticleDomainsResponseObject); ok {
+		if err := validResponse.VisitListArticleDomainsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAllArticleDomains operation middleware
+func (sh *strictHandler) ListAllArticleDomains(ctx *gin.Context, params ListAllArticleDomainsParams) {
+	var request ListAllArticleDomainsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAllArticleDomains(ctx, request.(ListAllArticleDomainsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAllArticleDomains")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListAllArticleDomainsResponseObject); ok {
+		if err := validResponse.VisitListAllArticleDomainsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // CreateSession operation middleware
@@ -1270,51 +1541,57 @@ func (sh *strictHandler) GetHealth(ctx *gin.Context) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"1FnvU9tG+v9XNPp+X5A5E5skdy/85oYkcy1zmbTTlFeZ3I2wF1BjS+5qlSbXYcYrJ8QJpubyg9+dlNSA",
-	"C8W0Ta9DMCF/zGPZ5r+42V1JliwZSBOgl8kMlrTafX5/Ps+jr+WUns3pGtKIISe/ljEycrpmIH5xWUl/",
-	"hr40kUHYVUrXCNL4TyWXy6gphai6Fs9hfSSDsn/6wtA19sxIjaOswn79P0ajclL+v3jniLh4asQ/FW/J",
-	"ExMTMTmNjBRWc2w7OclOldxjJ2LysKaYZFzH6r9Q+jTFCJzLHjvvsC0H01lVGzYQZhc5rOcQJqqwmcqF",
-	"DG71kUo+Nkcke2nXri1KQ1chb4H1HyjsQeEpWK/tyQdA11u1ldbMZDv/AKwnzdJDoAvtrXm7uGpvzcgx",
-	"eVTHWYXISVnVyF8uyTGZ3MshcYnGEGaGyuhjKlfdeWQQrGpjXHSMvjRVzOx3kwnorr3lbaOPfIFS3NyD",
-	"mKipDAorllIIGtPxvaNMesVdNxGTU+NqJo0Rl0olKGsc+TJ7wRVhwhNPwVjhGwbs2m1mKCwym1o7QGvt",
-	"jR+b8980Zx9C3rLLs/b+HNB1oNNAX7Sr843dKaDfAf13s0SBVjrmdG0Wk8d1EnXCEhQKUCjy/8/Yb2sb",
-	"6BTQH4BOsh95y96acU/Ybq9tAN2095/ypzWg65JfQwnoJtBtLsQLoBtA73dEGdH1DFI0JouIKS8ETJP7",
-	"MCQyUYlwXOiJiTPBHbAa3iAqTjynC4O4Z4gdff6NiqQrvoBBmpllm4JVB2sLCqtQ2IDCJFjfyzF56PPW",
-	"q7ock4eHxN9B5+/Bty9bC2+AfsuttwGF+zxlNqFQ96ePHJP5mlqjPusTxFErJt/tZ6f331GwpmRZLN/0",
-	"RLuBUiZWCVPPvTX0ue9ieMh3Mei/+FzXM4bv+hMyjrB8i6ntD+FQFnUFcMhTZ+dqv2cj3YmRQlD6BjIM",
-	"R3glk/lkVE7ePDyl3RcmYt22IPptFJHGjZ3pg3y5Of8NT7I9lmGFV5C3ruj6bZXnjP1gFawS0DXpMlIw",
-	"whLQ9Xb95UGeAl0Aa+pIhcXJYS2Z/66qYw7gBaVVhEuNY9eyQ8oY0gi+d1UhKOCqNLsR+90xYRCFmEdK",
-	"JdS7IdZGBkJHOG/PWEf7qNAQe15To8yW5s+ObzVHPjObVQSGBG3XJbC7e2+pbnhWCUZZGiujRAK63djJ",
-	"27trYFn2gx8PZqeAzgFdA3pf1GPI0xxW7yiEBd42j8gCFOZYED7cBfrcWUWrzZ93wWJ1XOqzy7NgPW7s",
-	"TAF9AvSFs2+eBt94CrTK6/8c0BeNnanm0g7Q6XPcAaJYchHlmJwzRzKqMY6YcxxhwnWuo7BjupAn/teC",
-	"rrdPh3NpR433TNHr6CtflmaVu0PirYFEIiZnVc29fN8MNnoEYWuZtp6viqIFtNqoP2YswXrNoJFVvrfs",
-	"N+MN+0D3fZFxvIjosrPfxIems88qZ8MCr6OvuolgxzcXEmFveGRtVDEzRE6OKhkDRTEpDzezyt1rSBsj",
-	"43LyouNs93ogdlxU9W1yIcF2ySmEIMw8+49xQnLGX5Px+JFg5ONYR2Fwt2FC7vkj6ncMpT4Y5p5FQjsx",
-	"55Xr3uX7g6aoj4h1paieRj17UK+nlVi3Yj1qFutAv2ewxV/r9vmRgYNRWsUoRYaxGj7Tf9hmc2dFYJ3k",
-	"vvNPE6uQtzgZkxq7lWZ5iXVIjqRAS42dfPvhr6wfriy3q3seuXsncuvo5Rc0yqLuJCCCsRNFzURy7bQp",
-	"5g9oGGciqruJM/1KBiMlfa8fozHVIAijtMQLepX3oqwF5WSWN44zJaDznTEALdmPpoHWJJEdjOS2FuoH",
-	"pV+aO0Wgb9mT4c+uSX2c9nIXuiEjAa1KbtUV500CXWn/8Iv95qmDNpbF7y8AfQ10jdEOL8HC3UZXrnSi",
-	"PzyF6N2ZiBuhltqqQuEHKOy1qjW7uMpHI9vsjlUB6yVj/oUiY170Kaf863Zx0v5lxlEibzULr+zaol2Z",
-	"BbotKSO6SZIjGUW77cvD4F13UGTE7ygZNc2HR/2jiprhYNp5qumkf1Q3teBd0z8U8j8Y1fGImk4jLbg8",
-	"ZxCMlGzUAdHREVgi2K23Ct1Vg1y3V8FlTztgcgid6llD0N2cipExSELVsJ+o2ciSaDrjsENbIm9u1i0z",
-	"fzvmOzcsLgs8p1+/wfYTko7wDnDQZAXKmfpxzOe3O3IyuBJTPlUb1X1QKTN9DGnwU9bd30FY2ENOnB84",
-	"n2Bq6TmkKTlVTsoXzyfOX5Q5CI7zo+MsFuKGsCG/k9MN0rP0soRlxUjyFbQ5yFNfxtckZze2prWw214p",
-	"eUWPuYdH61BaTjrduOs/YUtkkMt6+t4hQ9J3G476QGYi6C+CTcRv+IbFFxIDH+zkrllDxHTWWeHBh1Mi",
-	"aM1+u9zaesYbK1ZdW+V9VjesKebLS4lEr5M9VeK+oTd/5eJpDp3b1Z/t8jbrEvl8w2tDPVC0XoK1Cdaa",
-	"UxhZ6d/nw8NtaURJ3UYaxxd3+UH+++bMLtBSc3mjXd2ya4tMpz8nLpymTl74V4HWDvKLjbcrUKi7fqq5",
-	"qbBpV35uPp+T+kSO0FLr/or9+DXQDfu7X+2ZIuvQZzbByp9jh0zEutIvnjIxdtRJowwiEVjjTYsCeWY/",
-	"enywUBF5JvVBYQusn7id16BQPMcnuvP2cpWTlw2gZeYXy5IuJC6FsvIqP/iKkMSfnIE8uRSW7LouXXHc",
-	"wYNu4Og4DX+fcIeZyZvBsnjzFh9sjSFyXJO0Hqwzi3eVJ+tJ++0zoAshtT9C5CidEx+sNhxSFD75+0lZ",
-	"j4Wbb5IVacpucubRtlpzbrVRnwfrCcvXru7eemI/L4NVBrrYnP2JB9n9g+8mgW4KY0Pe8j4nsPhn6e58",
-	"KAg64ZpqkKuOiCdoft+s71Q9EOsBrgOSsK5dnPQb3XriWu0Z0KpwjUcafTy51thZA/oKaEl8QxCjlvZK",
-	"tVXZFW5g5u4JwE7jemL46+x/yvDrPzUSdn1gelooYr95ae+VD+hzuzwt9YW4+zkOhd92ks2fgCV/akp9",
-	"kbSabXCsfotlLMchqS+awkOeBhpDiYszzZDEla0qdmId7kpz9jXQ34BWeEM+5baG21I0+z/5AhfPKMSZ",
-	"xkTWOXdO7q9wosF01Ss1l/O8mNWcNtNFDmaC5Q0XYiuMxNDN9toU0CWues2jcc2n0403y4LDReHNNS6j",
-	"L/1OtNwdVuounWYWXNeJ9DfWlUp9EW4oSQNSo/4bNzrDCI8puZ792hswTfR0b68sOgq9enMDscNld7B1",
-	"hr76HfT/nVPtLGOidwXsBMQxgFbBShYRhA2+QmWHsKZXjsmawrtr/5wyCEsxnz5HTFEnbsXknPkOEdi5",
-	"VxXg3tjJ23tlxlff1IBO8/lh0ZkLuZTLrjxybnqFdURP3+OM11ODzydd9tV5VXxmjgB/8QHqRME/8KXr",
-	"WPh/6on0B4J+u/KoufSr/aDoC5JNu7j6u2hAoz57sjTgtFD/LEtR++FGFyVnVDqQ2O4M+h2KEwOzcaRk",
-	"xLTPwa8Q4HwsVrxnhgQnoqGZd4/ha89pa3Qy8X//DQAA//8=",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

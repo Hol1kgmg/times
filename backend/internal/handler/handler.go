@@ -71,6 +71,40 @@ func (s *Server) ListDigests(ctx context.Context, _ api.ListDigestsRequestObject
 	return api.ListDigests200JSONResponse{Digests: digests}, nil
 }
 
+func (s *Server) ListArticleDomains(ctx context.Context, req api.ListArticleDomainsRequestObject) (api.ListArticleDomainsResponseObject, error) {
+	domains, err := s.articleDomains(ctx, req.Params.Q, req.Params.Limit, true)
+	if err != nil {
+		return nil, err
+	}
+	return api.ListArticleDomains200JSONResponse{Domains: domains}, nil
+}
+
+// ponytail: ログインできるのは管理者だけなので bearerAuth で足りる。一般ユーザーを足したら管理者の判定を足す
+func (s *Server) ListAllArticleDomains(ctx context.Context, req api.ListAllArticleDomainsRequestObject) (api.ListAllArticleDomainsResponseObject, error) {
+	domains, err := s.articleDomains(ctx, req.Params.Q, req.Params.Limit, false)
+	if err != nil {
+		return nil, err
+	}
+	return api.ListAllArticleDomains200JSONResponse{Domains: domains}, nil
+}
+
+func (s *Server) articleDomains(ctx context.Context, q *string, limit *int, publishedOnly bool) ([]api.DomainCount, error) {
+	// openapi.yaml の default は oapi-codegen が埋めないので、同じ値をここで使う
+	lim := 20
+	if limit != nil {
+		lim = *limit
+	}
+	rows, err := s.q.ListArticleDomains(ctx, db.ListArticleDomainsParams{PublishedOnly: publishedOnly, Q: q, Lim: int32(lim)})
+	if err != nil {
+		return nil, err
+	}
+	domains := make([]api.DomainCount, 0, len(rows))
+	for _, r := range rows {
+		domains = append(domains, api.DomainCount{Host: r.Host, Count: int(r.Count)})
+	}
+	return domains, nil
+}
+
 func (s *Server) GetDigestByDate(ctx context.Context, req api.GetDigestByDateRequestObject) (api.GetDigestByDateResponseObject, error) {
 	d, err := s.q.GetDigestByDate(ctx, req.EntryDate.Time)
 	if errors.Is(err, pgx.ErrNoRows) {

@@ -70,6 +70,8 @@ func TestRouter(t *testing.T) {
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound}, // /digests/{entryDate} より静的な経路が先
 		// 未ログインに見せるのは latest だけ (specs/006 FR-003)
 		{"GET", "/digests", "", http.StatusUnauthorized, api.Problemsunauthorized},
+		{"GET", "/articles/domains", "", http.StatusUnauthorized, api.Problemsunauthorized},
+		{"GET", "/articles/domains/all", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/2026-10-17", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/not-a-date", "", http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
 		{"PUT", "/digests/2026-10-17", `{"entryDate":"2026-10-17","articles":[]}`, http.StatusUnauthorized, api.Problemsunauthorized},
@@ -154,7 +156,8 @@ func TestBearerAuth(t *testing.T) {
 		{"GET", "/auth/sessions/current", "Bearer valid", 200, true},
 		{"DELETE", "/auth/sessions/current", "", 401, false},
 		{"DELETE", "/auth/sessions/current", "Bearer valid", 204, true},
-		{"POST", "/digests", "Bearer valid", 400, true}, // 認証後に body 検証 (空 body)
+		{"POST", "/digests", "Bearer valid", 400, true},                  // 認証後に body 検証 (空 body)
+		{"GET", "/articles/domains?limit=51", "Bearer valid", 400, true}, // 認証後に query 検証
 		{"GET", "/health", "Bearer valid", 200, false},
 	}
 	for _, tt := range tests {

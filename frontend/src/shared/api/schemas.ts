@@ -57,6 +57,15 @@ export const digestList = z.object({
   digests: digestSummary.array(),
 }) satisfies z.ZodType<Schemas["DigestList"]>;
 
+export const domainCount = z.object({
+  host: z.string().min(1),
+  count: z.number().int().min(1),
+}) satisfies z.ZodType<Schemas["DomainCount"]>;
+
+export const domainList = z.object({
+  domains: domainCount.array(),
+}) satisfies z.ZodType<Schemas["DomainList"]>;
+
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
 export const newChildArticle = z.object({
   title: z.string().trim().min(1).max(300),
