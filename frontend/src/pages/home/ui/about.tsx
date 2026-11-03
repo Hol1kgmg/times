@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import { category } from "#/shared/api";
 import type { Category } from "#/shared/api";
+import { FEED_PATH } from "#/shared/config/site";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
@@ -32,7 +33,7 @@ const faqs = [
     q: "どのくらい更新される？",
     a: (
       <>
-        決まってません。気になる記事がたまったら投稿してます。投稿したら <a href="/feed.xml">RSS</a>{" "}
+        決まってません。気になる記事がたまったら投稿してます。投稿したら <a href={FEED_PATH}>RSS</a>{" "}
         でお知らせします (記事の一覧は入らず、公開したことだけ届きます)。
       </>
     ),

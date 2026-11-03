@@ -1,4 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
+import { FEED_PATH } from "#/shared/config/site";
 import { useHovered } from "#/shared/lib/use-hovered";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { Logo } from "#/shared/ui/logo";
@@ -32,8 +33,8 @@ export const HomePage = () => {
       <About />
       <footer className={styles.footer}>
         <Logo />
-        {/* /feed.xml は server route なので、router の Link だと画面として描こうとする */}
-        <a className={styles.feed} href="/feed.xml" {...useHovered()}>
+        {/* フィードは server route なので、router の Link だと画面として描こうとする */}
+        <a className={styles.feed} href={FEED_PATH} {...useHovered()}>
           <LineIcon d={rssIcon} size={16} />
           RSS
         </a>
