@@ -3,6 +3,8 @@
   inset: 0;
   z-index: var(--z-modal);
   display: grid;
+  /* 既定の auto のトラックは中身の幅まで広がり、.modal の max-width の 100% が画面幅を指さなくなる */
+  grid-template: 100% / 100%;
   place-items: center;
   backdrop-filter: var(--backdrop-floating);
   transition: opacity 0.2s ease-out;
