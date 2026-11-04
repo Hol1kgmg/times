@@ -18,26 +18,45 @@
   background-color: var(--color-surface);
 }
 
-.dateBox:has(.input:focus-visible) {
+.dateBox:has(.input[data-focus-within]) {
   border-color: var(--color-accent);
 }
 
-.dateBox:has(.input[aria-invalid="true"]) {
+.dateBox:has(.input[data-invalid]) {
   border-color: var(--color-danger);
 }
 
 .input {
+  display: flex;
+  align-items: center;
   padding: var(--space-half) var(--space-1);
-  border: none;
-  background: none;
   color: var(--color-text);
-  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 空の「年/月/日」と数字で幅が変わると、隣のカレンダーボタンが動く */
+.segment {
+  display: inline-block;
+  border-radius: var(--radius-card);
+  text-align: center;
   outline: none;
 }
 
-/* 既定のピッカーを残すとカレンダーのボタンが 2 つ並ぶ。Firefox は隠す手段がなく残る */
-.input::-webkit-calendar-picker-indicator {
-  display: none;
+.segment[data-type="year"] {
+  min-inline-size: 4ch;
+}
+
+.segment:is([data-type="month"], [data-type="day"]) {
+  min-inline-size: 2ch;
+}
+
+.segment[data-placeholder] {
+  color: var(--color-text-muted);
+}
+
+.segment[data-focused] {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
 }
 
 .calendarButton {
@@ -51,7 +70,7 @@
   transition: transform 0.1s ease-out;
 }
 
-.calendarButton:active {
+.calendarButton[data-pressed] {
   transform: scale(1.1);
 }
 
@@ -60,7 +79,7 @@
     transition: none;
   }
 
-  .calendarButton:active {
+  .calendarButton[data-pressed] {
     transform: none;
   }
 }

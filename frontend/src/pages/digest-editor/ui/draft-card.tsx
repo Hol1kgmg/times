@@ -1,12 +1,18 @@
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
+import {
+  Link as AriaLink,
+  Menu as AriaMenu,
+  MenuItem as AriaMenuItem,
+  Button,
+  MenuTrigger,
+  Popover,
+} from "react-aria-components";
 import { loadAnyLinkPreview } from "#/shared/api";
-import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { Flame } from "#/shared/ui/icons/flame";
-import { useModal } from "#/shared/ui/modal";
+import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
 import styles from "./draft-card.module.css";
@@ -30,33 +36,32 @@ interface MenuItem {
   disabled?: boolean;
 }
 
-const Menu = ({ items }: { items: MenuItem[] }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const id = useId();
-  return (
-    <>
-      <HoverButton aria-label="メニュー" className={styles.more} popoverTarget={id} type="button">
-        ···
-      </HoverButton>
-      <div ref={menuRef} className={styles.menu} id={id} popover="auto">
+const Menu = ({ items }: { items: MenuItem[] }) => (
+  <MenuTrigger>
+    <Button aria-label="メニュー" className={styles.more}>
+      ···
+    </Button>
+    <Popover className={styles.menu} offset={0} placement="bottom end">
+      <AriaMenu
+        className={styles.menuList}
+        disabledKeys={items.filter((item) => item.disabled === true).map((item) => item.label)}
+      >
         {items.map((item) => (
-          <HoverButton
+          <AriaMenuItem
             key={item.label}
             className={styles.item}
-            disabled={item.disabled}
-            type="button"
-            onClick={() => {
-              menuRef.current?.hidePopover();
+            id={item.label}
+            onAction={() => {
               item.onSelect();
             }}
           >
             {item.label}
-          </HoverButton>
+          </AriaMenuItem>
         ))}
-      </div>
-    </>
-  );
-};
+      </AriaMenu>
+    </Popover>
+  </MenuTrigger>
+);
 
 const EditDialog = ({
   link,
@@ -67,72 +72,72 @@ const EditDialog = ({
   onEdit: (next: { url: string; title: string }) => Rejected | null;
   onClose: () => void;
 }) => {
-  const { dialogProps, close } = useModal(onClose);
   const headingId = useId();
   const [title, setTitle] = useState(link.title);
   const [url, setUrl] = useState(link.url);
   const [duplicate, setDuplicate] = useState(false);
   return (
-    <dialog {...dialogProps} aria-labelledby={headingId} className={styles.dialog}>
-      <form
-        className={styles.form}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (onEdit({ title: title.trim(), url }) === null) {
-            close();
-          } else {
-            setDuplicate(true);
-          }
-        }}
-      >
-        <h2 className={styles.heading} id={headingId}>
-          記事を編集
-        </h2>
-        <label className={styles.field}>
-          <span className={styles.label}>タイトル</span>
-          <input
-            className={styles.input}
-            maxLength={300}
-            required
-            type="text"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-            }}
-          />
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>URL</span>
-          <input
-            className={styles.input}
-            maxLength={2000}
-            pattern="https?://.+"
-            required
-            title="http か https で始まる URL"
-            type="url"
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-            }}
-          />
-        </label>
-        {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
-        <div className={styles.formActions}>
-          <button
-            className={styles.button}
-            type="button"
-            onClick={() => {
+    <ModalDialog className={styles.dialog} labelledBy={headingId} onClose={onClose}>
+      {({ close }) => (
+        <form
+          className={styles.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (onEdit({ title: title.trim(), url }) === null) {
               close();
-            }}
-          >
-            やめる
-          </button>
-          <button className={styles.button} type="submit">
-            確定
-          </button>
-        </div>
-      </form>
-    </dialog>
+            } else {
+              setDuplicate(true);
+            }
+          }}
+        >
+          <h2 className={styles.heading} id={headingId}>
+            記事を編集
+          </h2>
+          <label className={styles.field}>
+            <span className={styles.label}>タイトル</span>
+            <input
+              className={styles.input}
+              maxLength={300}
+              required
+              type="text"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+              }}
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>URL</span>
+            <input
+              className={styles.input}
+              maxLength={2000}
+              pattern="https?://.+"
+              required
+              title="http か https で始まる URL"
+              type="url"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+              }}
+            />
+          </label>
+          {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
+          <div className={styles.formActions}>
+            <Button
+              className={styles.button}
+              onPress={() => {
+                close();
+              }}
+            >
+              やめる
+            </Button>
+            <Button className={styles.button} type="submit">
+              確定
+            </Button>
+          </div>
+        </form>
+      )}
+    </ModalDialog>
   );
 };
 
@@ -159,21 +164,20 @@ const LinkRow = ({
     className: styles.preview,
     load: loadAnyLinkPreview,
   });
-  const hovered = useHovered({ onHoverStart: show });
   const untitled = link.status !== "loading" && link.title.trim() === "";
   return (
     <div className={styles.row} data-registered={registered ? "" : undefined}>
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
       <span className={styles.text}>
-        <a
+        <AriaLink
           className={styles.title}
           data-dismissed={dismissed ? "" : undefined}
           href={link.url}
           rel="noopener noreferrer"
           target="_blank"
           onFocus={show}
-          {...hovered}
+          onHoverStart={show}
         >
           <span className={styles.titleText} title={link.title}>
             {link.title === "" ? host : link.title}
@@ -184,7 +188,7 @@ const LinkRow = ({
               <Flame aria-label="ホット" role="img" size={14} />
             </span>
           )}
-        </a>
+        </AriaLink>
         {card}
         <span className={styles.meta}>
           <span className={styles.host}>{host}</span>

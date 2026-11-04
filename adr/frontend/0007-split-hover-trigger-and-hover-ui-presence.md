@@ -49,4 +49,4 @@ decision-makers: 'Hol1kgmg'
 
 ## Revisit
 
-RAC を入れたら、部品の付ける `[data-hovered]` に寄せ、`hover-button` / `hover-link` を置き換えられるか見直す。RAC は ADR 0008 で日付ピッカーの月表示から入れた。
+RAC を入れたら、部品の付ける `[data-hovered]` に寄せ、`hover-button` / `hover-link` を置き換えられるか見直す。RAC は ADR 0008 で日付ピッカーの月表示から入れた。ADR 0009 でボタンとリンクを RAC の部品にし、`hover-link` は `router-link` (`createLink(RAC Link)`) に替えた。

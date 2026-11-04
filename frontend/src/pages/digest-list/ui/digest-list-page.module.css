@@ -20,7 +20,7 @@
   border-top: 1px solid var(--color-border);
 }
 
-.years > section {
+.yearItem {
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -54,27 +54,17 @@
   transform: rotate(180deg);
 }
 
-/* height: auto は transition できないので grid の 0fr → 1fr で高さを補間する */
+/* height: auto は transition できないので、RAC が開閉の間だけ実寸にする --disclosure-panel-height で補間する */
 .panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  /* inert だと Accessibility Visualizer が閉じた中のリンクまで警告するので、visibility で隠す */
-  visibility: hidden;
-  transition:
-    grid-template-rows 0.2s ease-out,
-    visibility 0.2s;
-}
-
-.yearHeading:has(.year[aria-expanded="true"]) + .panel {
-  grid-template-rows: 1fr;
-  visibility: visible;
+  height: var(--disclosure-panel-height);
+  overflow: hidden;
+  transition: height 0.2s ease-out;
 }
 
 .panelInner {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  overflow: hidden;
 }
 
 .month {
@@ -132,7 +122,7 @@
   color: var(--color-accent);
 }
 
-.day:active {
+.day[data-pressed] {
   transform: scale(1.03);
 }
 
@@ -148,7 +138,7 @@
     transition: none;
   }
 
-  .day:active {
+  .day[data-pressed] {
     transform: none;
   }
 }

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { boardOf, loggedInState } from "./admin";
+import { boardOf, fillDate, loggedInState } from "./admin";
 
 // 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。トップの最新を digest-new.spec.ts から奪わないよう過去にする
 const dayFrom = (n: number) =>
@@ -40,7 +40,7 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
 
   await page.goto("/admin/digests/new");
   await page.waitForLoadState("networkidle");
-  await page.getByLabel("日付").fill(date);
+  await fillDate(page, date);
   await collect(security);
   await collect(related);
   await collect(other);
@@ -56,7 +56,7 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await openDigest(page, date);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
-  await expect(page.getByLabel("日付")).toHaveValue(date);
+  await expect(page.getByRole("group", { name: "日付" })).toHaveText(date.replaceAll("-", "/"));
   await expect(await previewLinks(page)).toHaveText([security, related, `${other}HOT`]);
   await page.getByRole("dialog").getByRole("button", { name: "閉じる" }).click();
 
@@ -64,9 +64,9 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await page.getByLabel("タイトル").fill(fixed);
   await page.getByRole("button", { name: "確定" }).click();
   await menuOf(related, "削除");
-  await page.getByLabel("日付").fill(moved);
+  await fillDate(page, moved);
   await page.getByRole("button", { name: "保存方法を選ぶ" }).click();
-  await page.getByRole("button", { name: "公開して保存" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して保存" }).click();
   await page.getByRole("button", { name: "公開して保存" }).click();
   await page.waitForURL((url) => url.pathname === "/admin/digests");
 
@@ -77,7 +77,7 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await page.waitForLoadState("networkidle");
   // 公開した後のメニューに下書きはない
   await page.getByRole("button", { name: "保存方法を選ぶ" }).click();
-  await expect(page.locator(":popover-open").getByRole("button")).toHaveText([
+  await expect(page.getByRole("menu").getByRole("menuitemradio")).toHaveText([
     "公開のまま保存",
     "非公開にして保存",
   ]);

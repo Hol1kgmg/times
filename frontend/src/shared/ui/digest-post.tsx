@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { mergeProps, useFocusRing, useHover } from "react-aria";
+import { Link } from "react-aria-components";
 import type { DigestContent, NewArticle, NewChildArticle } from "#/shared/api";
 import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
@@ -38,38 +38,42 @@ const ArticleLink = ({
     className: styles.preview,
     load: loadPreview,
   });
-  const { hoverProps, isHovered } = useHover({ onHoverStart: show });
-  // タップでもフォーカスは来るので、動かすのはキーボードのフォーカスだけにする
-  const { focusProps, isFocusVisible } = useFocusRing();
-  const pointed = (isHovered || isFocusVisible) && !reducedMotion();
   return (
     <div className={styles.row}>
       <Favicon className={styles.favicon} url={article.url} />
       <span className={styles.text}>
-        <a
+        <Link
           className={styles.title}
           data-dismissed={dismissed ? "" : undefined}
-          data-hovered={isHovered ? "" : undefined}
           href={article.url}
           rel="noopener noreferrer"
           target="_blank"
-          {...mergeProps(hoverProps, focusProps, { onFocus: show })}
+          onFocus={show}
+          onHoverStart={show}
         >
-          {article.title.trim() === "" ? (
-            <span className={styles.untitled}>タイトルを入れてください</span>
-          ) : (
-            article.title
-          )}
-          {hot && (
-            <span className={styles.hot}>
-              <Flame animate={pointed} role="none" size={16} />
-              {/* 炎にも名前を付けると HOT と二重に読まれるので、読み上げは吹き出しだけにする */}
-              <span className={styles.hotLabel}>
-                <HotBubble animate={pointed} />
-              </span>
-            </span>
-          )}
-        </a>
+          {({ isHovered, isFocusVisible }) => {
+            // タップでもフォーカスは来るので、動かすのはキーボードのフォーカスだけにする
+            const pointed = (isHovered || isFocusVisible) && !reducedMotion();
+            return (
+              <>
+                {article.title.trim() === "" ? (
+                  <span className={styles.untitled}>タイトルを入れてください</span>
+                ) : (
+                  article.title
+                )}
+                {hot && (
+                  <span className={styles.hot}>
+                    <Flame animate={pointed} role="none" size={16} />
+                    {/* 炎にも名前を付けると HOT と二重に読まれるので、読み上げは吹き出しだけにする */}
+                    <span className={styles.hotLabel}>
+                      <HotBubble animate={pointed} />
+                    </span>
+                  </span>
+                )}
+              </>
+            );
+          }}
+        </Link>
         {card}
       </span>
     </div>

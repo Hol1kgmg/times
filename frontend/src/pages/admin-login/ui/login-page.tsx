@@ -1,5 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Button } from "react-aria-components";
 import { logout } from "../api/logout";
 import type { LoginError } from "../api/pick-login-error";
 import { startGitHubLogin } from "../api/start-github-login";
@@ -33,16 +34,15 @@ export const LoginPage = () => {
             <span aria-hidden="true" className={styles.dot} />
             ログイン中: {user.login}
           </p>
-          <button
+          <Button
             className={styles.secondary}
-            type="button"
-            onClick={() => {
+            onPress={() => {
               // redirect は Router が処理して / へ遷移する
               void end({ data: { path: loginPath } });
             }}
           >
             ログアウト
-          </button>
+          </Button>
         </section>
       </div>
     );
@@ -53,15 +53,14 @@ export const LoginPage = () => {
       <section className={styles.card}>
         <h1 className={styles.heading}>管理者ログイン</h1>
         {error && <p className={styles.message}>{messages[error]}</p>}
-        <button
+        <Button
           className={styles.button}
-          type="button"
-          onClick={() => {
+          onPress={() => {
             void goToGitHub();
           }}
         >
           GitHub でログイン
-        </button>
+        </Button>
       </section>
     </div>
   );

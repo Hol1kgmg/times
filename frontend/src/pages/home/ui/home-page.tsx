@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
+import { Link } from "react-aria-components";
 import { FEED_PATH } from "#/shared/config/site";
-import { useHovered } from "#/shared/lib/use-hovered";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { Logo } from "#/shared/ui/logo";
 import { About } from "./about";
@@ -34,10 +34,10 @@ export const HomePage = () => {
       <footer className={styles.footer}>
         <Logo />
         {/* フィードは server route なので、router の Link だと画面として描こうとする */}
-        <a className={styles.feed} href={FEED_PATH} {...useHovered()}>
+        <Link className={styles.feed} href={FEED_PATH}>
           <LineIcon d={rssIcon} size={16} />
           RSS
-        </a>
+        </Link>
       </footer>
     </div>
   );

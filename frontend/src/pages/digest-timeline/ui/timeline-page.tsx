@@ -1,10 +1,10 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Button } from "react-aria-components";
 import { flushSync } from "react-dom";
 import { listPublishedDigests, loadAnyLinkPreview } from "#/shared/api";
 import { DigestPost, dateFormat } from "#/shared/ui/digest-post";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { PAGE_SIZE, prependPage } from "../model/timeline";
 import styles from "./timeline-page.module.css";
 
@@ -70,15 +70,14 @@ export const TimelinePage = () => {
       >
         {status === "loading" && "読み込み中"}
         {status === "error" && "読み込めませんでした"}
-        <HoverButton
+        <Button
           className={styles.retry}
-          type="button"
-          onClick={() => {
+          onPress={() => {
             void loadOlder();
           }}
         >
           再試行
-        </HoverButton>
+        </Button>
       </output>
       {digests.map((d) => (
         <section key={d.id} aria-label={dateFormat.format(new Date(d.entryDate))}>

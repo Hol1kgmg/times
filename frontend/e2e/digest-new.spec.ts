@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { boardOf, loggedInState } from "./admin";
+import { boardOf, fillDate, loggedInState } from "./admin";
 
 const newPath = "/admin/digests/new";
 
@@ -18,7 +18,7 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   await page.waitForLoadState("networkidle");
   await page.getByRole("link", { name: "記事を登録" }).click();
   await page.waitForURL((url) => url.pathname === newPath);
-  await page.getByLabel("日付").fill(date);
+  await fillDate(page, date);
 
   const collect = async (title: string) => {
     await collectUrl(`https://e2e.example/${run}/${encodeURIComponent(title)}`, title);
@@ -42,7 +42,7 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
 
   // 既定の下書きはトップに出ないので、▼ で公開に切り替えてから登録する (specs/006)
   await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
-  await page.getByRole("button", { name: "公開して登録" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
   // 選んだだけでは登録せず、主ボタンが切り替わる
   await expect(page).toHaveURL((url) => url.pathname === newPath);
   await page.getByRole("button", { name: "公開して登録" }).click();

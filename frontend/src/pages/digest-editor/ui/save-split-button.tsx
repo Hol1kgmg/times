@@ -1,7 +1,7 @@
-import { useId, useRef, useState } from "react";
+import { useState } from "react";
+import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import type { DigestStatus } from "#/shared/api";
 import { Chevron } from "#/shared/ui/chevron";
-import { HoverButton } from "#/shared/ui/hover-button";
 import styles from "./save-split-button.module.css";
 
 export interface SaveAction<S extends DigestStatus> {
@@ -24,17 +24,14 @@ export const SaveSplitButton = <S extends DigestStatus>({
   describedBy,
   onSave,
 }: SaveSplitButtonProps<S>) => {
-  const saveMenuId = useId();
-  const saveMenu = useRef<HTMLDivElement>(null);
   const [action, setAction] = useState(saveActions[0]);
   return (
     <div className={styles.split}>
-      <HoverButton
+      <Button
         aria-describedby={describedBy}
         className={styles.button}
-        disabled={disabled}
-        type="button"
-        onClick={() => {
+        isDisabled={disabled}
+        onPress={() => {
           onSave(action.status);
         }}
       >
@@ -49,42 +46,35 @@ export const SaveSplitButton = <S extends DigestStatus>({
             </span>
           ))}
         </span>
-      </HoverButton>
-      <HoverButton
-        aria-label={`${submitLabel}方法を選ぶ`}
-        className={`${styles.button} ${styles.splitMore}`}
-        disabled={disabled}
-        popoverTarget={saveMenuId}
-        type="button"
-      >
-        <Chevron size={16} />
-      </HoverButton>
-      <div
-        ref={saveMenu}
-        className={styles.saveMenu}
-        id={saveMenuId}
-        popover="auto"
-        onToggle={(e) => {
-          if (e.newState === "open") {
-            e.currentTarget.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
-          }
-        }}
-      >
-        {saveActions.map((a) => (
-          <HoverButton
-            key={a.status}
-            aria-pressed={a.status === action.status}
-            className={styles.saveMenuItem}
-            type="button"
-            onClick={() => {
-              saveMenu.current?.hidePopover();
-              setAction(a);
+      </Button>
+      <MenuTrigger>
+        <Button
+          aria-label={`${submitLabel}方法を選ぶ`}
+          className={`${styles.button} ${styles.splitMore}`}
+          isDisabled={disabled}
+        >
+          <Chevron size={16} />
+        </Button>
+        <Popover className={styles.saveMenu} offset={0} placement="bottom end">
+          <Menu
+            className={styles.saveMenuList}
+            disallowEmptySelection
+            selectedKeys={[action.status]}
+            selectionMode="single"
+            // 既定では Space で選んだときに閉じず、Enter・クリックと振る舞いが分かれる
+            shouldCloseOnSelect
+            onAction={(key) => {
+              setAction(saveActions.find((a) => a.status === key) ?? action);
             }}
           >
-            {a.label}
-          </HoverButton>
-        ))}
-      </div>
+            {saveActions.map((a) => (
+              <MenuItem key={a.status} className={styles.saveMenuItem} id={a.status}>
+                {a.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        </Popover>
+      </MenuTrigger>
     </div>
   );
 };

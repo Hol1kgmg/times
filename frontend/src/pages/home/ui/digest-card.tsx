@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Button } from "react-aria-components";
 import type { Digest } from "#/shared/api";
 import { DigestPost } from "#/shared/ui/digest-post";
-import { HoverButton } from "#/shared/ui/hover-button";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { loadLinkPreview } from "../api/load-link-preview";
@@ -22,16 +22,15 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
   };
   return (
     <span className={styles.copyWrap}>
-      <HoverButton
+      <Button
         aria-label="Markdown でコピー"
         className={styles.copy}
-        type="button"
-        onClick={() => {
+        onPress={() => {
           void copy();
         }}
       >
         <LineIcon d={copied ? checkIcon : clipboardIcon} size={20} />
-      </HoverButton>
+      </Button>
       {/* 中身の差し替えで読み上げさせるため、領域は常に置いて文字だけ出し入れする */}
       <output className={styles.toast}>
         {copied && <span className={styles.toastText}>コピーしました</span>}

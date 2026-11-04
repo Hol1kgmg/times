@@ -67,6 +67,7 @@
   --space-4: 24px;
   --z-menu-overlay: 10;
   --z-header: 20;
+  --z-modal: 30;
   /* view transition の中だけの重なり順。ページの重なり順とは別の重ね合わせ文脈で比べる */
   --z-transition-backdrop: 1;
   --z-transition-panel: 2;
@@ -134,6 +135,11 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* RAC はホバーや開閉でもフォーカスを移し、ブラウザがそれを :focus-visible と見なすので、部品の判定に従う */
+[data-rac]:not([data-focus-visible]) {
+  outline: none;
+}
+
 /* タイポグラフィ: 用途別クラス。.agents/rules/frontend-ui-design.md 参照 */
 .t-date {
   font-size: 18px;
@@ -165,6 +171,9 @@ button {
 .modal {
   width: 480px;
   max-width: calc(100% - var(--space-4) * 2);
+  /* RAC の Modal を <dialog> の UA の上限とスクロールに揃える */
+  max-height: calc(100% - 2em - 6px);
+  overflow: auto;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
@@ -172,6 +181,15 @@ button {
   box-shadow: var(--shadow-raised);
   color: var(--color-text);
   font-family: var(--font-dynamic);
+  transition: scale 0.2s ease-out;
+}
+
+/* 1 でも fixed の基準がモーダルになり、記事プレビューがスクロールの中に閉じ込められて切れるので、普段は scale を付けない */
+.modal:is([data-entering], [data-exiting]) {
+  scale: 0.96;
+}
+
+dialog.modal {
   opacity: 0;
   scale: 0.96;
   /* display と overlay も遷移させないと、閉じた瞬間に top layer から外れてフェードアウトが見えない */
@@ -215,6 +233,7 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
   .modal,
+  dialog.modal,
   .modal::backdrop {
     transition: none;
   }
@@ -233,7 +252,7 @@ button {
   transition: transform 0.1s ease-out;
 }
 
-.button:active:not(:disabled) {
+.button[data-pressed]:not(:disabled) {
   transform: scale(1.05);
 }
 
@@ -253,7 +272,7 @@ button {
     transition: none;
   }
 
-  .button:active:not(:disabled) {
+  .button[data-pressed]:not(:disabled) {
     transform: none;
   }
 }

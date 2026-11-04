@@ -1,7 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
-import { useId, useState } from "react";
+import { Button, Disclosure, DisclosurePanel } from "react-aria-components";
 import { Chevron } from "#/shared/ui/chevron";
-import { HoverLink } from "#/shared/ui/hover-link";
+import { RouterLink } from "#/shared/ui/router-link";
 import { groupByMonth } from "../model/group-by-month";
 import type { DigestStatus } from "#/shared/api";
 import type { YearGroup } from "../model/group-by-month";
@@ -23,55 +23,43 @@ const statusMark: Record<DigestStatus, string | undefined> = {
   private: "非公開",
 };
 
-const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  const panelId = useId();
-  return (
-    <section>
-      <h2 className={styles.yearHeading}>
-        <button
-          aria-controls={panelId}
-          aria-expanded={open}
-          className={styles.year}
-          type="button"
-          onClick={() => {
-            setOpen((o) => !o);
-          }}
-        >
-          {group.year} 年
-          <Chevron className={styles.chevron} size={18} />
-        </button>
-      </h2>
-      <div className={styles.panel} id={panelId}>
-        <div className={styles.panelInner}>
-          {group.months.map((m) => (
-            <section key={m.month} className={styles.month}>
-              <h3 className={styles.monthHeading}>
-                {m.month}月<span className={styles.count}>{m.items.length} 件</span>
-              </h3>
-              <ul className={styles.days}>
-                {m.items.map((d) => (
-                  <li key={d.id}>
-                    <HoverLink
-                      className={styles.day}
-                      params={{ date: d.entryDate }}
-                      to="/admin/digests/$date/edit"
-                    >
-                      {dayFormat.format(new Date(d.entryDate))}
-                      {statusMark[d.status] !== undefined && (
-                        <span className={styles.status}>{statusMark[d.status]}</span>
-                      )}
-                    </HoverLink>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+const Year = ({ group, defaultOpen }: { group: YearGroup; defaultOpen: boolean }) => (
+  <Disclosure className={styles.yearItem} defaultExpanded={defaultOpen}>
+    <h2 className={styles.yearHeading}>
+      <Button className={styles.year} slot="trigger">
+        {group.year} 年
+        <Chevron className={styles.chevron} size={18} />
+      </Button>
+    </h2>
+    <DisclosurePanel className={styles.panel}>
+      <div className={styles.panelInner}>
+        {group.months.map((m) => (
+          <section key={m.month} className={styles.month}>
+            <h3 className={styles.monthHeading}>
+              {m.month}月<span className={styles.count}>{m.items.length} 件</span>
+            </h3>
+            <ul className={styles.days}>
+              {m.items.map((d) => (
+                <li key={d.id}>
+                  <RouterLink
+                    className={styles.day}
+                    params={{ date: d.entryDate }}
+                    to="/admin/digests/$date/edit"
+                  >
+                    {dayFormat.format(new Date(d.entryDate))}
+                    {statusMark[d.status] !== undefined && (
+                      <span className={styles.status}>{statusMark[d.status]}</span>
+                    )}
+                  </RouterLink>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
-    </section>
-  );
-};
+    </DisclosurePanel>
+  </Disclosure>
+);
 
 export const DigestListPage = () => {
   const { digests } = route.useLoaderData();

@@ -1,6 +1,6 @@
 import { Link, useMatchRoute, useRouteContext } from "@tanstack/react-router";
 import type { AdminViewer } from "#/shared/auth";
-import { HoverLink } from "#/shared/ui/hover-link";
+import { RouterLink } from "#/shared/ui/router-link";
 import { Logo } from "#/shared/ui/logo";
 import styles from "./sidebar.module.css";
 
@@ -12,26 +12,26 @@ const AdminTabs = ({ admin, onNavigate }: Props & { admin: AdminViewer }) => {
   const matchRoute = useMatchRoute();
   return (
     <>
-      <HoverLink className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
+      <RouterLink className={styles.link} to="/admin/digests/new" onClick={onNavigate}>
         <span className={styles.hash}>+</span>記事を登録
-      </HoverLink>
-      <HoverLink
+      </RouterLink>
+      <RouterLink
         activeOptions={{ exact: Boolean(matchRoute({ to: "/admin/digests/new" })) }}
         className={styles.link}
         to="/admin/digests"
         onClick={onNavigate}
       >
         <span className={styles.hash}>#</span>記事を編集
-      </HoverLink>
+      </RouterLink>
       {admin.loginPath !== undefined && (
-        <HoverLink
+        <RouterLink
           className={styles.link}
           params={{ loginPath: admin.loginPath }}
           to="/$loginPath/auth/login"
           onClick={onNavigate}
         >
           <span className={styles.hash}>#</span>ログアウト
-        </HoverLink>
+        </RouterLink>
       )}
     </>
   );
@@ -42,20 +42,20 @@ export const ChannelNav = ({ onNavigate }: Props) => {
   return (
     <nav aria-label="チャンネル" className={styles.nav}>
       <span className={styles.group}>Channels</span>
-      <HoverLink className={styles.link} to="/" onClick={onNavigate}>
+      <RouterLink className={styles.link} to="/" onClick={onNavigate}>
         <span className={styles.hash}>#</span>general
-      </HoverLink>
+      </RouterLink>
       {viewer.kind === "admin" && (
         <>
           {/* 既定では遷移後に router が先頭へ戻し、画面が出した最下段の位置を上書きする */}
-          <HoverLink
+          <RouterLink
             className={styles.link}
             resetScroll={false}
             to="/timeline"
             onClick={onNavigate}
           >
             <span className={styles.hash}>#</span>timeline
-          </HoverLink>
+          </RouterLink>
           <AdminTabs admin={viewer} onNavigate={onNavigate} />
         </>
       )}

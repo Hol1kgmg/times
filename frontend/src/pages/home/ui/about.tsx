@@ -1,6 +1,6 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
-import { useId, useState } from "react";
 import type { ReactNode } from "react";
+import { Button, Disclosure, DisclosurePanel } from "react-aria-components";
 import { category } from "#/shared/api";
 import type { Category } from "#/shared/api";
 import { FEED_PATH } from "#/shared/config/site";
@@ -53,31 +53,17 @@ const faqs = [
 ];
 
 // <details> は閉じると中身が描画されず、閉じる側のアニメーションを CSS だけで付けられない
-const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: boolean }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  const panelId = useId();
-  return (
-    <div className={styles.faqItem}>
-      <button
-        aria-controls={panelId}
-        aria-expanded={open}
-        className={styles.question}
-        type="button"
-        onClick={() => {
-          setOpen((o) => !o);
-        }}
-      >
-        {q}
-        <Chevron className={styles.chevron} size={18} />
-      </button>
-      <div className={styles.panel} id={panelId}>
-        <div className={styles.panelInner}>
-          <p className={styles.answer}>{a}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
+const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: boolean }) => (
+  <Disclosure className={styles.faqItem} defaultExpanded={defaultOpen}>
+    <Button className={styles.question} slot="trigger">
+      {q}
+      <Chevron className={styles.chevron} size={18} />
+    </Button>
+    <DisclosurePanel className={styles.panel}>
+      <p className={styles.answer}>{a}</p>
+    </DisclosurePanel>
+  </Disclosure>
+);
 
 // <li> は呼び出し側に置く。markuplint はコンポーネントの中を追わず、<ul> 直下を不正と判定する
 const CategoryItem = ({ c }: { c: Category }) => {
