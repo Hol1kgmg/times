@@ -13,7 +13,7 @@ const MAX_BYTES = 1024 * 1024;
 // 失敗 (タイムアウト等) は一時的なことが多いので短くしか覚えない
 const ttlOf = (preview: LinkPreview | null) => (preview === null ? 3600 : 86_400);
 const latin1 = new TextDecoder("latin1");
-const endsHead = (chunk: Uint8Array) => latin1.decode(chunk).includes("</head>");
+const hasOg = (text: string) => /<meta[^>]+["']og:/iu.test(text);
 
 const charsetOf = (contentType: string, latin1Head: string) =>
   /charset=["']?(?<cs>[\w-]+)/iu.exec(contentType)?.groups?.cs ??
@@ -35,10 +35,16 @@ const readHead = async (res: Response) => {
   }
   const chunks: Uint8Array[] = [];
   let size = 0;
+  let headEnded = false;
+  let ogSeen = false;
   for await (const chunk of res.body) {
     chunks.push(chunk);
     size += chunk.length;
-    if (size >= MAX_BYTES || endsHead(chunk)) {
+    const text = latin1.decode(chunk);
+    headEnded ||= text.includes("</head>");
+    ogSeen ||= hasOg(text);
+    // Next.js のストリーミング SSR は og タグを </head> の後ろの body に流すので、見つかるまで読み進める
+    if (size >= MAX_BYTES || (headEnded && ogSeen)) {
       break;
     }
   }
