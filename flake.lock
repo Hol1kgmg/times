@@ -110,11 +110,11 @@
     "google-skills": {
       "flake": false,
       "locked": {
-        "lastModified": 1793194425,
-        "narHash": "sha256-IhtKWx9Xa1UhKBoPnTGJqBNHi2XzYJZfbPp/Wu2Oohg=",
+        "lastModified": 1793828777,
+        "narHash": "sha256-fXWAwOJbxrItJny9dMgITi9981ctxnvq8Gv3BsCG8D4=",
         "owner": "google",
         "repo": "skills",
-        "rev": "81b0e8f8f40513c31b3388e600506e8b48a85bc2",
+        "rev": "a1a942f058366f70e11e36fda390ac4019272c9c",
         "type": "github"
       },
       "original": {
