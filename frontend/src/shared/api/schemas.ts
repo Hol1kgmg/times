@@ -6,8 +6,10 @@ import type { components } from "./openapi.gen";
 
 type Schemas = components["schemas"];
 
-export const digestId = z.uuid().brand<"DigestId">();
-export const articleId = z.uuid().brand<"ArticleId">();
+const DigestIdBrand = Symbol("DigestId");
+const ArticleIdBrand = Symbol("ArticleId");
+export const digestId = z.uuid().brand<typeof DigestIdBrand>();
+export const articleId = z.uuid().brand<typeof ArticleIdBrand>();
 
 export const category = z.enum([
   "セキュリティ",

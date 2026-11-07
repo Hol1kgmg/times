@@ -2,6 +2,7 @@ import { notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
 import { backendFetchRaw } from "#/shared/api/index.server";
+import { adminToken } from "#/shared/auth/admin-token";
 import { takeLoginState, writeAdminToken } from "#/shared/auth/index.server";
 import { callbackUrl } from "./callback-url.server";
 import { loginConfig } from "./login-config.server";
@@ -9,7 +10,7 @@ import type { LoginError } from "./pick-login-error";
 import { pickLoginError } from "./pick-login-error";
 
 // openapi.yaml と乖離したら typecheck で落ちる
-const createdSession = z.object({ token: z.string() }) satisfies z.ZodType<
+const createdSession = z.object({ token: adminToken }) satisfies z.ZodType<
   Pick<ApiResponse<"createSession", 201>, "token">
 >;
 

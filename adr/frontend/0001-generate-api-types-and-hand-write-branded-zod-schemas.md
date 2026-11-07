@@ -21,7 +21,7 @@ decision-makers: 'Hol1kgmg'
 - **生成は 4 経路で走る**。`pnpm install` の `postinstall`（clone 直後に typecheck が通るように）、lefthook pre-commit の `typecheck`（生成してから検査するので、古い型のまま commit されない）、GitHub Actions の `frontend-ci`（`generate-routes` と並べて typecheck / lint / test の前に明示的に生成する）、`just be-gen`（Go 側と一緒に手動）
 - **commit しない根拠**: このファイルは型だけで、`index.ts` から `export type` で参照する。vite build と vitest は型を消すので、tsc とエディタにしか要らない。生成ツールは devDependency なので install 済みの環境なら必ず生成できる。backend の `gen.go` を commit しているのは、生成に `oapi-codegen` の別途インストールが要るためで、事情が異なる
 - **zod スキーマは `frontend/src/shared/api/schemas.ts` に手書きする**。各スキーマは `satisfies z.ZodType<components["schemas"]["X"]>` で生成型に縛り、openapi.yaml と乖離したら typecheck で落ちるようにする
-- **entity の id は `z.string().uuid().brand<"ItemId">()` の形でブランド化する**。export する型は `z.infer` 側（ブランド付き）で、生成型の `components["schemas"]["X"]` は `satisfies` の右辺にだけ使う
+- **entity の id は非公開の `const ItemIdBrand = Symbol()` を用意し、`z.uuid().brand<typeof ItemIdBrand>()` の形でブランド化する**。文字列リテラルのブランドは別の場所で同じ名前を付けると同じ型になるため、unique symbol で一意にする (.agents/rules/typescript-app.md)。export する型は `z.infer` 側（ブランド付き）で、生成型の `components["schemas"]["X"]` は `satisfies` の右辺にだけ使う
 - **ブランドは id にだけ付ける**。レスポンス object 全体にはブランドを付けない（`Pick` や spread で剥がれ、扱いにくいだけで守れる範囲が増えない）
 - **`@hey-api/openapi-ts` の zod プラグインは採用しない**（理由は Alternatives）
 
@@ -48,7 +48,7 @@ decision-makers: 'Hol1kgmg'
   - backend レスポンスを受けるサーバー関数は `schemas.ts` のスキーマで `parse` してから返す。`res.json()` をそのまま返さない
   - id を受けるサーバー関数の validator は `z.object({ id: itemId })` のようにブランド付きスキーマを使う。入力は素の文字列で受け、出力がブランド付きになる
   - スキーマに無い inline レスポンス（`/health` 等）は `satisfies z.ZodType<ApiResponse<"health">>` で縛る
-  - 新しい entity の id は `schemas.ts` で `z.string().uuid().brand<"XxxId">()` を定義してから使う
+  - 新しい entity の id は `schemas.ts` で `const XxxIdBrand = Symbol()` と `z.uuid().brand<typeof XxxIdBrand>()` を定義してから使う
 - **Patterns to avoid**:
   - `openapi.gen.ts` を手で直す
   - `components["schemas"]["X"]` を UI の型として直接 import する（ブランドが無く、検証済みかどうかが型で分からなくなる）

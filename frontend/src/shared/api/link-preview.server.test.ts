@@ -31,4 +31,14 @@ describe(loadLinkPreviewCached, () => {
       title: "streamed",
     });
   });
+
+  it("gives no preview when the site cannot be reached", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed")));
+    await expect(loadLinkPreviewCached("https://example.test/b")).resolves.toBeNull();
+  });
+
+  it("does not hide unexpected errors as a missing preview", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockRejectedValue(new RangeError("bug")));
+    await expect(loadLinkPreviewCached("https://example.test/c")).rejects.toThrow("bug");
+  });
 });

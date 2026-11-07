@@ -9,16 +9,21 @@ const TTL_SECONDS = 300;
 // getLinkPreview からも呼ぶ。サーバー専用にしないと backend.server の import がクライアントに残る
 export const loadLatestDigest = createServerOnlyFn(
   async () =>
-    await cachedJson("https://cache.times.invalid/digests/latest", TTL_SECONDS, async () => {
-      const res = await backendFetchRaw("/digests/latest");
-      if (res.status === 404) {
-        return null;
-      }
-      if (!res.ok) {
-        throw new Error(`backend ${res.status}: GET /digests/latest`);
-      }
-      return digest.parse(await res.json());
-    }),
+    await cachedJson(
+      "https://cache.times.invalid/digests/latest",
+      digest.nullable(),
+      TTL_SECONDS,
+      async () => {
+        const res = await backendFetchRaw("/digests/latest");
+        if (res.status === 404) {
+          return null;
+        }
+        if (!res.ok) {
+          throw new Error(`backend ${res.status}: GET /digests/latest`);
+        }
+        return digest.parse(await res.json());
+      },
+    ),
 );
 
 export const getLatestDigest = createServerFn({ method: "GET" }).handler(

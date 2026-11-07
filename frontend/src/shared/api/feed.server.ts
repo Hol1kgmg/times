@@ -1,4 +1,5 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { backendFetch } from "./backend.server";
 import { cachedJson } from "./cache.server";
 
@@ -7,7 +8,7 @@ const TTL_SECONDS = 300;
 
 export const loadFeedXml = createServerOnlyFn(
   async () =>
-    await cachedJson("https://cache.times.invalid/feed", TTL_SECONDS, async () => {
+    await cachedJson("https://cache.times.invalid/feed", z.string(), TTL_SECONDS, async () => {
       const res = await backendFetch("/feed");
       return await res.text();
     }),

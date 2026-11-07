@@ -4,6 +4,7 @@ import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
 import { backendFetch } from "#/shared/api/index.server";
+import type { AdminToken } from "./admin-token";
 import { adminToken } from "./admin-token";
 import { SESSION_EXPIRED } from "./errors";
 
@@ -16,7 +17,7 @@ const ADMIN_MAX_AGE = 30 * 24 * 60 * 60;
 const LOGIN_MAX_AGE = 10 * 60;
 
 export const readAdminToken = () => adminToken.safeParse(getCookie(ADMIN_COOKIE)).data;
-export const writeAdminToken = (token: string) => {
+export const writeAdminToken = (token: AdminToken) => {
   setCookie(ADMIN_COOKIE, token, { ...attrs, maxAge: ADMIN_MAX_AGE });
 };
 export const clearAdminToken = () => {
