@@ -17,3 +17,5 @@ test-results/
 src/app/routeTree.gen.ts
 # openapi-typescript の生成物。postinstall と lefthook の typecheck で再生成する
 src/shared/api/openapi.gen.ts
+storybook-static/
+*storybook.log

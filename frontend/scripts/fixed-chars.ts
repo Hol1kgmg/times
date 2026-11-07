@@ -10,7 +10,7 @@ const sources = globSync(
   ["src/app/**/*.{ts,tsx}", "src/pages/home/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}"],
   {
     // 日付ピッカーはトップに出ず、モーダルの --font-dynamic で描く
-    exclude: (f) => /\.(?:test|gen)\.tsx?$|date-picker\.tsx$/u.test(f),
+    exclude: (f) => /\.(?:test|gen|stories)\.tsx?$|date-picker\.tsx$/u.test(f),
   },
 );
 const literals = sources

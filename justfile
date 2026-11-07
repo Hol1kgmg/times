@@ -182,6 +182,10 @@ fe-lint-markup:
 fe-format:
     pnpm -C frontend format
 
+# Start Storybook for shared UI components
+fe-storybook:
+    pnpm -C frontend storybook
+
 # Run TypeScript type check
 fe-typecheck:
     pnpm -C frontend typecheck

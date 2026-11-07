@@ -1,7 +1,8 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import type { ReactNode } from "react";
 import { Button, Disclosure, DisclosurePanel } from "react-aria-components";
-import { category } from "#/shared/api";
+// バレルは server function も再エクスポートしていて、Storybook で Start のサーバー実装まで引き込むため
+import { category } from "#/shared/api/schemas";
 import type { Category } from "#/shared/api";
 import { FEED_PATH } from "#/shared/config/site";
 import { useHovered } from "#/shared/lib/use-hovered";
