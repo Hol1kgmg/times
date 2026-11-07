@@ -33,4 +33,6 @@
 
   # ./skills（独自）
   "init-from-template"
+  "template-sync-review"
+  "bot-pr-routine"
 ]

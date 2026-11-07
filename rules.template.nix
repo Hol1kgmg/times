@@ -2,4 +2,7 @@
 # ID 一覧は `just rules-list`。
 [
   # Hol1kgmg/rules
+
+  # ./rules（独自）
+  "orca-worktree"
 ]

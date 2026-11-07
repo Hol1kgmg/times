@@ -37,4 +37,5 @@ decision-makers: 'Hol1kgmg'
 ## More Information
 
 - 一部置き換え: [skill / rules の取得元を flake input にして Dependabot で更新する](0003-update-skill-sources-via-dependabot.md)（auto-merge しない、の部分）
+- 一時的に一部置き換えられた: [skill / rules を Nix から APM に移す](0007-manage-skills-and-rules-with-apm.md)（`flake = false` の node で判定する部分）。[skill / rules の取得元を flake input に戻す](0008-revert-skill-sources-to-flake-inputs.md) で元に戻した
 - セットアップ手順: [docs/lockfile-automation.md](../../docs/lockfile-automation.md)

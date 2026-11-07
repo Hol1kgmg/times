@@ -129,6 +129,8 @@ just be-api-doc   # OpenAPI のリファレンス (Redoc) を http://api-docs.<�
 
 テンプレート元が更新されると、`template-sync` workflow が毎週土曜 09:00 に draft PR（`template-sync` ブランチ）を用意します。手元で `just sync-pr` を実行すると、PR が取り込みの差分に置き換わり ready for review になります。
 
+週次の対応は `bot-pr-routine` スキルで行えます。取り込み PR（`template-sync-review`）、Dependabot PR（`dependabot-review`）の順にレビューします。
+
 ```bash
 just sync-pr   # テンプレート元の変更を取り込む PR を作る
 just sync      # テンプレート元の変更を現在のブランチに取り込む

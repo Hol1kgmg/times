@@ -54,3 +54,4 @@ decision-makers: 'Hol1kgmg'
 ## More Information
 
 - 前提: [テンプレート元の変更を手動のマージコミットで取り込む](0001-sync-template-via-merge-commit.md)
+- 一時的に一部置き換えられた: [skill / rules を Nix から APM に移す](0007-manage-skills-and-rules-with-apm.md)（`skills*.nix` / `rules*.nix` / `sources*.nix` の部分）。[skill / rules の取得元を flake input に戻す](0008-revert-skill-sources-to-flake-inputs.md) で元に戻した
