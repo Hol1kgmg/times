@@ -26,6 +26,9 @@ importers:
       '@internationalized/date':
         specifier: ^3.12.4
         version: 3.12.4
+      '@praha/byethrow':
+        specifier: ^0.13.0
+        version: 0.13.0(typescript@6.0.3)
       '@tanstack/react-router':
         specifier: 1.170.46
         version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1604,6 +1607,11 @@ packages:
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
 
+  '@praha/byethrow@0.13.0':
+    resolution: {integrity: sha512-YbmTlWzvtwiaK1ZhUOzXleJFju6XvBILxkL3AmvHona7zalABaQsPIGwc6YkugirpwG3n4Sc2iKGSwnTEv/hsQ==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+
   '@preact/signals-core@1.14.4':
     resolution: {integrity: sha512-HNB6HYeYKhQbJ1aKl+YRjrS4+QWHLKX6qKoUsfS/m0vqzsVaEBiZiaKbG/e+NKk2ch5ALQr/ihWaMHxiCuuWHA==}
 
@@ -1743,6 +1751,9 @@ packages:
 
   '@speed-highlight/core@1.2.24':
     resolution: {integrity: sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==}
+
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@storybook/builder-vite@10.6.5':
     resolution: {integrity: sha512-udrGjg3yt38pz4FxplypXxw1creIGS7N6QS8xfvTFM8MQNtPyojT/gZdd4fhX0dFrQx5MMuJEYJA5gUBiPsLtg==}
@@ -6033,6 +6044,11 @@ snapshots:
 
   '@poppinss/exception@1.2.3': {}
 
+  '@praha/byethrow@0.13.0(typescript@6.0.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      typescript: 6.0.3
+
   '@preact/signals-core@1.14.4': {}
 
   '@react-types/shared@3.37.0(react@19.3.1)':
@@ -6122,6 +6138,8 @@ snapshots:
   '@sindresorhus/merge-streams@4.0.0': {}
 
   '@speed-highlight/core@1.2.24': {}
+
+  '@standard-schema/spec@1.1.0': {}
 
   '@storybook/builder-vite@10.6.5(storybook@10.6.5(@types/react@19.3.0)(prettier@3.9.8)(react@19.3.1))(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:

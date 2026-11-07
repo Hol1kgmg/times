@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
@@ -13,6 +14,10 @@ import { pickLoginError } from "./pick-login-error";
 const createdSession = z.object({ token: adminToken }) satisfies z.ZodType<
   Pick<ApiResponse<"createSession", 201>, "token">
 >;
+
+class NetworkError extends Error {
+  override readonly name = "NetworkError";
+}
 
 interface Callback {
   code?: string;
@@ -37,16 +42,19 @@ export const runCompleteGitHubLogin = async (data: Callback): Promise<never> => 
     throw notFound();
   }
 
-  let res: Response;
-  try {
-    res = await backendFetchRaw("/auth/sessions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: data.code, redirectUri: callbackUrl() }),
-    });
-  } catch {
+  const result = await Result.try({
+    try: async () =>
+      await backendFetchRaw("/auth/sessions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: data.code, redirectUri: callbackUrl() }),
+      }),
+    catch: (error: unknown) => new NetworkError("backend unreachable", { cause: error }),
+  });
+  if (Result.isFailure(result)) {
     throw backToLogin(pickLoginError("network"));
   }
+  const res = result.value;
   if (res.status !== 201) {
     throw backToLogin(pickLoginError(res.status));
   }

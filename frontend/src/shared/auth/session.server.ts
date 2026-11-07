@@ -1,9 +1,10 @@
-import { isNotFound, notFound } from "@tanstack/react-router";
+import { Result } from "@praha/byethrow";
+import { notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
-import { backendFetch } from "#/shared/api/index.server";
+import { SessionExpiredError, backendFetch } from "#/shared/api/index.server";
 import type { AdminToken } from "./admin-token";
 import { adminToken } from "./admin-token";
 import { SESSION_EXPIRED } from "./errors";
@@ -49,16 +50,12 @@ export const currentAdmin = async (): Promise<AdminUser | undefined> => {
   if (token === undefined) {
     return undefined;
   }
-  try {
-    const res = await backendFetch("/auth/sessions/current", {}, { token });
-    return session.parse(await res.json()).user;
-  } catch (error) {
-    if (isNotFound(error)) {
-      clearAdminToken();
-      return undefined;
-    }
-    throw error;
+  const result = await backendFetch("/auth/sessions/current", {}, { token });
+  if (Result.isFailure(result) && result.error instanceof SessionExpiredError) {
+    clearAdminToken();
+    return undefined;
   }
+  return session.parse(await Result.unwrap(result).json()).user;
 };
 
 // 管理者専用ページの beforeLoad で呼ぶ。未ログイン・期限切れ・失効はすべて 404

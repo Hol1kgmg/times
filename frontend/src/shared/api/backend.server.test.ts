@@ -1,14 +1,15 @@
-import { isNotFound } from "@tanstack/react-router";
+import { Result } from "@praha/byethrow";
 import { describe, expect, it, vi } from "vitest";
 import { adminToken } from "#/shared/auth/admin-token";
-import { SESSION_EXPIRED } from "#/shared/auth/errors";
+import { BackendProblemError } from "./backend-problem-error";
 import { backendFetch } from "./backend.server";
+import { SessionExpiredError } from "./session-expired-error";
 
 const token = adminToken.parse("t");
 
-const problem = (status: number, type: string) =>
+const problem = (status: number, type: string, extra?: object) =>
   Response.json(
-    { type, status },
+    { type, title: "x", status, ...extra },
     { status, headers: { "content-type": "application/problem+json" } },
   );
 
@@ -19,44 +20,27 @@ const stubFetch = (res: Response) => {
 };
 
 describe(backendFetch, () => {
-  it("maps 401 unauthorized with a token to notFound(SESSION_EXPIRED)", async () => {
+  it("fails as an expired session on 401 unauthorized with a token", async () => {
     const fetch = stubFetch(problem(401, "/problems/unauthorized"));
-    const err: unknown = await backendFetch("/auth/sessions/current", {}, { token }).catch(
-      (error: unknown) => error,
-    );
-    expect(isNotFound(err)).toBeTruthy();
-    expect(isNotFound(err) && err.data).toStrictEqual({ reason: SESSION_EXPIRED });
+    const result = await backendFetch("/auth/sessions/current", {}, { token });
+    expect(Result.unwrapError(result)).toBeInstanceOf(SessionExpiredError);
     expect(new Headers(fetch.mock.calls[0]?.[1].headers).get("authorization")).toBe("Bearer t");
   });
 
-  it("throws a plain Error on 401 without a token", async () => {
+  it("does not treat 401 without a token as an expired session", async () => {
     stubFetch(problem(401, "/problems/unauthorized"));
-    await expect(backendFetch("/auth/sessions/current")).rejects.toThrow("backend 401");
+    const result = await backendFetch("/auth/sessions/current");
+    expect(Result.unwrapError(result)).toBeInstanceOf(BackendProblemError);
   });
 
-  it("keeps the problem body as the cause so callers can read extension members", async () => {
+  it("keeps the validated problem so callers can read extension members", async () => {
     stubFetch(
-      Response.json(
-        {
-          type: "/problems/url-already-registered",
-          status: 400,
-          duplicateUrls: ["https://a.example"],
-        },
-        { status: 400, headers: { "content-type": "application/problem+json" } },
-      ),
+      problem(400, "/problems/url-already-registered", { duplicateUrls: ["https://a.example"] }),
     );
-    const err: unknown = await backendFetch("/digests", { method: "POST" }, { token }).catch(
-      (error: unknown) => error,
-    );
-    expect(err instanceof Error && err.cause).toMatchObject({
-      duplicateUrls: ["https://a.example"],
+    const result = await backendFetch("/digests", { method: "POST" }, { token });
+    expect(Result.unwrapError(result)).toMatchObject({
+      status: 400,
+      problem: { duplicateUrls: ["https://a.example"] },
     });
-  });
-
-  it("throws a plain Error on 403 forbidden", async () => {
-    stubFetch(problem(403, "/problems/forbidden"));
-    await expect(backendFetch("/auth/sessions", { method: "POST" }, { token })).rejects.toThrow(
-      "backend 403: POST /auth/sessions",
-    );
   });
 });
