@@ -32,6 +32,16 @@ describe("schemas", () => {
     expect(newArticle.safeParse({ ...base, url: "data:text/html,x" }).success).toBeFalsy();
   });
 
+  it("stores a decomposed dakuten title in composed form", () => {
+    const parsed = newArticle.parse({
+      category: "その他",
+      title: "なぜ",
+      url: "https://x.example/a",
+      children: [],
+    });
+    expect(parsed.title).toBe("なぜ");
+  });
+
   it("rejects returning a digest to draft on update", () => {
     const base = {
       entryDate: "2026-10-17",

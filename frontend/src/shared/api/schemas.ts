@@ -72,7 +72,8 @@ export const domainList = z.object({
 
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
 export const newChildArticle = z.object({
-  title: z.string().trim().min(1).max(300),
+  // macOS 由来の NFD の濁点は Klee One Fixed に無く、その字だけ端末のフォントになる (issue #83)
+  title: z.string().trim().normalize("NFC").min(1).max(300),
   // href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
   url: z.url({ protocol: /^https?$/u }).max(2000),
 }) satisfies z.ZodType<Schemas["NewChildArticle"]>;
