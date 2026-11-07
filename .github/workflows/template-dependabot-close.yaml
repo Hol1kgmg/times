@@ -3,7 +3,7 @@ name: template-dependabot-close
 on: pull_request
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -53,4 +53,4 @@ jobs:
               done
             fi
           done
-          gh pr close "$PR" --comment "テンプレート由来の更新は template-sync の取り込み PR で届くため閉じます（adr/from-template/0006）。"
+          gh pr close "$PR" --delete-branch --comment "テンプレート由来の更新は template-sync の取り込み PR で届くため閉じます（adr/from-template/0006）。"
