@@ -1,6 +1,7 @@
+import { Result } from "@praha/byethrow";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { backendFetch } from "#/shared/api/index.server";
+import { backendFetch, unwrapBackend } from "#/shared/api/index.server";
 import { newDigest } from "#/shared/api";
 import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
@@ -9,24 +10,20 @@ import { rejectionOf } from "./rejection-of";
 export const createDigest = createServerFn({ method: "POST" })
   .validator(newDigest)
   .handler(async ({ data }) => {
-    const token = requireAdminToken();
-    try {
-      await backendFetch(
-        "/digests",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(data),
-        },
-        { token },
-      );
-    } catch (error) {
-      const rejection = rejectionOf(error);
-      if (rejection === undefined) {
-        throw error;
-      }
+    const result = await backendFetch(
+      "/digests",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      },
+      { token: requireAdminToken() },
+    );
+    const rejection = Result.isFailure(result) ? rejectionOf(result.error) : undefined;
+    if (rejection !== undefined) {
       return rejection;
     }
+    unwrapBackend(result);
     // 下書きはトップに出ないので、登録できたことを一覧で見せる
     throw redirect({ to: data.status === "published" ? "/" : "/admin/digests" });
   });

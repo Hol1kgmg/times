@@ -1,9 +1,13 @@
+import { Result } from "@praha/byethrow";
 import { notFound } from "@tanstack/react-router";
 import { createServerOnlyFn } from "@tanstack/react-start";
 // #/shared/auth は get-current-admin 経由でこのファイルに戻ってきて循環するので、errors を直接取る
 import type { AdminToken } from "#/shared/auth/admin-token";
 import { SESSION_EXPIRED } from "#/shared/auth/errors";
 import { readBackendEnv } from "./backend-env.server";
+import { BackendProblemError } from "./backend-problem-error";
+import { problem } from "./schemas";
+import { SessionExpiredError } from "./session-expired-error";
 
 // backend は frontend のサーバー関数からだけ呼ぶ (adr/backend/0003)。
 // URL はサーバー側環境変数から読み、クライアントバンドルに出さない。
@@ -41,25 +45,37 @@ const problemBody = async (res: Response): Promise<unknown> => {
   }
 };
 
-const isUnauthorized = (body: unknown) =>
-  typeof body === "object" &&
-  body !== null &&
-  "type" in body &&
-  body.type === "/problems/unauthorized";
+export type BackendError = SessionExpiredError | BackendProblemError;
 
-// 2xx 以外は例外。トークン付きの要求が 401 (unauthorized) なら notFound(SESSION_EXPIRED) に写す。
-// 呼び出し側は isNotFound(e) && e.data.reason === SESSION_EXPIRED で期限切れ・失効を判別する
-// それ以外は Problem の本文を未検証のまま cause に載せる。使う側が problem.safeParse で読む
+// 期限切れ (session・logout) と Problem (登録の拒否) を呼び出し側が個別に扱うので Result で返す
+
 export const backendFetch = createServerOnlyFn(
-  async (path: string, init?: RequestInit, auth?: Auth) => {
+  async (
+    path: string,
+    init?: RequestInit,
+    auth?: Auth,
+  ): Promise<Result.Result<Response, BackendError>> => {
     const res = await backendFetchRaw(path, init, auth);
     if (res.ok) {
-      return res;
+      return Result.succeed(res);
     }
-    const body = await problemBody(res);
-    if (auth?.token !== undefined && res.status === 401 && isUnauthorized(body)) {
-      throw notFound({ data: { reason: SESSION_EXPIRED } });
+    const message = `backend ${res.status}: ${init?.method ?? "GET"} ${path}`;
+    const body = problem.safeParse(await problemBody(res)).data;
+    if (
+      auth?.token !== undefined &&
+      res.status === 401 &&
+      body?.type === "/problems/unauthorized"
+    ) {
+      return Result.fail(new SessionExpiredError(message));
     }
-    throw new Error(`backend ${res.status}: ${init?.method ?? "GET"} ${path}`, { cause: body });
+    return Result.fail(new BackendProblemError(message, res.status, body));
   },
 );
+
+// 失敗を区別しない呼び出し側の境界。期限切れは Router が isNotFound で判別できる notFound にして投げる
+export const unwrapBackend = (result: Result.Result<Response, BackendError>): Response => {
+  if (Result.isFailure(result) && result.error instanceof SessionExpiredError) {
+    throw notFound({ data: { reason: SESSION_EXPIRED } });
+  }
+  return Result.unwrap(result);
+};

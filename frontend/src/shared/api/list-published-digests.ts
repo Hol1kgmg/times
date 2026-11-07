@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminToken } from "#/shared/auth/index.server";
-import { backendFetch } from "./backend.server";
+import { backendFetch, unwrapBackend } from "./backend.server";
 import { digestPage } from "./schemas";
 
 // 公開・非公開の切り替えがすぐ反映されるよう、トップと違ってキャッシュを通さない
@@ -21,8 +21,10 @@ export const listPublishedDigests = createServerFn({ method: "GET" })
     if (limit !== undefined) {
       params.set("limit", String(limit));
     }
-    const res = await backendFetch(`/digests/published?${params}`, undefined, {
-      token: requireAdminToken(),
-    });
+    const res = unwrapBackend(
+      await backendFetch(`/digests/published?${params}`, undefined, {
+        token: requireAdminToken(),
+      }),
+    );
     return digestPage.parse(await res.json());
   });

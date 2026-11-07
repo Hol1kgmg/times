@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { BackendProblemError } from "#/shared/api/backend-problem-error";
+import type { Problem } from "#/shared/api";
 import { rejectionOf } from "./rejection-of";
 
-const failed = (type: string, extra?: object) =>
-  new Error("backend 400: POST /digests", {
-    cause: { type, title: "Bad Request", status: 400, ...extra },
+const failed = (type: Problem["type"], extra?: Partial<Problem>) =>
+  new BackendProblemError("backend 400: POST /digests", 400, {
+    type,
+    title: "Bad Request",
+    status: 400,
+    ...extra,
   });
 
 describe(rejectionOf, () => {

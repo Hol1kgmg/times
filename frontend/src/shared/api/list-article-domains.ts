@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminToken } from "#/shared/auth/index.server";
-import { backendFetch } from "./backend.server";
+import { backendFetch, unwrapBackend } from "./backend.server";
 import { domainList } from "./schemas";
 
 const domainQuery = z.object({
@@ -18,7 +18,9 @@ const fetchDomains = async (path: string, { q, limit }: z.infer<typeof domainQue
   if (limit !== undefined) {
     params.set("limit", String(limit));
   }
-  const res = await backendFetch(`${path}?${params}`, undefined, { token: requireAdminToken() });
+  const res = unwrapBackend(
+    await backendFetch(`${path}?${params}`, undefined, { token: requireAdminToken() }),
+  );
   return domainList.parse(await res.json());
 };
 

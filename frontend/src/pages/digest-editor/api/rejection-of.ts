@@ -1,21 +1,20 @@
-import { problem } from "#/shared/api";
+import type { BackendError } from "#/shared/api/index.server";
 
 export type Rejection =
   | { reason: "digest-already-exists" }
   | { reason: "future-publish" }
   | { reason: "url-already-registered"; duplicateUrls: string[] };
 
-// backendFetch は Problem の本文を未検証のまま cause に載せるので、ここで初めて型を付ける
-export const rejectionOf = (error: unknown): Rejection | undefined => {
-  const p = problem.safeParse(error instanceof Error ? error.cause : undefined);
-  if (p.data?.type === "/problems/digest-already-exists") {
+export const rejectionOf = (error: BackendError): Rejection | undefined => {
+  const p = error.name === "BackendProblemError" ? error.problem : undefined;
+  if (p?.type === "/problems/digest-already-exists") {
     return { reason: "digest-already-exists" };
   }
-  if (p.data?.type === "/problems/future-publish") {
+  if (p?.type === "/problems/future-publish") {
     return { reason: "future-publish" };
   }
-  if (p.data?.type === "/problems/url-already-registered") {
-    return { reason: "url-already-registered", duplicateUrls: p.data.duplicateUrls ?? [] };
+  if (p?.type === "/problems/url-already-registered") {
+    return { reason: "url-already-registered", duplicateUrls: p.duplicateUrls ?? [] };
   }
   return undefined;
 };
