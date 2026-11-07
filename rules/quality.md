@@ -4,7 +4,7 @@
 
 ## バリデーションの置き場所
 
-同じ検証を複数の層に書かない。各層は自分の責務だけを持ち、下の層の検証を信頼する。
+検証済みの値を同じ信頼境界の内部で同じ契約に照らして再検証しない。各層は自分の責務だけを持ち、信頼境界ごとの検証は省略しない。
 
 | 層 | 検証するもの | 手段 | 書かないもの |
 |---|---|---|---|
@@ -12,12 +12,13 @@
 | backend | リクエストの形式: 型、必須、enum、format、minItems、認証 | `openapi.yaml` のスキーマ。kin-openapi の validator が自動で 400 / 401 にする | handler 内の手書きの形式チェック |
 | backend handler | 形式では表せない業務ルール: 重複、状態遷移、DB 制約違反の 400 への写し替え | `apperr.*` を返す | 形式の再検証 |
 | frontend サーバー関数 | backend へ渡す前の入力の形、レスポンスの形 | `.validator(z.object(...))` と `schemas.ts` の `parse` | 業務ルール (backend の責務) |
-| frontend UI | 入力補助: 必須、型、長さ、選択肢 | HTML 属性 (`required` / `type` / `maxLength` / `<select>`) | JS による再検証、独自エラー文言 |
+| frontend UI | 入力補助: 必須、型、長さ、選択肢、項目間の整合性 | HTML 属性 (`required` / `type` / `maxLength` / `<select>`) を優先し、表せない検証には Zod | HTML 属性で足りる検証の JS 実装・独自エラー文言 |
 
 ### ルール
 
 - **信頼境界は 2 つ**: ブラウザ → サーバー関数 (zod)、サーバー関数 → backend (OpenAPI)。両方を必ず通す。片方を「もう検証済み」として省かない。
 - **UI の HTML 属性はユーザー体験のため**であり検証ではない。外しても backend が拒否する状態を保つ。
+- **フォームの検証でサーバー関数の検証を省略しない**。Zod の適用範囲とスキーマ共有は [TypeScript アプリのルール](typescript-app.md#zod-の適用範囲) に従う。
 - **enum と固定値は 1 か所で定義**する。backend は `openapi.yaml` の `Category`、frontend は `schemas.ts` の `category` (`satisfies` で生成型に縛る)。UI の `<select>` も `category.options` から作る。
 - **DB の制約違反は handler で判別して 400 にする**。pgx の `*pgconn.PgError` で `23505` (unique) / `23514` (check) を見て `apperr.ValidationFailed` を返す。500 のまま返さない。
 - **エラー文言は backend の `detail` をそのまま UI に出さない**。UI は「何を直せばよいか」だけを短く出す。

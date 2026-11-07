@@ -8,6 +8,7 @@
     # ./rules（独自）
     "frontend-ui-design"
     "quality"
+    "typescript-app"
   ];
 
   disable = [
