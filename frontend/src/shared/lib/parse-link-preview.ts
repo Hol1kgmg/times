@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-export interface LinkPreview {
-  title: string | null;
-  description: string | null;
-  image: string | null;
-}
+export const linkPreview = z.object({
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  image: z.string().nullable(),
+});
+export type LinkPreview = z.infer<typeof linkPreview>;
 
 const entities: Record<string, string> = {
   "&amp;": "&",
@@ -47,12 +48,8 @@ const httpUrl = (raw: string | undefined, base: string) => {
   if (raw === undefined || raw === "") {
     return null;
   }
-  try {
-    const u = new URL(raw, base);
-    return u.protocol === "https:" || u.protocol === "http:" ? u.href : null;
-  } catch {
-    return null;
-  }
+  const u = URL.parse(raw, base);
+  return u?.protocol === "https:" || u?.protocol === "http:" ? u.href : null;
 };
 
 export const parseLinkPreview = (html: string, pageUrl: string): LinkPreview | null => {
@@ -71,10 +68,8 @@ const youtubeHosts = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]
 const videoId = /^[\w-]{11}$/u;
 
 export const youTubeId = (url: string): string | null => {
-  let u: URL;
-  try {
-    u = new URL(url);
-  } catch {
+  const u = URL.parse(url);
+  if (u === null) {
     return null;
   }
   let id: string | undefined;

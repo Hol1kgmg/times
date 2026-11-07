@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { cachedJson, cachedResponse } from "./cache.server";
 
 const stubCaches = () => {
@@ -10,31 +11,51 @@ const stubCaches = () => {
   return cache;
 };
 
+const counter = z.object({ n: z.number() });
+const nothing = z.null();
+
 describe(cachedJson, () => {
   it("loads once and serves the second call from the cache with the ttl", async () => {
     const cache = stubCaches();
     const load = vi.fn<() => Promise<{ n: number }>>().mockResolvedValue({ n: 1 });
-    await expect(cachedJson("https://example.test/a", 300, load)).resolves.toStrictEqual({ n: 1 });
+    await expect(cachedJson("https://example.test/a", counter, 300, load)).resolves.toStrictEqual({
+      n: 1,
+    });
 
     const [req, stored] = cache.put.mock.calls[0] ?? [];
     expect(req?.url).toBe("https://example.test/a");
     expect(stored?.headers.get("cache-control")).toBe("public, max-age=300");
 
     cache.match.mockResolvedValue(stored);
-    await expect(cachedJson("https://example.test/a", 300, load)).resolves.toStrictEqual({ n: 1 });
+    await expect(cachedJson("https://example.test/a", counter, 300, load)).resolves.toStrictEqual({
+      n: 1,
+    });
     expect(load).toHaveBeenCalledOnce();
+  });
+
+  it("reloads when the cached value does not match the schema", async () => {
+    const cache = stubCaches();
+    cache.match.mockResolvedValue(Response.json({ old: true }));
+    const load = vi.fn<() => Promise<{ n: number }>>().mockResolvedValue({ n: 1 });
+    await expect(cachedJson("https://example.test/a", counter, 300, load)).resolves.toStrictEqual({
+      n: 1,
+    });
+    expect(cache.put).toHaveBeenCalledOnce();
   });
 
   it("derives the ttl from the loaded value when given a function", async () => {
     const cache = stubCaches();
+    const maybeText = z.string().nullable();
     const ttl = vi.fn<(v: null | string) => number>((v) => (v === null ? 3600 : 86_400));
     await cachedJson(
       "https://example.test/a",
+      maybeText,
       ttl,
       vi.fn<() => Promise<null>>().mockResolvedValue(null),
     );
     await cachedJson(
       "https://example.test/b",
+      maybeText,
       ttl,
       vi.fn<() => Promise<string>>().mockResolvedValue("ok"),
     );
@@ -47,22 +68,22 @@ describe(cachedJson, () => {
     const cache = stubCaches();
     cache.match.mockResolvedValue(Response.json(null));
     const load = vi.fn<() => Promise<null>>().mockResolvedValue(null);
-    await expect(cachedJson("https://example.test/a", 300, load)).resolves.toBeNull();
+    await expect(cachedJson("https://example.test/a", nothing, 300, load)).resolves.toBeNull();
     expect(load).not.toHaveBeenCalled();
   });
 
   it("does not store anything when load throws", async () => {
     const cache = stubCaches();
     const load = vi.fn<() => Promise<null>>().mockRejectedValue(new Error("boom"));
-    await expect(cachedJson("https://example.test/a", 300, load)).rejects.toThrow("boom");
+    await expect(cachedJson("https://example.test/a", nothing, 300, load)).rejects.toThrow("boom");
     expect(cache.put).not.toHaveBeenCalled();
   });
 
   it("passes through when the runtime has no caches", async () => {
     vi.stubGlobal("caches", null);
     const load = vi.fn<() => Promise<null>>().mockResolvedValue(null);
-    await expect(cachedJson("https://example.test/a", 300, load)).resolves.toBeNull();
-    await expect(cachedJson("https://example.test/a", 300, load)).resolves.toBeNull();
+    await expect(cachedJson("https://example.test/a", nothing, 300, load)).resolves.toBeNull();
+    await expect(cachedJson("https://example.test/a", nothing, 300, load)).resolves.toBeNull();
     expect(load).toHaveBeenCalledTimes(2);
   });
 });
