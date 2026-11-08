@@ -47,7 +47,7 @@ const countWords = (s: string) => {
   return counts;
 };
 
-// v2 は span の前後の英単語を span の外に書き足すことがある (Apple <span>Apple Silicon</span>)
+// span の直前以外に書き足された英単語は直し方が分からないので、崩れた訳として捨てる
 const repeatsWords = (title: string, translated: string) => {
   const original = countWords(title);
   return [...countWords(translated)].some(([w, n]) => n > (original.get(w) ?? n));
@@ -55,6 +55,11 @@ const repeatsWords = (title: string, translated: string) => {
 
 export const fromHtml = (title: string, terms: string[], html: string): string | null => {
   const text = html
+    // v2 は語順を入れ替える長い文で、span の直前に語の頭の英単語を書き足すことがある (Apple <span>Apple Silicon</span>)
+    .replaceAll(
+      /(?<![A-Za-z0-9])(?<word>[A-Za-z0-9]+)\s+(?<open><span[^>]*>)\k<word>(?![A-Za-z0-9])/gu,
+      "$<open>$<word>",
+    )
     // v2 は span の外側に空白を足す。英単語どうしの間の空白は原文にあったものなので残す
     .replaceAll(/(?<=\P{ASCII})\s+(?=<span[^>]*>)|(?<=<\/span>)\s+(?=\P{ASCII})/gu, "")
     .replaceAll(/<span[^>]*>|<\/span>/gu, "");

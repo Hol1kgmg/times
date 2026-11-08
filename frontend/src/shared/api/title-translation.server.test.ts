@@ -43,12 +43,22 @@ describe("翻訳する HTML", () => {
     ).toBe("ローカルAI BGM。Apple Silicon（MLX）上でStable Audio 3。");
   });
 
-  it("rejects a translation that repeats a word more often than the original", () => {
+  it("drops the leading word the translator copies in front of a kept term", () => {
     expect(
       fromHtml(
         "Stable Audio 3 on Apple Silicon (MLX)",
         ["Stable Audio 3", "Apple Silicon", "MLX"],
         `Apple ${keep("Apple Silicon")} （ ${keep("MLX")} ）上で${keep("Stable Audio 3")} 。`,
+      ),
+    ).toBe("Apple Silicon（MLX）上でStable Audio 3。");
+  });
+
+  it("rejects a translation that repeats a word more often than the original", () => {
+    expect(
+      fromHtml(
+        "Stable Audio 3 on Apple Silicon (MLX)",
+        ["Stable Audio 3", "Apple Silicon", "MLX"],
+        `${keep("Apple Silicon")}のApple （ ${keep("MLX")} ）上で${keep("Stable Audio 3")} 。`,
       ),
     ).toBeNull();
   });
