@@ -23,6 +23,20 @@ board の `Link` には足さない。記事の編集モーダルの state だ�
 - 欄の値は「確定」で既存の `editLink` を通って候補のタイトルになる。`initial.title` は翻訳で変えないので、登録前の「変更を戻す」(`revert`) は翻訳前の原文に戻る (spec FR-007)。保存済みの記事の `initial.title` は保存したタイトルなので、保存後は日本語に戻る (spec US3 シナリオ 2)。
 - `translating` の間はボタンを押せない (spec FR-009)。
 
+## Link.translated (pages/digest-editor/model/board.ts)
+
+一度翻訳した候補を重ねて訳さないための印 (spec FR-013)。`toNewDigest` には出さず、保存しない。`addDraft` と `fromDigest` では `false`。
+
+| 契機 | 後 |
+|---|---|
+| 編集モーダルで翻訳を入れたまま「確定」(`editLink` に `translated: true`) | `true` |
+| 翻訳した後に「やめる」 | 変わらない |
+| `true` の候補を手で直して「確定」 | `true` のまま |
+| 変更を戻す (`revert`) | `false` |
+| 関連記事にする・外す | 引き継ぐ |
+
+翻訳ボタンは、`Link.translated` か、そのモーダルで翻訳を入れた (`field.translated`) ときに押せない。
+
 ## 固有名称の候補 (サーバーの中だけ)
 
 | 項目 | 型 | 意味 |

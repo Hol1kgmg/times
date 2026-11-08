@@ -19,6 +19,14 @@ export interface Link {
   title: string;
   initial: { url: string; title: string };
   status: FetchState;
+  // 一度翻訳した記事を重ねて訳さないための印。保存しない
+  translated: boolean;
+}
+
+export interface LinkEdit {
+  url: string;
+  title: string;
+  translated?: boolean;
 }
 
 export interface Draft extends Link {
@@ -113,6 +121,7 @@ export const addDraft = (board: Board, url: string, id: string): Board | Rejecte
     title: "",
     initial: { url, title: "" },
     status: "loading",
+    translated: false,
     hot: false,
     suggested: false,
     children: [],
@@ -138,19 +147,26 @@ export const settleTitle = (board: Board, id: string, title: string | null): Boa
     status: title === null ? "failed" : "done",
   }));
 
-export const editLink = (
-  board: Board,
-  id: string,
-  next: { url: string; title: string },
-): Board | Rejected => {
+export const editLink = (board: Board, id: string, next: LinkEdit): Board | Rejected => {
   const url = stripTracking(next.url);
   return findDuplicate(board, url, id)
     ? "duplicate"
-    : mapLink(board, id, (l) => ({ ...l, ...next, url }));
+    : mapLink(board, id, (l) => ({
+        ...l,
+        url,
+        title: next.title,
+        // 訳した後に手で直しても、訳し直すのは「変更を戻す」の後だけにする
+        translated: l.translated || next.translated === true,
+      }));
 };
 
 export const revert = (board: Board, id: string): Board =>
-  mapLink(board, id, (l) => ({ ...l, url: l.initial.url, title: l.initial.title }));
+  mapLink(board, id, (l) => ({
+    ...l,
+    url: l.initial.url,
+    title: l.initial.title,
+    translated: false,
+  }));
 
 export const settleCategory = (board: Board, id: string, suggested: Category | null): Board => {
   const draft = board[UNSORTED].find((d) => d.id === id);
@@ -201,10 +217,10 @@ export const makeChild = (board: Board, id: string): Board => {
   if (draft === undefined || parent === undefined) {
     return board;
   }
-  const { url, title, initial, status } = draft;
+  const { url, title, initial, status, translated } = draft;
   items[at.index - 1] = {
     ...parent,
-    children: [...parent.children, { id, url, title, initial, status }],
+    children: [...parent.children, { id, url, title, initial, status, translated }],
   };
   return replaceBox(board, at.box, items);
 };
@@ -314,6 +330,7 @@ const savedLink = ({ id, url, title }: { id: string; url: string; title: string 
   title,
   initial: { url, title },
   status: "done",
+  translated: false,
 });
 
 export const fromDigest = (digest: Digest): Board => {

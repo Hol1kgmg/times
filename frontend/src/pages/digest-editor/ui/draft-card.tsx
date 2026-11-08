@@ -16,14 +16,14 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
-import type { BoxId, Draft, Link, Rejected } from "../model/board";
+import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
 
 export interface CardActions {
   atLimit: boolean;
   registered: ReadonlySet<string>;
-  edit: (id: string, next: { url: string; title: string }) => Rejected | null;
+  edit: (id: string, next: LinkEdit) => Rejected | null;
   revert: (id: string) => void;
   toggleHot: (id: string) => void;
   remove: (id: string, childCount: number) => void;
@@ -72,12 +72,14 @@ const EditDialog = ({
   onClose,
 }: {
   link: Link;
-  onEdit: (next: { url: string; title: string }) => Rejected | null;
+  onEdit: (next: LinkEdit) => Rejected | null;
   onClose: () => void;
 }) => {
   const headingId = useId();
   const titleId = useId();
-  const [title, setTitle] = useState(link.title);
+  // 欄の文字と「この欄に翻訳を入れたか」は、待つ間に手で直されたかを 1 回の更新で見比べるため組で持つ
+  const [field, setField] = useState({ title: link.title, translated: false });
+  const { title } = field;
   const [url, setUrl] = useState(link.url);
   const [duplicate, setDuplicate] = useState(false);
   const [translation, setTranslation] = useState<"idle" | "translating" | "failed">("idle");
@@ -99,7 +101,9 @@ const EditDialog = ({
     setTranslation(result === null ? "failed" : "idle");
     if (result !== null) {
       // 翻訳を待つ間に手で直したタイトルは上書きしない
-      setTitle((current) => (current === requested ? result : current));
+      setField((current) =>
+        current.title === requested ? { title: result, translated: true } : current,
+      );
     }
   };
   return (
@@ -109,7 +113,7 @@ const EditDialog = ({
           className={styles.form}
           onSubmit={(e) => {
             e.preventDefault();
-            if (onEdit({ title: title.trim(), url }) === null) {
+            if (onEdit({ title: title.trim(), url, translated: field.translated }) === null) {
               close();
             } else {
               setDuplicate(true);
@@ -139,7 +143,7 @@ const EditDialog = ({
                 type="text"
                 value={title}
                 onChange={(e) => {
-                  setTitle(e.target.value);
+                  setField((current) => ({ ...current, title: e.target.value }));
                   setTranslation((s) => (s === "failed" ? "idle" : s));
                 }}
               />
@@ -148,7 +152,11 @@ const EditDialog = ({
                 className={styles.translate}
                 // ローカルの vite dev には clef が無く、翻訳できない (spec FR-012)
                 isDisabled={
-                  import.meta.env.DEV || translation === "translating" || title.trim() === ""
+                  import.meta.env.DEV ||
+                  link.translated ||
+                  field.translated ||
+                  translation === "translating" ||
+                  title.trim() === ""
                 }
                 onPress={() => {
                   void onTranslate();
@@ -208,7 +216,7 @@ const LinkRow = ({
   registered: boolean;
   handle?: ReactNode;
   menu: MenuItem[];
-  onEdit: (next: { url: string; title: string }) => Rejected | null;
+  onEdit: (next: LinkEdit) => Rejected | null;
 }) => {
   const [editing, setEditing] = useState(false);
   const host = new URL(link.url).hostname;

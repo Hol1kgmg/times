@@ -29,6 +29,7 @@ const link = (id: string, title = `title ${id}`): Link => ({
   title,
   initial: { url: `https://example.com/${id}`, title },
   status: "done",
+  translated: false,
 });
 const draft = (id: string, extra: Partial<Draft> = {}): Draft => ({
   ...link(id),
@@ -112,6 +113,25 @@ describe("手直し", () => {
     const [, reverted] = revert(edited, "a").その他;
     expect(reverted).toMatchObject({ url: "https://example.com/a", title: "title a", hot: true });
     expect(reverted?.children).toHaveLength(1);
+  });
+
+  it("keeps a translated article from being translated again even after a manual edit", () => {
+    const b = board({ その他: [draft("a")] });
+    const translated = ok(
+      editLink(b, "a", { url: "https://example.com/a", title: "訳", translated: true }),
+    );
+    const edited = ok(
+      editLink(translated, "a", { url: "https://example.com/a", title: "直した訳" }),
+    );
+    expect(edited.その他[0]?.translated).toBeTruthy();
+  });
+
+  it("allows translating again after reverting", () => {
+    const b = board({ その他: [draft("a")] });
+    const translated = ok(
+      editLink(b, "a", { url: "https://example.com/a", title: "訳", translated: true }),
+    );
+    expect(revert(translated, "a").その他[0]?.translated).toBeFalsy();
   });
 
   it("rejects editing a URL into one another candidate already uses", () => {
