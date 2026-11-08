@@ -138,4 +138,5 @@ T009 title-terms.server.ts と T010 title-translation.server.ts も並行でき�
 - [X] T102 `translate-title.ts` にサーバー関数 `autoTranslateTitle` を足す。かな・漢字 → `extractTerms` → 訳す語 → `translateWithTerms` の順で、落ちたら `null`。手動の `translateTitle` は変えない (FR-011)
 - [X] T103 `board.ts` に `settleTranslation` を足す。待つ間に手で直したタイトル・手で訳したタイトルは上書きせず、`initial.title` は原文のまま残す (「変更を戻す」で原文に戻り、手動で訳し直せる)
 - [X] T104 `url-add-form.tsx` でタイトルの取得後、カテゴリの推定と並べて `autoTranslateTitle` を呼ぶ。失敗と「翻訳不要」は未翻訳のまま残す
+- [X] T106 (#110) 翻訳が返る前にカードを出すと、英語のタイトルが日本語に切り替わり、その前に保存すると原文で登録されたので、取得 → 翻訳 → 未分類に出す → カテゴリの推定の順に変えた。追加の途中は入力欄と保存を止め、`settleTitle`・`settleTranslation` と取得中の状態は消した。T103・T104 の形はこれで置き換わる
 - [ ] T105 本番で日次約 10 件を登録し、日本語・固有名称だけのタイトルは訳されず、それ以外の英語タイトルが訳されるのを確かめる
