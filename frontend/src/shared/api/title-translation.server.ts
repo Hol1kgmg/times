@@ -13,18 +13,29 @@ const escapeHtml = (s: string) =>
 
 const escapeRegExp = (s: string) => s.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 
+const termPattern = (terms: string[]) => {
+  const alternatives = terms.toSorted((a, b) => b.length - a.length).map(escapeRegExp);
+  // 語の途中 (Google の中の Go) を囲まないよう、前後が文字・数字でない所だけを語とみなす
+  return new RegExp(`(?<![\\p{L}\\p{N}])(${alternatives.join("|")})(?![\\p{L}\\p{N}])`, "u");
+};
+
 export const toHtml = (title: string, terms: string[]): string => {
   if (terms.length === 0) {
     return escapeHtml(title);
   }
-  const alternatives = terms.toSorted((a, b) => b.length - a.length).map(escapeRegExp);
-  // 語の途中 (Google の中の Go) を囲まないよう、前後が文字・数字でない所だけを語とみなす
-  const term = new RegExp(`(?<![\\p{L}\\p{N}])(${alternatives.join("|")})(?![\\p{L}\\p{N}])`, "u");
   return title
-    .split(term)
+    .split(termPattern(terms))
     .map((part, i) => (i % 2 === 1 ? `${KEEP_OPEN}${escapeHtml(part)}</span>` : escapeHtml(part)))
     .join("");
 };
+
+export const hasKanaOrKanji = (title: string) =>
+  /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(title);
+
+export const hasWordsToTranslate = (title: string, terms: string[]) =>
+  (terms.length === 0 ? [title] : title.split(termPattern(terms)).filter((_, i) => i % 2 === 0))
+    .flatMap((part) => part.split(/[^\p{L}\p{N}'-]+/u))
+    .some((w) => /^[A-Za-z]+(?:['-][A-Za-z]+)*$/u.test(w));
 
 const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"' };
 

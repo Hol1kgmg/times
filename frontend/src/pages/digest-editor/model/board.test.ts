@@ -13,6 +13,7 @@ import {
   revert,
   settleCategory,
   settleTitle,
+  settleTranslation,
   stripTracking,
   toggleHot,
   toIds,
@@ -309,5 +310,26 @@ describe("カテゴリの推定", () => {
   it("keeps the suggestion mark when reordering within the same box", () => {
     const b = board({ AI系: [draft("a", { suggested: true }), draft("b")] });
     expect(fromIds(b, { ...toIds(b), AI系: ["b", "a"] }).AI系[1]?.suggested).toBeTruthy();
+  });
+});
+
+describe("タイトルの自動翻訳", () => {
+  it("applies the translation and keeps the fetched title for reverting", () => {
+    const b = settleTranslation(board({ その他: [draft("a")] }), "a", "title a", "訳");
+    expect(b.その他[0]).toMatchObject({
+      title: "訳",
+      translated: true,
+      initial: { title: "title a" },
+    });
+  });
+
+  it("keeps a title edited while waiting for the translation", () => {
+    const b = ok(
+      editLink(board({ その他: [draft("a")] }), "a", {
+        url: "https://example.com/a",
+        title: "直した",
+      }),
+    );
+    expect(settleTranslation(b, "a", "title a", "訳").その他[0]?.title).toBe("直した");
   });
 });

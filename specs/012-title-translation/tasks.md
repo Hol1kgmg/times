@@ -131,3 +131,11 @@ T009 title-terms.server.ts と T010 title-translation.server.ts も並行でき�
 2. Phase 2 → US1 で MVP (手動で翻訳できて、登録すると公開画面に出る)
 3. US2 で失敗の表示とやり直し、US3 で原文に戻せることを確かめる
 4. 自動実行と判定は #105 で、`extractTerms` と `translateWithTerms` を呼び出し側から挟む
+
+## Follow-up: #105 登録時の自動翻訳
+
+- [X] T101 `title-translation.server.ts` に `hasKanaOrKanji` (かな・漢字が 1 文字でもあれば訳さない) と `hasWordsToTranslate` (固有名称・数字・記号を除いて英単語が残るか) を足し、`title-translation.server.test.ts` で試す
+- [X] T102 `translate-title.ts` にサーバー関数 `autoTranslateTitle` を足す。かな・漢字 → `extractTerms` → 訳す語 → `translateWithTerms` の順で、落ちたら `null`。手動の `translateTitle` は変えない (FR-011)
+- [X] T103 `board.ts` に `settleTranslation` を足す。待つ間に手で直したタイトル・手で訳したタイトルは上書きせず、`initial.title` は原文のまま残す (「変更を戻す」で原文に戻り、手動で訳し直せる)
+- [X] T104 `url-add-form.tsx` でタイトルの取得後、カテゴリの推定と並べて `autoTranslateTitle` を呼ぶ。失敗と「翻訳不要」は未翻訳のまま残す
+- [ ] T105 本番で日次約 10 件を登録し、日本語・固有名称だけのタイトルは訳されず、それ以外の英語タイトルが訳されるのを確かめる

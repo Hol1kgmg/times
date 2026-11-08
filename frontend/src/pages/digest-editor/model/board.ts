@@ -168,6 +168,12 @@ export const revert = (board: Board, id: string): Board =>
     translated: false,
   }));
 
+export const settleTranslation = (board: Board, id: string, from: string, to: string): Board =>
+  mapLink(board, id, (l) =>
+    // 訳を待つ間に手で直したタイトルや手で訳したタイトルは上書きしない
+    l.title === from && !l.translated ? { ...l, title: to, translated: true } : l,
+  );
+
 export const settleCategory = (board: Board, id: string, suggested: Category | null): Board => {
   const draft = board[UNSORTED].find((d) => d.id === id);
   if (suggested === null || draft === undefined) {

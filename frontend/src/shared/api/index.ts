@@ -7,7 +7,7 @@ export { listPublishedDigests } from "./list-published-digests";
 export { loadAnyLinkPreview } from "./load-any-link-preview";
 export * from "./schemas";
 export { suggestCategory } from "./suggest-category";
-export { translateTitle } from "./translate-title";
+export { autoTranslateTitle, translateTitle } from "./translate-title";
 // backend/api/openapi.yaml から生成 (just be-gen / lefthook)。手で編集しない
 export type { components, operations, paths } from "./openapi.gen";
 
