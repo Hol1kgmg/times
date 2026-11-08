@@ -15,6 +15,7 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
+import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
 
 export interface CardActions {
@@ -192,15 +193,13 @@ const LinkRow = ({
           )}
         </AriaLink>
         {card}
-        <span className={styles.meta}>
-          <span className={styles.host}>{host}</span>
-          {link.status === "loading" && (
-            <span className={styles.loading}>タイトルを取得してます</span>
-          )}
-          {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
-          {suggested && <span className={styles.warn}>AI が振り分けました</span>}
-          {registered && <span className={styles.error}>既に登録済みです</span>}
-        </span>
+        <LinkMeta
+          host={host}
+          loading={link.status === "loading"}
+          registered={registered}
+          suggested={suggested}
+          untitled={untitled}
+        />
       </span>
       <Menu
         items={[

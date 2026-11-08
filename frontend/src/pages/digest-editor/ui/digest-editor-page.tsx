@@ -26,6 +26,7 @@ import {
   UNSORTED,
 } from "../model/board";
 import type { Blocker, Board, BoxId, Rejected } from "../model/board";
+import { AiSortingStatus } from "./ai-sorting-status";
 import { BoardDragDrop } from "./board-drag-drop";
 import { Box } from "./box";
 import { DateField } from "./date-field";
@@ -95,6 +96,8 @@ const DigestForm = <S extends DigestStatus>({
   const [editedDate, setEditedDate] = useState<string>();
   const entryDate = editedDate ?? initialDate ?? defaultDate;
   const [board, setBoard] = useState<Board>(initialBoard);
+  // URL を続けて足すと推定が重なるので、件数で持つ
+  const [suggesting, setSuggesting] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
@@ -216,6 +219,7 @@ const DigestForm = <S extends DigestStatus>({
             value={entryDate}
             onChange={setEditedDate}
           />
+          <AiSortingStatus active={suggesting > 0} />
         </div>
         <div className={styles.submit}>
           {reasons.length > 0 && (
@@ -274,7 +278,7 @@ const DigestForm = <S extends DigestStatus>({
       )}
       <BoardDragDrop board={board} onChange={setBoard}>
         <div className={styles.collect}>
-          <UrlAddForm board={board} setBoard={setBoard} />
+          <UrlAddForm board={board} setBoard={setBoard} setSuggesting={setSuggesting} />
           {renderBox(UNSORTED)}
         </div>
         <div className={styles.shelf}>{category.options.map(renderBox)}</div>

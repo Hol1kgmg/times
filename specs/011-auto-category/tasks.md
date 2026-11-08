@@ -91,6 +91,15 @@ description: "Task list for 011-auto-category"
 
 ---
 
+## Phase 6: 追加の UI 改修 (本番確認の後)
+
+- [X] T018 `frontend/src/pages/digest-editor/ui/ai-sorting-status.tsx` に、スピナーと「AIカテゴリ分類中」を出す `<output>` を作る。場所は常に取り、分類していない間は `visibility: hidden` にする。`prefers-reduced-motion` では回転を止める (FR-009)
+- [X] T019 `digest-editor-page.tsx` に分類中の件数の state を持たせ、`url-add-form.tsx` が推定の前後で増減する。表示はヘッダーの日付欄の右に置く
+- [X] T020 メタ行を `link-meta.tsx` に切り出し、「AI が振り分けました」を `--color-accent` にする。`DraftCard` はサーバー関数を読み込んで Storybook で動かないため、Story はメタ行で用意する
+- [X] T021 `ai-sorting-status.stories.tsx` と `link-meta.stories.tsx` を足し、`just fe-storybook` で確かめられるようにする
+
+---
+
 ## Dependencies & Execution Order
 
 - Phase 1 (T001〜T003) → Phase 2 (T004) → US1 (T005〜T010) → US2 (T011〜T013) → Polish

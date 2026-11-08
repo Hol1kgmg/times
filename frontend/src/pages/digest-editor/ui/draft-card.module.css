@@ -113,35 +113,6 @@
   color: var(--color-brand);
 }
 
-.meta {
-  composes: t-meta from global;
-  display: flex;
-  min-width: 0;
-  color: var(--color-text-faint);
-  font-family: var(--font-dynamic);
-  white-space: nowrap;
-}
-
-.host {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.loading,
-.warn,
-.error {
-  flex-shrink: 0;
-  margin-left: var(--space-1);
-}
-
-.warn {
-  color: var(--color-text-muted);
-}
-
-.error {
-  color: var(--color-danger);
-}
-
 .more {
   flex-shrink: 0;
   width: 32px;

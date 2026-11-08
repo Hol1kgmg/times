@@ -38,7 +38,7 @@ Digest の登録・編集では、追加した URL がすべて未分類に入�
 
 - [x] 0.5 ちょうどで返り、0.49 と選択肢の外では `null` になる (`category-suggestion.server.test.ts`)
 - [x] `vite dev` の SSR で呼ぶと、落ちずに `null` が返る
-- [ ] 本番で AI 系の記事の URL を追加すると「AI系」の箱に入る (quickstart.md)
+- [x] 本番で AI 系の記事の URL を追加すると「AI系」の箱に入る (quickstart.md)
 
 ## Revisit
 
