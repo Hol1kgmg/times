@@ -43,3 +43,7 @@ Digest の登録・編集では、追加した URL がすべて未分類に入�
 ## Revisit
 
 ローカルでも推定を確かめる必要が出たら (しきい値や `criteria` の調整を繰り返すなど)、この ADR を supersede して C に移す。
+
+## More Information
+
+- 2026-11-08: `cloudflare:workers` の読み込みと `env.AI` の確かめ方を `frontend/src/shared/api/workers-ai.server.ts` に切り出し、0012 の固有名称の抽出と共有した。方針 A は変わらない

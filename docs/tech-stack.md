@@ -67,12 +67,13 @@ backend/
 | ユニットテスト | Vitest / Testing Library | jsdom、カバレッジ v8 |
 | E2E | Playwright | Chromium |
 | デプロイ | Cloudflare Workers (wrangler) | `dist/server` を Worker、`dist/client` をアセットとして配信 |
-| AI | Workers AI (binding `AI`、`@cf/cloudflare/clef`) | 記事のカテゴリの推定。ローカルの vite dev では推定しない (adr/frontend/0011) |
+| AI | Workers AI (binding `AI`、`@cf/cloudflare/clef`) | 記事のカテゴリの推定、記事タイトルの固有名称の抽出 (specs/012)。ローカルの vite dev では使わない (adr/frontend/0011、0012) |
+| 翻訳 | Google Cloud Translation - Basic (v2、API キー) | 記事タイトルを固有名称を残して日本語にする。ローカルの vite dev では翻訳しない (adr/frontend/0012) |
 
 ## 運用
 
 - 操作はルートの [justfile](../justfile) 経由（`just fe-dev` / `just fe-test` / `just fe-lint`）。npm 依存の更新は `just fe-upgrade`
-- 環境変数（サーバー側のみ。クライアントバンドルに出さない）: `BACKEND_URL`、`BACKEND_TOKEN`（0006）、`ADMIN_LOGIN_PATH`、`GITHUB_CLIENT_ID`、任意で `GITHUB_BASE_URL`（[docs/admin-login.md](admin-login.md)）。本番は Workers ダッシュボードの Variables で管理
+- 環境変数（サーバー側のみ。クライアントバンドルに出さない）: `BACKEND_URL`、`BACKEND_TOKEN`（0006）、`ADMIN_LOGIN_PATH`、`GITHUB_CLIENT_ID`、任意で `GITHUB_BASE_URL`（[docs/admin-login.md](admin-login.md)）、シークレット `GOOGLE_TRANSLATE_API_KEY`（adr/frontend/0012）。本番は Workers ダッシュボードの Variables で管理
 - E2E は GitHub モック（`frontend/e2e/github-mock.ts`）と compose の backend（`just be-dev-e2e`）で通す。e2e 用の dev server は 3001 で起動し、開発用の 3000 と分ける（変えるときは `E2E_PORT`）
 - pre-commit ([lefthook.yaml](../lefthook.yaml)): gitleaks / lint / markuplint / typecheck / test
 - CI ([frontend-ci.yml](../.github/workflows/frontend-ci.yml)): typecheck / lint / test

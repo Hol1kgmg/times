@@ -17,3 +17,4 @@
 | 0009 | [今の体験を保てる部品は React Aria Components に置き換え、保てないものは自前のまま残す](0009-replace-components-with-rac-where-ux-is-kept.md) | accepted |
 | 0010 | [リンクプレビューの HTML は正規表現のまま読み、HTMLRewriter への移行は CPU 時間の上限に当たるまで見送る](0010-keep-regex-link-preview-parser-defer-htmlrewriter.md) | accepted |
 | 0011 | [記事のカテゴリは Workers AI の clef で推定し、ローカル開発では推定しない](0011-suggest-category-with-workers-ai-clef.md) | accepted |
+| 0012 | [記事タイトルは clef の noul で固有名称を決め、Cloud Translation v2 で翻訳する](0012-translate-titles-with-clef-noul-and-translation-v2.md) | accepted |

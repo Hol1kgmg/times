@@ -209,6 +209,65 @@
   font-family: var(--font-dynamic);
 }
 
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.translationNote {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
+}
+
+.inputBox {
+  display: flex;
+  align-items: stretch;
+  overflow: clip;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+}
+
+.inputBox:has(.boxedInput:focus) {
+  border-color: var(--color-accent);
+}
+
+.boxedInput {
+  composes: t-body from global;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-half) var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-dynamic);
+  /* フォーカスは外枠の色で示す */
+  outline: none;
+}
+
+.translate {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-half) var(--space-1);
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-brand);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.translate[data-pressed] {
+  transform: scale(1.1);
+}
+
+.translate[data-disabled] {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
 .note {
   composes: t-body from global;
   margin: 0;
@@ -227,7 +286,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
+  .card,
+  .translate {
     transition: none;
+  }
+
+  .translate[data-pressed] {
+    transform: none;
   }
 }
