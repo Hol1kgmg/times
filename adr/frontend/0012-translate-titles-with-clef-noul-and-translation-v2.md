@@ -68,7 +68,7 @@ decision-makers: 'Hol1kgmg'
 
 - [x] 候補の切り出し・重なり・しきい値 (`title-terms.server.test.ts`)、HTML の組み立てと戻し・大文字小文字の違い・想定外のタグ (`title-translation.server.test.ts`)、再試行 (`retry.server.test.ts`) が通る
 - [ ] ローカルの `just fe-dev` で、編集モーダルの翻訳ボタンを押せない
-- [ ] 本番で `Building Apps with React and TypeScript` を翻訳すると、`React` と `TypeScript` を含む日本語になる (specs/012 quickstart.md)
+- [x] 本番で固有名称の多いタイトル (`audio-studio-mcp` の説明文: `Claude Code`、`MCP`、`Apple Silicon`、`MLX`、`Stable Audio 3` など) を翻訳すると、固有名称が原文の表記のまま残った日本語になる (2026-11-08)
 
 ## More Information
 

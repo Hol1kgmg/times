@@ -103,7 +103,7 @@ description: "Task list for 012-title-translation"
 
 - [X] T019 [P] `adr-skill` で `adr/frontend/0012-translate-titles-with-clef-noul-and-translation-v2.md` を書き、`adr/frontend/README.md` の一覧に足す。決めたこと: clef の `noul` で 1〜3 語の候補から固有名称を決める (research R1)、Cloud Translation - Basic を API キーで呼ぶ (R2)、T002 の結果で決まった守り方 (R3)、ローカル開発では翻訳しない (R7)
 - [X] T020 [P] `docs/tech-stack.md` の AI の行 (70 行目付近) に「記事タイトルの固有名称の抽出 (specs/012)」を足し、翻訳の行 (Cloud Translation - Basic、シークレット `GOOGLE_TRANSLATE_API_KEY`) を足す
-- [ ] T021 `just lint && just test` と `just fe-typecheck` を通す。e2e は回さない。マージ後に本番で quickstart.md の手順をすべて確かめる
+- [X] T021 (2026-11-08 済み。本番で `audio-studio-mcp` の説明文を翻訳・確定・変更を戻す・登録まで確かめた。手順 6 の「翻訳できませんでした」は、#107 で書き足しを失敗にしたときに本番で出た) `just lint && just test` と `just fe-typecheck` を通す。e2e は回さない。マージ後に本番で quickstart.md の手順をすべて確かめる
 
 ---
 
