@@ -37,15 +37,34 @@ const decodeEntities = (s: string) =>
     return String.fromCodePoint(Number(`0${ref.slice(1)}`));
   });
 
-export const fromHtml = (html: string, terms: string[]): string | null => {
-  const text = html.replaceAll(/<span[^>]*>|<\/span>/gu, "");
+const LATIN_WORD = /[A-Za-z0-9](?:[A-Za-z0-9.+#-]*[A-Za-z0-9+#])?/gu;
+
+const countWords = (s: string) => {
+  const counts = new Map<string, number>();
+  for (const w of s.match(LATIN_WORD) ?? []) {
+    counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  return counts;
+};
+
+// v2 は span の前後の英単語を span の外に書き足すことがある (Apple <span>Apple Silicon</span>)
+const repeatsWords = (title: string, translated: string) => {
+  const original = countWords(title);
+  return [...countWords(translated)].some(([w, n]) => n > (original.get(w) ?? n));
+};
+
+export const fromHtml = (title: string, terms: string[], html: string): string | null => {
+  const text = html
+    // v2 は span の外側に空白を足す。英単語どうしの間の空白は原文にあったものなので残す
+    .replaceAll(/(?<=\P{ASCII})\s+(?=<span[^>]*>)|(?<=<\/span>)\s+(?=\P{ASCII})/gu, "")
+    .replaceAll(/<span[^>]*>|<\/span>/gu, "");
   if (text.includes("<")) {
     return null;
   }
   // Cloud Translation v2 は訳の本文の文字参照を二重にエスケープして返す
   // ponytail: 原文に `&amp;` の文字そのものがあると戻しすぎる。出たら送る前に印へ置き換える
   const decoded = decodeEntities(decodeEntities(text));
-  return terms.every((t) => decoded.includes(t)) ? decoded : null;
+  return terms.every((t) => decoded.includes(t)) && !repeatsWords(title, decoded) ? decoded : null;
 };
 
 const response = z.object({
@@ -85,5 +104,5 @@ export const translateWithTerms = async (
     }
     return (await res.json()) as unknown;
   });
-  return fromHtml(response.parse(body).data.translations[0].translatedText, terms);
+  return fromHtml(title, terms, response.parse(body).data.translations[0].translatedText);
 };
