@@ -6,6 +6,7 @@ export { listDigests } from "./list-digests";
 export { listPublishedDigests } from "./list-published-digests";
 export { loadAnyLinkPreview } from "./load-any-link-preview";
 export * from "./schemas";
+export { suggestCategory } from "./suggest-category";
 // backend/api/openapi.yaml から生成 (just be-gen / lefthook)。手で編集しない
 export type { components, operations, paths } from "./openapi.gen";
 

@@ -9,8 +9,8 @@ const dateChars = ["月", "日", "火", "水", "木", "金", "土"];
 const sources = globSync(
   ["src/app/**/*.{ts,tsx}", "src/pages/home/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}"],
   {
-    // 日付ピッカーはトップに出ず、モーダルの --font-dynamic で描く
-    exclude: (f) => /\.(?:test|gen|stories)\.tsx?$|date-picker\.tsx$/u.test(f),
+    // 日付ピッカーはトップに出ず、モーダルの --font-dynamic で描く。*.server.ts の文字列は画面に出ない
+    exclude: (f) => /\.(?:test|gen|stories|server)\.tsx?$|date-picker\.tsx$/u.test(f),
   },
 );
 const literals = sources

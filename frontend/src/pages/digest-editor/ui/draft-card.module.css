@@ -113,6 +113,15 @@
   color: var(--color-brand);
 }
 
+.suggested {
+  flex-shrink: 0;
+  width: var(--space-1);
+  height: var(--space-1);
+  margin-left: var(--space-1);
+  border-radius: 50%;
+  background-color: var(--color-brand);
+}
+
 .meta {
   composes: t-meta from global;
   display: flex;

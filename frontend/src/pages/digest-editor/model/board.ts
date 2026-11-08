@@ -23,6 +23,7 @@ export interface Link {
 
 export interface Draft extends Link {
   hot: boolean;
+  suggested: boolean;
   children: Link[];
 }
 
@@ -113,6 +114,7 @@ export const addDraft = (board: Board, url: string, id: string): Board | Rejecte
     initial: { url, title: "" },
     status: "loading",
     hot: false,
+    suggested: false,
     children: [],
   };
   return replaceBox(board, UNSORTED, [...board[UNSORTED], draft]);
@@ -149,6 +151,18 @@ export const editLink = (
 
 export const revert = (board: Board, id: string): Board =>
   mapLink(board, id, (l) => ({ ...l, url: l.initial.url, title: l.initial.title }));
+
+export const settleCategory = (board: Board, id: string, suggested: Category | null): Board => {
+  const draft = board[UNSORTED].find((d) => d.id === id);
+  if (suggested === null || draft === undefined) {
+    return board;
+  }
+  return {
+    ...board,
+    [UNSORTED]: board[UNSORTED].filter((d) => d.id !== id),
+    [suggested]: [...board[suggested], { ...draft, suggested: true }],
+  };
+};
 
 export const toggleHot = (board: Board, id: string): Board =>
   mapDrafts(board, (d) => (d.id === id ? { ...d, hot: !d.hot } : d));
@@ -210,7 +224,7 @@ export const unmakeChild = (board: Board, parentId: string, childId: string): Bo
     at.index,
     1,
     { ...parent, children: parent.children.filter((c) => c.id !== childId) },
-    { ...child, hot: false, children: [] },
+    { ...child, hot: false, suggested: false, children: [] },
   );
   return replaceBox(board, at.box, items);
 };
@@ -249,7 +263,10 @@ export const moveToBoxEnd = (board: Board, id: string, box: BoxId): Board => {
     at.box,
     board[at.box].filter((d) => d.id !== id),
   );
-  return replaceBox(without, box, [...without[box], draft]);
+  return replaceBox(without, box, [
+    ...without[box],
+    at.box === box || !draft.suggested ? draft : { ...draft, suggested: false },
+  ]);
 };
 
 export const toIds = (board: Board): Record<BoxId, string[]> =>
@@ -257,18 +274,18 @@ export const toIds = (board: Board): Record<BoxId, string[]> =>
 
 // 中身の変わらない箱は配列の参照を使い回し、箱の memo を効かせる
 export const fromIds = (board: Board, ids: Record<BoxId, string[]>): Board => {
-  const byId = new Map(drafts(board).map((d) => [d.id, d]));
+  const byId = new Map(boxIds.flatMap((box) => board[box].map((d) => [d.id, { d, box }] as const)));
   return byBox((b) => {
     const next = ids[b];
     if (next.length === board[b].length && next.every((id, i) => board[b][i]?.id === id)) {
       return board[b];
     }
     return next.map((id) => {
-      const draft = byId.get(id);
-      if (draft === undefined) {
+      const found = byId.get(id);
+      if (found === undefined) {
         throw new Error(`board: unknown draft id "${id}"`);
       }
-      return draft;
+      return found.box === b || !found.d.suggested ? found.d : { ...found.d, suggested: false };
     });
   });
 };
@@ -302,7 +319,12 @@ const savedLink = ({ id, url, title }: { id: string; url: string; title: string 
 export const fromDigest = (digest: Digest): Board => {
   const board = emptyBoard();
   for (const a of digest.articles) {
-    board[a.category].push({ ...savedLink(a), hot: a.hot, children: a.children.map(savedLink) });
+    board[a.category].push({
+      ...savedLink(a),
+      hot: a.hot,
+      suggested: false,
+      children: a.children.map(savedLink),
+    });
   }
   return board;
 };

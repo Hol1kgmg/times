@@ -17,12 +17,19 @@ const fontDisplayBlock: Plugin = {
   },
 };
 
+// Workers の実行時にだけある組み込みモジュールで、build・dev・vitest のどれでも解決できない
+export const cloudflareBuiltins: Plugin = {
+  name: "cloudflare-builtins",
+  resolveId: (id) => (id.startsWith("cloudflare:") ? { id, external: true } : null),
+};
+
 // デプロイ先は Cloudflare Workers (wrangler.toml)。ビルド成果物は dist/{client,server}
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   // FSD: ルーティング関連は src/app/ に集約する (tsr.config.json と揃える)
   plugins: [
     fontDisplayBlock,
+    cloudflareBuiltins,
     tanstackStart({
       // パスは srcDirectory (src) 基準
       router: {

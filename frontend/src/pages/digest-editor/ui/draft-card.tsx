@@ -144,6 +144,7 @@ const EditDialog = ({
 const LinkRow = ({
   link,
   hot = false,
+  suggested = false,
   registered,
   handle,
   menu,
@@ -151,6 +152,7 @@ const LinkRow = ({
 }: {
   link: Link;
   hot?: boolean;
+  suggested?: boolean;
   registered: boolean;
   handle?: ReactNode;
   menu: MenuItem[];
@@ -187,6 +189,10 @@ const LinkRow = ({
               {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れない */}
               <Flame aria-label="ホット" role="img" size={14} />
             </span>
+          )}
+          {suggested && (
+            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- 塗るだけの印で、<img> に渡す画像が無い
+            <span aria-label="AI の推定" className={styles.suggested} role="img" />
           )}
         </AriaLink>
         {card}
@@ -303,6 +309,7 @@ export const DraftCard = ({
           },
         ]}
         registered={actions.registered.has(draft.url)}
+        suggested={draft.suggested}
         onEdit={(next) => actions.edit(draft.id, next)}
       />
       {draft.children.length > 0 && (
