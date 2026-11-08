@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fromHtml, toHtml } from "./title-translation.server";
+import { fromHtml, hasKanaOrKanji, hasWordsToTranslate, toHtml } from "./title-translation.server";
 
 const keep = (term: string) => `<span translate="no" class="notranslate">${term}</span>`;
 
@@ -71,5 +71,20 @@ describe("翻訳する HTML", () => {
         `${keep("Apple Silicon")}のApple （ ${keep("MLX")} ）上で${keep("Stable Audio 3")} 。`,
       ),
     ).toBeNull();
+  });
+});
+
+describe("自動で翻訳するかの判定", () => {
+  it("skips a Japanese title even when most of it is ASCII", () => {
+    expect(hasKanaOrKanji("Claude Code と Codex CLI で MCP サーバーを作る")).toBeTruthy();
+    expect(hasKanaOrKanji("Claude Code and Codex CLI")).toBeFalsy();
+  });
+
+  it("skips a title made only of terms, numbers and symbols", () => {
+    expect(hasWordsToTranslate("TanStack Start v1.0", ["TanStack Start"])).toBeFalsy();
+  });
+
+  it("translates a title with English words left after removing the terms", () => {
+    expect(hasWordsToTranslate("TanStack Start v1.0 is out", ["TanStack Start"])).toBeTruthy();
   });
 });

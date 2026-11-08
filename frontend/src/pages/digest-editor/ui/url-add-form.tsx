@@ -2,7 +2,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "react-aria-components";
-import { fetchAnyLinkPreview, newChildArticle, suggestCategory } from "#/shared/api";
+import {
+  autoTranslateTitle,
+  fetchAnyLinkPreview,
+  newChildArticle,
+  suggestCategory,
+} from "#/shared/api";
 import type { Category } from "#/shared/api";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
@@ -12,6 +17,7 @@ import {
   MAX_DRAFTS,
   settleCategory,
   settleTitle,
+  settleTranslation,
   stripTracking,
 } from "../model/board";
 import type { Board, Rejected } from "../model/board";
@@ -33,10 +39,23 @@ interface UrlAddFormProps {
 export const UrlAddForm = ({ board, setBoard, setSuggesting }: UrlAddFormProps) => {
   const getPreview = useServerFn(fetchAnyLinkPreview);
   const suggest = useServerFn(suggestCategory);
+  const autoTranslate = useServerFn(autoTranslateTitle);
   const [url, setUrl] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string>();
   const urlInput = useRef<HTMLInputElement>(null);
+
+  const onTranslate = async (id: string, title: string) => {
+    let translated: string | null = null;
+    try {
+      translated = await autoTranslate({ data: { title } });
+    } catch {
+      // 未翻訳のまま残し、編集画面の翻訳ボタンで訳してもらう (#105)
+    }
+    if (translated !== null) {
+      setBoard((b) => settleTranslation(b, id, title, translated));
+    }
+  };
 
   const onAdd = async (input: string) => {
     if (!newChildArticle.shape.url.safeParse(input).success) {
@@ -64,6 +83,9 @@ export const UrlAddForm = ({ board, setBoard, setSuggesting }: UrlAddFormProps) 
     setBoard((b) => settleTitle(b, id, title));
     setAdding(false);
     urlInput.current?.focus();
+    if (title !== null && title.trim() !== "") {
+      void onTranslate(id, title);
+    }
     setSuggesting((n) => n + 1);
     let suggested: Category | null = null;
     try {
