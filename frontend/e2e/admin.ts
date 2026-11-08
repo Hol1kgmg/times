@@ -74,7 +74,7 @@ export const boardOf = (page: Page) => {
     await page.getByRole("menuitem", { name: "編集" }).click();
     // 閉じたダイアログはフェードアウトの間 DOM に残るので、開いているものに絞って閉じきるまで待つ
     const dialog = page.getByRole("dialog", { name: "記事を編集" });
-    await dialog.getByLabel("タイトル").fill(title);
+    await dialog.getByLabel("タイトル", { exact: true }).fill(title);
     await dialog.getByRole("button", { name: "確定" }).click();
     await expect(dialog).toBeHidden();
   };
