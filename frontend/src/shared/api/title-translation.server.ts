@@ -61,7 +61,10 @@ export const fromHtml = (title: string, terms: string[], html: string): string |
       "$<open>$<word>",
     )
     // v2 は span の外側に空白を足す。英単語どうしの間の空白は原文にあったものなので残す
-    .replaceAll(/(?<=\P{ASCII})\s+(?=<span[^>]*>)|(?<=<\/span>)\s+(?=\P{ASCII})/gu, "")
+    .replaceAll(
+      /(?<=[\P{ASCII}([])\s+(?=<span[^>]*>)|(?<=<\/span>)\s+(?=[\P{ASCII})\].,:;!?])/gu,
+      "",
+    )
     .replaceAll(/<span[^>]*>|<\/span>/gu, "");
   if (text.includes("<")) {
     return null;

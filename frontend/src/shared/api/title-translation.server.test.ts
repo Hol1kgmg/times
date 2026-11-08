@@ -43,6 +43,16 @@ describe("翻訳する HTML", () => {
     ).toBe("ローカルAI BGM。Apple Silicon（MLX）上でStable Audio 3。");
   });
 
+  it("drops the spaces the translator adds inside half-width brackets around a kept term", () => {
+    expect(
+      fromHtml(
+        "Stable Audio 3 on Apple Silicon (MLX)",
+        ["Apple Silicon", "MLX"],
+        `${keep("Apple Silicon")} ( ${keep("MLX")} ) および Windows`,
+      ),
+    ).toBe("Apple Silicon (MLX) および Windows");
+  });
+
   it("drops the leading word the translator copies in front of a kept term", () => {
     expect(
       fromHtml(
