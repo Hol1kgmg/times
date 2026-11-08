@@ -58,14 +58,16 @@ const blockerText = (b: Blocker) => {
     case "untitled": {
       return `タイトルが空の記事が ${b.ids.length} 件あります`;
     }
-    case "loading": {
-      return "タイトルを取得してます";
-    }
     default: {
       return b satisfies never;
     }
   }
 };
+
+const dateErrorText = {
+  "digest-already-exists": "その日の Digest は登録済みです。日付を変えてください",
+  "future-publish": "未来の日付は公開できないです。日付を直すか、下書きで保存してください",
+} as const;
 
 interface FormProps<S extends DigestStatus> {
   heading: string;
@@ -98,6 +100,7 @@ const DigestForm = <S extends DigestStatus>({
   const [board, setBoard] = useState<Board>(initialBoard);
   // URL を続けて足すと推定が重なるので、件数で持つ
   const [suggesting, setSuggesting] = useState(0);
+  const [adding, setAdding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
@@ -199,7 +202,7 @@ const DigestForm = <S extends DigestStatus>({
   };
 
   const reasons = blockers(board);
-  const cannotSave = reasons.length > 0 || submitting || entryDate === "";
+  const cannotSave = reasons.length > 0 || adding || submitting || entryDate === "";
   const renderBox = (box: BoxId) => (
     <Box key={box} count={board[box].length} id={box}>
       {board[box].map((draft, i) => (
@@ -230,9 +233,7 @@ const DigestForm = <S extends DigestStatus>({
           {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
           {dateError !== undefined && (
             <p className={styles.error} role="alert">
-              {dateError === "digest-already-exists"
-                ? "その日の Digest は登録済みです。日付を変えてください"
-                : "未来の日付は公開できないです。日付を直すか、下書きで保存してください"}
+              {dateErrorText[dateError]}
             </p>
           )}
           {registeredLeft > 0 && (
@@ -278,7 +279,13 @@ const DigestForm = <S extends DigestStatus>({
       )}
       <BoardDragDrop board={board} onChange={setBoard}>
         <div className={styles.collect}>
-          <UrlAddForm board={board} setBoard={setBoard} setSuggesting={setSuggesting} />
+          <UrlAddForm
+            adding={adding}
+            board={board}
+            setAdding={setAdding}
+            setBoard={setBoard}
+            setSuggesting={setSuggesting}
+          />
           {renderBox(UNSORTED)}
         </div>
         <div className={styles.shelf}>{category.options.map(renderBox)}</div>

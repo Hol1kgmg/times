@@ -15,9 +15,8 @@ import {
   addDraft,
   draftTitle,
   MAX_DRAFTS,
+  rejectAdd,
   settleCategory,
-  settleTitle,
-  settleTranslation,
   stripTracking,
 } from "../model/board";
 import type { Board, Rejected } from "../model/board";
@@ -34,28 +33,23 @@ interface UrlAddFormProps {
   board: Board;
   setBoard: Dispatch<SetStateAction<Board>>;
   setSuggesting: Dispatch<SetStateAction<number>>;
+  adding: boolean;
+  setAdding: Dispatch<SetStateAction<boolean>>;
 }
 
-export const UrlAddForm = ({ board, setBoard, setSuggesting }: UrlAddFormProps) => {
+export const UrlAddForm = ({
+  board,
+  setBoard,
+  setSuggesting,
+  adding,
+  setAdding,
+}: UrlAddFormProps) => {
   const getPreview = useServerFn(fetchAnyLinkPreview);
   const suggest = useServerFn(suggestCategory);
   const autoTranslate = useServerFn(autoTranslateTitle);
   const [url, setUrl] = useState("");
-  const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string>();
   const urlInput = useRef<HTMLInputElement>(null);
-
-  const onTranslate = async (id: string, title: string) => {
-    let translated: string | null = null;
-    try {
-      translated = await autoTranslate({ data: { title } });
-    } catch {
-      // 未翻訳のまま残し、編集画面の翻訳ボタンで訳してもらう (#105)
-    }
-    if (translated !== null) {
-      setBoard((b) => settleTranslation(b, id, title, translated));
-    }
-  };
 
   const onAdd = async (input: string) => {
     if (!newChildArticle.shape.url.safeParse(input).success) {
@@ -63,33 +57,41 @@ export const UrlAddForm = ({ board, setBoard, setSuggesting }: UrlAddFormProps) 
       return;
     }
     const link = stripTracking(input);
-    const id = crypto.randomUUID();
-    const added = addDraft(board, link, id);
-    if (typeof added === "string") {
-      setAddError(rejectedText[added]);
+    const rejected = rejectAdd(board, link);
+    if (rejected !== null) {
+      setAddError(rejectedText[rejected]);
       return;
     }
-    setBoard(added);
-    setUrl("");
     setAddError(undefined);
     setAdding(true);
-    let title: string | null = null;
+    let title = "";
     try {
-      title = draftTitle(link, await getPreview({ data: link }));
+      title = draftTitle(link, await getPreview({ data: link })) ?? "";
     } catch {
-      // 取れなかったときはタイトル空の候補として残し、手で入れてもらう
+      // 取れなかったときはタイトル空の候補として出し、手で入れてもらう
     }
-    // 取得を待つ間に他の操作で board が変わっているので、最新の state に反映する
-    setBoard((b) => settleTitle(b, id, title));
+    let translation: string | null = null;
+    if (title.trim() !== "") {
+      try {
+        translation = await autoTranslate({ data: { title } });
+      } catch {
+        // 未翻訳のまま出し、編集画面の翻訳ボタンで訳してもらう (#105)
+      }
+    }
+    const id = crypto.randomUUID();
+    // ponytail: 待つ間に別の記事の URL を同じに直すなどで断られたら、何も出さずに捨てる。起きるようなら入力欄に残して知らせる
+    setBoard((b) => {
+      const added = addDraft(b, link, id, title, translation);
+      return typeof added === "string" ? b : added;
+    });
+    setUrl("");
     setAdding(false);
     urlInput.current?.focus();
-    if (title !== null && title.trim() !== "") {
-      void onTranslate(id, title);
-    }
     setSuggesting((n) => n + 1);
     let suggested: Category | null = null;
     try {
-      suggested = await suggest({ data: { url: link, title: title ?? "" } });
+      // 訳したタイトルで分類したほうが当たるかは確かめていないので、原文で推定する (#110)
+      suggested = await suggest({ data: { url: link, title } });
     } catch {
       // 推定は補助で、失敗しても未分類から手で振り分けられる (FR-007)
     }

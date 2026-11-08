@@ -11,14 +11,11 @@ export const boxIds: readonly BoxId[] = [UNSORTED, ...category.options];
 export const MAX_DRAFTS = 100;
 export const MAX_CHILDREN = 20;
 
-export type FetchState = "loading" | "done" | "failed";
-
 export interface Link {
   id: string;
   url: string;
   title: string;
   initial: { url: string; title: string };
-  status: FetchState;
   // 一度翻訳した記事を重ねて訳さないための印。保存しない
   translated: boolean;
 }
@@ -41,8 +38,7 @@ export type Rejected = "duplicate" | "limit";
 export type Blocker =
   | { kind: "empty" }
   | { kind: "unsorted"; count: number }
-  | { kind: "untitled"; ids: string[] }
-  | { kind: "loading" };
+  | { kind: "untitled"; ids: string[] };
 
 // キーを列挙して組むことで、カテゴリが増えたら型エラーで気づける
 const byBox = <T>(f: (box: BoxId) => T): Record<BoxId, T> => ({
@@ -108,20 +104,31 @@ const replaceBox = (board: Board, box: BoxId, items: Draft[]): Board => ({
   [box]: items,
 });
 
-export const addDraft = (board: Board, url: string, id: string): Board | Rejected => {
+export const rejectAdd = (board: Board, url: string): Rejected | null => {
   if (findDuplicate(board, url)) {
     return "duplicate";
   }
-  if (draftCount(board) >= MAX_DRAFTS) {
-    return "limit";
+  return draftCount(board) >= MAX_DRAFTS ? "limit" : null;
+};
+
+export const addDraft = (
+  board: Board,
+  url: string,
+  id: string,
+  title: string,
+  translation: string | null,
+): Board | Rejected => {
+  const rejected = rejectAdd(board, url);
+  if (rejected !== null) {
+    return rejected;
   }
   const draft: Draft = {
     id,
     url,
-    title: "",
-    initial: { url, title: "" },
-    status: "loading",
-    translated: false,
+    title: translation ?? title,
+    // 「変更を戻す」で原文に戻し、手動で訳し直せるようにする
+    initial: { url, title },
+    translated: translation !== null,
     hot: false,
     suggested: false,
     children: [],
@@ -137,15 +144,6 @@ export const draftTitle = (url: string, preview: LinkPreview | null): string | n
     ? `YouTube ${channel} - ${title}`
     : title;
 };
-
-export const settleTitle = (board: Board, id: string, title: string | null): Board =>
-  mapLink(board, id, (l) => ({
-    ...l,
-    // 取得を待つ間に手で入れたタイトルは上書きしない
-    title: l.title === "" ? (title ?? "") : l.title,
-    initial: { ...l.initial, title: title ?? "" },
-    status: title === null ? "failed" : "done",
-  }));
 
 export const editLink = (board: Board, id: string, next: LinkEdit): Board | Rejected => {
   const url = stripTracking(next.url);
@@ -167,12 +165,6 @@ export const revert = (board: Board, id: string): Board =>
     title: l.initial.title,
     translated: false,
   }));
-
-export const settleTranslation = (board: Board, id: string, from: string, to: string): Board =>
-  mapLink(board, id, (l) =>
-    // 訳を待つ間に手で直したタイトルや手で訳したタイトルは上書きしない
-    l.title === from && !l.translated ? { ...l, title: to, translated: true } : l,
-  );
 
 export const settleCategory = (board: Board, id: string, suggested: Category | null): Board => {
   const draft = board[UNSORTED].find((d) => d.id === id);
@@ -223,10 +215,10 @@ export const makeChild = (board: Board, id: string): Board => {
   if (draft === undefined || parent === undefined) {
     return board;
   }
-  const { url, title, initial, status, translated } = draft;
+  const { url, title, initial, translated } = draft;
   items[at.index - 1] = {
     ...parent,
-    children: [...parent.children, { id, url, title, initial, status, translated }],
+    children: [...parent.children, { id, url, title, initial, translated }],
   };
   return replaceBox(board, at.box, items);
 };
@@ -320,12 +312,9 @@ export const blockers = (board: Board): Blocker[] => {
   if (board[UNSORTED].length > 0) {
     out.push({ kind: "unsorted", count: board[UNSORTED].length });
   }
-  const untitled = links(board).filter((l) => l.status !== "loading" && l.title.trim() === "");
+  const untitled = links(board).filter((l) => l.title.trim() === "");
   if (untitled.length > 0) {
     out.push({ kind: "untitled", ids: untitled.map((l) => l.id) });
-  }
-  if (links(board).some((l) => l.status === "loading")) {
-    out.push({ kind: "loading" });
   }
   return out;
 };
@@ -335,7 +324,6 @@ const savedLink = ({ id, url, title }: { id: string; url: string; title: string 
   url,
   title,
   initial: { url, title },
-  status: "done",
   translated: false,
 });
 

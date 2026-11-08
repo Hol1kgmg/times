@@ -226,7 +226,7 @@ const LinkRow = ({
     className: styles.preview,
     load: loadAnyLinkPreview,
   });
-  const untitled = link.status !== "loading" && link.title.trim() === "";
+  const untitled = link.title.trim() === "";
   return (
     <div className={styles.row} data-registered={registered ? "" : undefined}>
       {handle}
@@ -252,13 +252,7 @@ const LinkRow = ({
           )}
         </AriaLink>
         {card}
-        <LinkMeta
-          host={host}
-          loading={link.status === "loading"}
-          registered={registered}
-          suggested={suggested}
-          untitled={untitled}
-        />
+        <LinkMeta host={host} registered={registered} suggested={suggested} untitled={untitled} />
       </span>
       <Menu
         items={[

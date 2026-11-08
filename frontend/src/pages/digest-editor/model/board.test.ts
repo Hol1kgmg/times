@@ -12,8 +12,6 @@ import {
   moveToBoxEnd,
   revert,
   settleCategory,
-  settleTitle,
-  settleTranslation,
   stripTracking,
   toggleHot,
   toIds,
@@ -29,7 +27,6 @@ const link = (id: string, title = `title ${id}`): Link => ({
   url: `https://example.com/${id}`,
   title,
   initial: { url: `https://example.com/${id}`, title },
-  status: "done",
   translated: false,
 });
 const draft = (id: string, extra: Partial<Draft> = {}): Draft => ({
@@ -68,22 +65,13 @@ describe("集める", () => {
 
   it("rejects a URL already used by an article or a related article", () => {
     const b = board({ その他: [draft("a", { children: [link("b")] })] });
-    expect(addDraft(b, "https://example.com/a", "x")).toBe("duplicate");
-    expect(addDraft(b, "https://example.com/b", "x")).toBe("duplicate");
+    expect(addDraft(b, "https://example.com/a", "x", "t", null)).toBe("duplicate");
+    expect(addDraft(b, "https://example.com/b", "x", "t", null)).toBe("duplicate");
   });
 
   it("rejects the 101st article", () => {
     const b = board({ その他: Array.from({ length: 100 }, (_, i) => draft(String(i))) });
-    expect(addDraft(b, "https://example.com/new", "x")).toBe("limit");
-  });
-
-  it("keeps the title empty but settles the initial state when fetching fails", () => {
-    const b = settleTitle(ok(addDraft(emptyBoard(), "https://example.com/a", "a")), "a", null);
-    expect(b[UNSORTED][0]).toMatchObject({
-      title: "",
-      status: "failed",
-      initial: { url: "https://example.com/a", title: "" },
-    });
+    expect(addDraft(b, "https://example.com/new", "x", "t", null)).toBe("limit");
   });
 });
 
@@ -170,16 +158,14 @@ describe("登録", () => {
     ]);
   });
 
-  it("blocks registration on unsorted articles, untitled related articles and pending fetches", () => {
-    const loading: Draft = { ...draft("l"), status: "loading", title: "" };
+  it("blocks registration on unsorted articles and untitled related articles", () => {
     const b = board({
-      [UNSORTED]: [loading],
+      [UNSORTED]: [draft("u")],
       その他: [draft("a", { children: [link("c", " ")] })],
     });
     expect(blockers(b)).toStrictEqual([
       { kind: "unsorted", count: 1 },
       { kind: "untitled", ids: ["c"] },
-      { kind: "loading" },
     ]);
   });
 });
@@ -314,22 +300,12 @@ describe("カテゴリの推定", () => {
 });
 
 describe("タイトルの自動翻訳", () => {
-  it("applies the translation and keeps the fetched title for reverting", () => {
-    const b = settleTranslation(board({ その他: [draft("a")] }), "a", "title a", "訳");
-    expect(b.その他[0]).toMatchObject({
+  it("shows the translated title and keeps the fetched title for reverting", () => {
+    const b = ok(addDraft(emptyBoard(), "https://example.com/a", "a", "title a", "訳"));
+    expect(b[UNSORTED][0]).toMatchObject({
       title: "訳",
       translated: true,
       initial: { title: "title a" },
     });
-  });
-
-  it("keeps a title edited while waiting for the translation", () => {
-    const b = ok(
-      editLink(board({ その他: [draft("a")] }), "a", {
-        url: "https://example.com/a",
-        title: "直した",
-      }),
-    );
-    expect(settleTranslation(b, "a", "title a", "訳").その他[0]?.title).toBe("直した");
   });
 });

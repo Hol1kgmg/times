@@ -6,7 +6,6 @@ const meta = {
   component: LinkMeta,
   args: {
     host: "example.com",
-    loading: false,
     untitled: false,
     suggested: false,
     registered: false,
@@ -18,4 +17,3 @@ type Story = StoryObj<typeof meta>;
 
 export const Suggested: Story = { args: { suggested: true } };
 export const Manual: Story = {};
-export const Loading: Story = { args: { loading: true } };

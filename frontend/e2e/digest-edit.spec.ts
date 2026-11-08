@@ -61,7 +61,7 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await page.getByRole("dialog").getByRole("button", { name: "閉じる" }).click();
 
   await menuOf(security, "編集");
-  await page.getByLabel("タイトル").fill(fixed);
+  await page.getByLabel("タイトル", { exact: true }).fill(fixed);
   await page.getByRole("button", { name: "確定" }).click();
   await menuOf(related, "削除");
   await fillDate(page, moved);
