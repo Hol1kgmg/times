@@ -37,7 +37,10 @@ export const takeLoginState = () => {
   return state;
 };
 
-const adminUser = z.object({ id: z.number(), login: z.string() });
+const UserIdBrand = Symbol("UserId");
+const AdminUserBrand = Symbol("AdminUser");
+const userId = z.number().brand<typeof UserIdBrand>();
+const adminUser = z.object({ id: userId, login: z.string() }).brand<typeof AdminUserBrand>();
 // openapi.yaml と乖離したら typecheck で落ちる
 const session = z.object({ user: adminUser }) satisfies z.ZodType<
   Pick<ApiResponse<"getCurrentSession">, "user">
