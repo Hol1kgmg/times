@@ -75,7 +75,7 @@ description: "Task list for 011-auto-category"
 ### Implementation for User Story 2
 
 - [X] T012 [US2] `frontend/src/pages/digest-editor/model/board.ts` で、箱が変わる移動のときに `suggested` を `false` にする。`moveToBoxEnd` は `at.box !== box` のとき。`fromIds` は、`byId` を作るときに元の箱も持ち、`next` の箱と違う候補だけを `{ ...draft, suggested: false }` にする。変わらない箱の配列の参照を使い回す既存の最適化は崩さない (research R5)
-- [X] T013 [US2] `frontend/src/pages/digest-editor/ui/draft-card.tsx` で、`draft.suggested` のときにタイトルの横に小さな印を出す。見た目は `--color-brand` の小さな印にし、意味は読み上げ用のラベル (例: 「AI の推定」) に入れる。画面に説明文は並べない (frontend-ui-design.md の「選べない理由」の型、FR-004)。スタイルは `frontend/src/pages/digest-editor/ui/draft-card.module.css` に、トークンだけで書く。押す対象の位置がずれないよう、印の有無で行の高さを変えない
+- [X] T013 [US2] `frontend/src/pages/digest-editor/ui/draft-card.tsx` で、`draft.suggested` のときにメタ行 (ドメインの横) に「AI が振り分けました」を muted の文字で出す。小さな印だけでは意味が伝わらないため (FR-004)。スタイルは `frontend/src/pages/digest-editor/ui/draft-card.module.css` に、トークンだけで書く。押す対象の位置がずれないよう、印の有無で行の高さを変えない
 
 **Checkpoint**: `just lint && just test`、`just fe-typecheck` が通る
 

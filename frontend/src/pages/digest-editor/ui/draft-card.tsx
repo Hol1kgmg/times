@@ -190,10 +190,6 @@ const LinkRow = ({
               <Flame aria-label="ホット" role="img" size={14} />
             </span>
           )}
-          {suggested && (
-            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- 塗るだけの印で、<img> に渡す画像が無い
-            <span aria-label="AI の推定" className={styles.suggested} role="img" />
-          )}
         </AriaLink>
         {card}
         <span className={styles.meta}>
@@ -202,6 +198,7 @@ const LinkRow = ({
             <span className={styles.loading}>タイトルを取得してます</span>
           )}
           {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
+          {suggested && <span className={styles.warn}>AI が振り分けました</span>}
           {registered && <span className={styles.error}>既に登録済みです</span>}
         </span>
       </span>
