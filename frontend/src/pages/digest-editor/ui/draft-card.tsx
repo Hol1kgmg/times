@@ -144,6 +144,7 @@ const EditDialog = ({
 const LinkRow = ({
   link,
   hot = false,
+  suggested = false,
   registered,
   handle,
   menu,
@@ -151,6 +152,7 @@ const LinkRow = ({
 }: {
   link: Link;
   hot?: boolean;
+  suggested?: boolean;
   registered: boolean;
   handle?: ReactNode;
   menu: MenuItem[];
@@ -196,6 +198,7 @@ const LinkRow = ({
             <span className={styles.loading}>タイトルを取得してます</span>
           )}
           {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
+          {suggested && <span className={styles.warn}>AI が振り分けました</span>}
           {registered && <span className={styles.error}>既に登録済みです</span>}
         </span>
       </span>
@@ -303,6 +306,7 @@ export const DraftCard = ({
           },
         ]}
         registered={actions.registered.has(draft.url)}
+        suggested={draft.suggested}
         onEdit={(next) => actions.edit(draft.id, next)}
       />
       {draft.children.length > 0 && (

@@ -1,5 +1,6 @@
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
+import { cloudflareBuiltins } from "./vite.config";
 
 export default defineConfig({
   resolve: {
@@ -7,7 +8,7 @@ export default defineConfig({
       "#": "/src",
     },
   },
-  plugins: [viteReact()],
+  plugins: [viteReact(), cloudflareBuiltins],
   test: {
     environment: "jsdom",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],

@@ -11,6 +11,7 @@ import {
   makeChild,
   moveToBoxEnd,
   revert,
+  settleCategory,
   settleTitle,
   stripTracking,
   toggleHot,
@@ -32,6 +33,7 @@ const link = (id: string, title = `title ${id}`): Link => ({
 const draft = (id: string, extra: Partial<Draft> = {}): Draft => ({
   ...link(id),
   hot: false,
+  suggested: false,
   children: [],
   ...extra,
 });
@@ -255,5 +257,37 @@ describe("取得したタイトルの初期値", () => {
       "動画",
     );
     expect(draftTitle("https://x.example/a", preview)).toBe("動画");
+  });
+});
+
+describe("カテゴリの推定", () => {
+  it("moves an unsorted draft to the end of the suggested category and marks it", () => {
+    const b = settleCategory(board({ [UNSORTED]: [draft("a")], AI系: [draft("x")] }), "a", "AI系");
+    expect(b[UNSORTED]).toHaveLength(0);
+    expect(b.AI系.map((d) => [d.id, d.suggested])).toStrictEqual([
+      ["x", false],
+      ["a", true],
+    ]);
+  });
+
+  it("keeps a draft the admin already moved out of unsorted", () => {
+    const b = board({ その他: [draft("a")] });
+    expect(settleCategory(b, "a", "AI系")).toBe(b);
+  });
+
+  it("leaves the draft unsorted when no category is suggested", () => {
+    const b = board({ [UNSORTED]: [draft("a")] });
+    expect(settleCategory(b, "a", null)).toBe(b);
+  });
+
+  it("clears the suggestion mark when the admin moves the draft to another box", () => {
+    const b = board({ AI系: [draft("a", { suggested: true })] });
+    expect(moveToBoxEnd(b, "a", "IT系").IT系[0]?.suggested).toBeFalsy();
+    expect(fromIds(b, { ...toIds(b), AI系: [], IT系: ["a"] }).IT系[0]?.suggested).toBeFalsy();
+  });
+
+  it("keeps the suggestion mark when reordering within the same box", () => {
+    const b = board({ AI系: [draft("a", { suggested: true }), draft("b")] });
+    expect(fromIds(b, { ...toIds(b), AI系: ["b", "a"] }).AI系[1]?.suggested).toBeTruthy();
   });
 });

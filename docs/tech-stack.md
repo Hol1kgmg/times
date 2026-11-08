@@ -67,6 +67,7 @@ backend/
 | ユニットテスト | Vitest / Testing Library | jsdom、カバレッジ v8 |
 | E2E | Playwright | Chromium |
 | デプロイ | Cloudflare Workers (wrangler) | `dist/server` を Worker、`dist/client` をアセットとして配信 |
+| AI | Workers AI (binding `AI`、`@cf/cloudflare/clef`) | 記事のカテゴリの推定。ローカルの vite dev では推定しない (adr/frontend/0011) |
 
 ## 運用
 
