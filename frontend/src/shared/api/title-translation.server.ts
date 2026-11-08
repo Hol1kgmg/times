@@ -1,0 +1,89 @@
+import { z } from "zod";
+import { retry, RetryableError } from "./retry.server";
+
+const ENDPOINT = "https://translation.googleapis.com/language/translate/v2";
+const KEEP_OPEN = '<span translate="no" class="notranslate">';
+
+const escapeHtml = (s: string) =>
+  s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+const escapeRegExp = (s: string) => s.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
+
+export const toHtml = (title: string, terms: string[]): string => {
+  if (terms.length === 0) {
+    return escapeHtml(title);
+  }
+  const alternatives = terms.toSorted((a, b) => b.length - a.length).map(escapeRegExp);
+  // 語の途中 (Google の中の Go) を囲まないよう、前後が文字・数字でない所だけを語とみなす
+  const term = new RegExp(`(?<![\\p{L}\\p{N}])(${alternatives.join("|")})(?![\\p{L}\\p{N}])`, "u");
+  return title
+    .split(term)
+    .map((part, i) => (i % 2 === 1 ? `${KEEP_OPEN}${escapeHtml(part)}</span>` : escapeHtml(part)))
+    .join("");
+};
+
+const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"' };
+
+const decodeEntities = (s: string) =>
+  s.replaceAll(/&(?<ref>amp|lt|gt|quot|#\d+|#x[\da-f]+);/giu, (match, ref: string) => {
+    if (!ref.startsWith("#")) {
+      return named[ref.toLowerCase()] ?? match;
+    }
+    // "#x1F" → "0x1F"、"#39" → "039"。Number は 0x を 16 進、それ以外を 10 進で読む
+    return String.fromCodePoint(Number(`0${ref.slice(1)}`));
+  });
+
+export const fromHtml = (html: string, terms: string[]): string | null => {
+  const text = html.replaceAll(/<span[^>]*>|<\/span>/gu, "");
+  if (text.includes("<")) {
+    return null;
+  }
+  // Cloud Translation v2 は訳の本文の文字参照を二重にエスケープして返す
+  // ponytail: 原文に `&amp;` の文字そのものがあると戻しすぎる。出たら送る前に印へ置き換える
+  const decoded = decodeEntities(decodeEntities(text));
+  return terms.every((t) => decoded.includes(t)) ? decoded : null;
+};
+
+const response = z.object({
+  data: z.object({ translations: z.tuple([z.object({ translatedText: z.string() })]) }),
+});
+
+export const translateWithTerms = async (
+  title: string,
+  terms: string[],
+): Promise<string | null> => {
+  const key = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (key === undefined || key === "") {
+    throw new Error("GOOGLE_TRANSLATE_API_KEY is not set");
+  }
+  const body = await retry(async () => {
+    let res: Response;
+    try {
+      res = await fetch(ENDPOINT, {
+        method: "POST",
+        // クエリの key= はリクエストの URL ごとログに残るので、ヘッダーで渡す
+        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
+        body: JSON.stringify({
+          q: toHtml(title, terms),
+          source: "en",
+          target: "ja",
+          format: "html",
+        }),
+      });
+    } catch (error) {
+      throw new RetryableError("translation request failed", { cause: error });
+    }
+    if (res.status >= 500) {
+      throw new RetryableError(`translation failed: ${res.status}`);
+    }
+    if (!res.ok) {
+      throw new Error(`translation rejected: ${res.status}`);
+    }
+    return (await res.json()) as unknown;
+  });
+  return fromHtml(response.parse(body).data.translations[0].translatedText, terms);
+};

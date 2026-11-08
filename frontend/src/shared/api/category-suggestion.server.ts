@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { category } from "./schemas";
 import type { Category } from "./schemas";
+import { workersAi } from "./workers-ai.server";
 
 const choiceAnswer = z.object({
   type: z.literal("choice"),
@@ -27,26 +28,12 @@ const criteria = {
 
 const answers = z.object({ answers: z.object({ category: choiceAnswer }) });
 
-interface Ai {
-  run: (model: string, input: unknown) => Promise<unknown>;
-}
-
-const isAi = (v: unknown): v is Ai =>
-  typeof v === "object" && v !== null && "run" in v && typeof v.run === "function";
-
 export const suggestCategoryWithAi = async (article: {
   url: string;
   title: string;
 }): Promise<Category | null> => {
-  let ai: unknown;
-  try {
-    const workers = await import("cloudflare:workers");
-    ai = workers.env.AI;
-  } catch {
-    // ローカルの vite dev (Node) には無く、推定しないことが方針 A の仕様
-    return null;
-  }
-  if (!isAi(ai)) {
+  const ai = await workersAi();
+  if (ai === null) {
     return null;
   }
   const res = await ai.run("@cf/cloudflare/clef", {

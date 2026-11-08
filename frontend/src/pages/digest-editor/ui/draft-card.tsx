@@ -1,4 +1,5 @@
 import { useSortable } from "@dnd-kit/react/sortable";
+import { useServerFn } from "@tanstack/react-start";
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -9,9 +10,10 @@ import {
   MenuTrigger,
   Popover,
 } from "react-aria-components";
-import { loadAnyLinkPreview } from "#/shared/api";
+import { loadAnyLinkPreview, translateTitle } from "#/shared/api";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
+import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import type { BoxId, Draft, Link, Rejected } from "../model/board";
@@ -74,9 +76,32 @@ const EditDialog = ({
   onClose: () => void;
 }) => {
   const headingId = useId();
+  const titleId = useId();
   const [title, setTitle] = useState(link.title);
   const [url, setUrl] = useState(link.url);
   const [duplicate, setDuplicate] = useState(false);
+  const [translation, setTranslation] = useState<"idle" | "translating" | "failed">("idle");
+  const translate = useServerFn(translateTitle);
+
+  const translated = async (requested: string) => {
+    try {
+      return await translate({ data: { title: requested } });
+    } catch {
+      // 例外も確認を通らなかった結果と同じく失敗の表示にし、押し直してもらう (spec US2)
+      return null;
+    }
+  };
+
+  const onTranslate = async () => {
+    const requested = title;
+    setTranslation("translating");
+    const result = await translated(requested);
+    setTranslation(result === null ? "failed" : "idle");
+    if (result !== null) {
+      // 翻訳を待つ間に手で直したタイトルは上書きしない
+      setTitle((current) => (current === requested ? result : current));
+    }
+  };
   return (
     <ModalDialog className={styles.dialog} labelledBy={headingId} onClose={onClose}>
       {({ close }) => (
@@ -94,19 +119,45 @@ const EditDialog = ({
           <h2 className={styles.heading} id={headingId}>
             記事を編集
           </h2>
-          <label className={styles.field}>
-            <span className={styles.label}>タイトル</span>
-            <input
-              className={styles.input}
-              maxLength={300}
-              required
-              type="text"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-              }}
-            />
-          </label>
+          <div className={styles.field}>
+            {/* 状態の文言を欄の下に出すと、下の URL 欄とボタンが押す途中で動く */}
+            <div className={styles.labelRow}>
+              <label className={styles.label} htmlFor={titleId}>
+                タイトル
+              </label>
+              <span aria-live="polite" className={styles.translationNote}>
+                {translation === "translating" && "翻訳してます"}
+                {translation === "failed" && "翻訳できませんでした"}
+              </span>
+            </div>
+            <div className={styles.inputBox}>
+              <input
+                className={styles.boxedInput}
+                id={titleId}
+                maxLength={300}
+                required
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setTranslation((s) => (s === "failed" ? "idle" : s));
+                }}
+              />
+              <Button
+                aria-label="タイトルを翻訳"
+                className={styles.translate}
+                // ローカルの vite dev には clef が無く、翻訳できない (spec FR-012)
+                isDisabled={
+                  import.meta.env.DEV || translation === "translating" || title.trim() === ""
+                }
+                onPress={() => {
+                  void onTranslate();
+                }}
+              >
+                <Translate />
+              </Button>
+            </div>
+          </div>
           <label className={styles.field}>
             <span className={styles.label}>URL</span>
             <input
