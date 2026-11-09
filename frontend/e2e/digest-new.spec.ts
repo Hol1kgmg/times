@@ -66,12 +66,14 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   const opened = page.waitForRequest((r) => r.url().endsWith("/open") && r.method() === "POST");
   const tab = context.waitForEvent("page");
   await links.first().click();
-  expect((await opened).postDataJSON()).toEqual({
+  const openRequest = await opened;
+  expect(openRequest.postDataJSON()).toEqual({
     articleId: expect.stringMatching(/^[\da-f-]{36}$/u),
     url: securityUrl,
     entryDate: date,
   });
-  await (await tab).close();
+  const articleTab = await tab;
+  await articleTab.close();
   const feedLinks = async () => {
     const res = await page.request.get("/feed.xml");
     const xml = await res.text();
