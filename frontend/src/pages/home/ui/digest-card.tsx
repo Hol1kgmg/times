@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "react-aria-components";
+import { reportArticleOpen } from "#/shared/api";
 import type { Digest } from "#/shared/api";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
@@ -48,6 +49,7 @@ export const DigestCard = ({ digest }: { digest: Digest | null }) => (
           action={<CopyButton digest={digest} />}
           digest={digest}
           loadPreview={loadLinkPreview}
+          onOpen={reportArticleOpen(digest.entryDate)}
         />
       ) : (
         <p className={styles.empty}>まだ記事がありません</p>

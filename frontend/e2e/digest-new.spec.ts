@@ -3,7 +3,7 @@ import { boardOf, fillDate, loggedInState } from "./admin";
 
 const newPath = "/admin/digests/new";
 
-test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並んでフィードに通知が載り、それより前の日付の公開は通知されず、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
+test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並んで記事を押すと開いた記録が送られ、フィードに通知が載り、それより前の日付の公開は通知されず、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -60,6 +60,20 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   const links = panel.getByRole("link");
   await expect(links).toHaveText([security, related, `${other}HOT`]);
   await expect(links.filter({ hasText: "HOT" })).toHaveText([`${other}HOT`]);
+  // 計測のために中継の URL へ差し替えず、コピーで記事の URL が取れること (specs/013)
+  const securityUrl = `https://e2e.example/${run}/${encodeURIComponent(security)}`;
+  await expect(links.first()).toHaveAttribute("href", securityUrl);
+  const opened = page.waitForRequest((r) => r.url().endsWith("/open") && r.method() === "POST");
+  const tab = context.waitForEvent("page");
+  await links.first().click();
+  const openRequest = await opened;
+  expect(openRequest.postDataJSON()).toEqual({
+    articleId: expect.stringMatching(/^[\da-f-]{36}$/u),
+    url: securityUrl,
+    entryDate: date,
+  });
+  const articleTab = await tab;
+  await articleTab.close();
   const feedLinks = async () => {
     const res = await page.request.get("/feed.xml");
     const xml = await res.text();
