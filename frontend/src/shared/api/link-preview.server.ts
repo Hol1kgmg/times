@@ -109,8 +109,8 @@ export const loadLinkPreviewCached = createServerOnlyFn(
   async (url: string): Promise<LinkPreview | null> =>
     // 利用者 URL をそのままキーにすると digest の固定キーを上書きできてしまう
     await cachedJson(
-      // v2: title を足した。旧形のキャッシュを読まないためにキーを変える
-      `https://cache.times.invalid/preview/v2/${encodeURIComponent(url)}`,
+      // v3: 数値文字参照を戻さずに覚えた旧キャッシュ (#113) を読まないためにキーを変える
+      `https://cache.times.invalid/preview/v3/${encodeURIComponent(url)}`,
       linkPreview.nullable(),
       ttlOf,
       async () => {

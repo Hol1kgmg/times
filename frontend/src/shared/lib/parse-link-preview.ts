@@ -7,16 +7,18 @@ export const linkPreview = z.object({
 });
 export type LinkPreview = z.infer<typeof linkPreview>;
 
-const entities: Record<string, string> = {
-  "&amp;": "&",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&lt;": "<",
-  "&gt;": ">",
-};
-const decode = (s: string) =>
-  s.replaceAll(/&(?:amp|quot|#39|apos|lt|gt);/gu, (m) => entities[m] ?? m);
+const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+
+export const decodeEntities = (s: string) =>
+  s.replaceAll(/&(?<ref>amp|lt|gt|quot|apos|#\d+|#x[\da-f]+);/giu, (match, ref: string) => {
+    if (!ref.startsWith("#")) {
+      return named[ref.toLowerCase()] ?? match;
+    }
+    // "#x1F" → "0x1F"、"#39" → "039"。Number は 0x を 16 進、それ以外を 10 進で読む
+    const code = Number(`0${ref.slice(1)}`);
+    // 範囲外の参照は fromCodePoint が RangeError を投げ、ページ 1 つの誤記でプレビューごと落ちるため
+    return code <= 0x10_ff_ff ? String.fromCodePoint(code) : match;
+  });
 
 const metaTags = (html: string) => {
   const out = new Map<string, string>();
@@ -36,7 +38,7 @@ const metaTags = (html: string) => {
       }
     }
     if (key !== undefined && content !== undefined && !out.has(key)) {
-      out.set(key, decode(content).trim());
+      out.set(key, decodeEntities(content).trim());
     }
   }
   return out;
@@ -56,7 +58,9 @@ export const parseLinkPreview = (html: string, pageUrl: string): LinkPreview | n
   const meta = metaTags(html);
   const title =
     nonEmpty(meta.get("og:title")) ??
-    nonEmpty(decode(/<title[^>]*>(?<t>[^<]*)<\/title>/iu.exec(html)?.groups?.t ?? "").trim());
+    nonEmpty(
+      decodeEntities(/<title[^>]*>(?<t>[^<]*)<\/title>/iu.exec(html)?.groups?.t ?? "").trim(),
+    );
   const description = nonEmpty(meta.get("og:description")) ?? nonEmpty(meta.get("description"));
   const image = httpUrl(meta.get("og:image") ?? meta.get("twitter:image"), pageUrl);
   return title === null && description === null && image === null

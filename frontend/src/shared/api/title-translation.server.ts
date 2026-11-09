@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { decodeEntities } from "#/shared/lib/parse-link-preview";
 import { retry, RetryableError } from "./retry.server";
 
 const ENDPOINT = "https://translation.googleapis.com/language/translate/v2";
@@ -36,17 +37,6 @@ export const hasWordsToTranslate = (title: string, terms: string[]) =>
   (terms.length === 0 ? [title] : title.split(termPattern(terms)).filter((_, i) => i % 2 === 0))
     .flatMap((part) => part.split(/[^\p{L}\p{N}'-]+/u))
     .some((w) => /^[A-Za-z]+(?:['-][A-Za-z]+)*$/u.test(w));
-
-const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"' };
-
-const decodeEntities = (s: string) =>
-  s.replaceAll(/&(?<ref>amp|lt|gt|quot|#\d+|#x[\da-f]+);/giu, (match, ref: string) => {
-    if (!ref.startsWith("#")) {
-      return named[ref.toLowerCase()] ?? match;
-    }
-    // "#x1F" → "0x1F"、"#39" → "039"。Number は 0x を 16 進、それ以外を 10 進で読む
-    return String.fromCodePoint(Number(`0${ref.slice(1)}`));
-  });
 
 const LATIN_WORD = /[A-Za-z0-9](?:[A-Za-z0-9.+#-]*[A-Za-z0-9+#])?/gu;
 

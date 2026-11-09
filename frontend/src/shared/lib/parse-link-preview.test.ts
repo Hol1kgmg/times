@@ -32,6 +32,11 @@ describe(parseLinkPreview, () => {
     expect(parseLinkPreview(`<title> a &amp; b </title>`, page)?.title).toBe("a & b");
   });
 
+  it("decodes numeric character references in the title", () => {
+    const html = `<meta property="og:title" content="stin&#x27;s Blog &#38; &#x110000;">`;
+    expect(parseLinkPreview(html, page)?.title).toBe("stin's Blog & &#x110000;");
+  });
+
   it("returns null when nothing usable is present", () => {
     expect(parseLinkPreview(`<meta charset="utf-8"><title> </title>`, page)).toBeNull();
     expect(parseLinkPreview(`<meta name="description" content="  ">`, page)).toBeNull();
