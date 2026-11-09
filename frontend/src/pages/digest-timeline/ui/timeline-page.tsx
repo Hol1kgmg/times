@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { flushSync } from "react-dom";
-import { listPublishedDigests, loadAnyLinkPreview } from "#/shared/api";
+import { listPublishedDigests, loadAnyLinkPreview, reportArticleOpen } from "#/shared/api";
 import { DigestPost, dateFormat } from "#/shared/ui/digest-post";
 import { PAGE_SIZE, prependPage } from "../model/timeline";
 import styles from "./timeline-page.module.css";
@@ -81,7 +81,11 @@ export const TimelinePage = () => {
       </output>
       {digests.map((d) => (
         <section key={d.id} aria-label={dateFormat.format(new Date(d.entryDate))}>
-          <DigestPost digest={d} loadPreview={loadAnyLinkPreview} />
+          <DigestPost
+            digest={d}
+            loadPreview={loadAnyLinkPreview}
+            onOpen={reportArticleOpen(d.entryDate)}
+          />
         </section>
       ))}
     </div>
