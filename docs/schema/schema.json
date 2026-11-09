@@ -215,6 +215,12 @@
           "name": "created_by",
           "type": "bigint",
           "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
         }
       ],
       "indexes": [
@@ -227,21 +233,21 @@
           ]
         },
         {
-          "name": "articles_digest_id_position_key",
-          "def": "CREATE UNIQUE INDEX articles_digest_id_position_key ON public.articles USING btree (digest_id, \"position\")",
-          "table": "public.articles",
-          "columns": [
-            "digest_id",
-            "position"
-          ]
-        },
-        {
           "name": "articles_created_by_url_key",
           "def": "CREATE UNIQUE INDEX articles_created_by_url_key ON public.articles USING btree (created_by, url)",
           "table": "public.articles",
           "columns": [
             "created_by",
             "url"
+          ]
+        },
+        {
+          "name": "articles_digest_id_position_key",
+          "def": "CREATE UNIQUE INDEX articles_digest_id_position_key ON public.articles USING btree (digest_id, \"position\")",
+          "table": "public.articles",
+          "columns": [
+            "digest_id",
+            "position"
           ]
         }
       ],
@@ -264,6 +270,16 @@
           "referenced_table": "",
           "columns": [
             "category"
+          ]
+        },
+        {
+          "name": "articles_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
           ]
         },
         {
@@ -390,17 +406,6 @@
           ]
         },
         {
-          "name": "articles_digest_id_position_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (digest_id, \"position\")",
-          "table": "public.articles",
-          "referenced_table": "",
-          "columns": [
-            "digest_id",
-            "position"
-          ]
-        },
-        {
           "name": "articles_created_by_fkey",
           "type": "FOREIGN KEY",
           "def": "FOREIGN KEY (created_by) REFERENCES users(id)",
@@ -422,6 +427,17 @@
           "columns": [
             "created_by",
             "url"
+          ]
+        },
+        {
+          "name": "articles_digest_id_position_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (digest_id, \"position\") DEFERRABLE INITIALLY DEFERRED",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "digest_id",
+            "position"
           ]
         }
       ]

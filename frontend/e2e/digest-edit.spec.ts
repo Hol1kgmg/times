@@ -22,7 +22,8 @@ const idsOnOpen = async (page: Page, date: string, title: string) => {
     return res.url().includes("/_serverFn/") && text.includes(title);
   });
   await openDigest(page, date);
-  const text = await (await response).text();
+  const res = await response;
+  const text = await res.text();
   return new Set(text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gu));
 };
 
