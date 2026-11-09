@@ -20,6 +20,7 @@ type Article struct {
 	Description *string
 	IsHot       bool
 	CreatedBy   int64
+	CreatedAt   time.Time
 }
 
 type ArticleLink struct {
