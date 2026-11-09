@@ -3,7 +3,7 @@ import { boardOf, fillDate, loggedInState } from "./admin";
 
 const newPath = "/admin/digests/new";
 
-test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並び、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
+test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並んでフィードに通知が載り、それより前の日付の公開は通知されず、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -60,6 +60,24 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   const links = panel.getByRole("link");
   await expect(links).toHaveText([security, related, `${other}HOT`]);
   await expect(links.filter({ hasText: "HOT" })).toHaveText([`${other}HOT`]);
+  const feedLinks = async () => {
+    const res = await page.request.get("/feed.xml");
+    const xml = await res.text();
+    return [...xml.matchAll(/\/digest\/(?<date>[\d-]+)<\/link>/gu)].map((m) => m.groups?.date);
+  };
+  expect(await feedLinks()).toContain(date);
+
+  // 最新より前の日付は公開で登録できるが、フィードには載らない (issue #112)
+  const past = new Date(Date.parse(date) - 86_400_000).toISOString().slice(0, 10);
+  await page.goto(newPath);
+  await fillDate(page, past);
+  await collect(`過去の記事 ${run}`);
+  await dragFirstUnsortedTo("その他");
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await page.getByRole("button", { name: "公開して登録" }).click();
+  await page.waitForURL((url) => url.pathname === "/");
+  expect(await feedLinks()).not.toContain(past);
 
   await page.getByRole("link", { name: "timeline" }).click();
   await page.waitForURL((url) => url.pathname === "/timeline");

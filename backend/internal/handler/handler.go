@@ -171,6 +171,9 @@ func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestOb
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := s.q.WithTx(tx)
+	if err := q.LockDigestDates(ctx); err != nil {
+		return nil, err
+	}
 	d, err := q.UpdateDigest(ctx, db.UpdateDigestParams{NewDate: req.Body.EntryDate.Time, Status: (*string)(req.Body.Status), CreatedBy: p.UserID, OldDate: req.EntryDate.Time})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, apperr.NotFound("no digest for the entry date")
@@ -206,6 +209,9 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := s.q.WithTx(tx)
+	if err := q.LockDigestDates(ctx); err != nil {
+		return nil, err
+	}
 	// 日付がぶつかるならリクエスト全体が成り立たないので、URL より先に確かめる
 	status := api.NewDigestStatusDraft
 	if req.Body.Status != nil {

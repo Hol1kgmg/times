@@ -67,7 +67,8 @@ func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkPa
 }
 
 const createDigest = `-- name: CreateDigest :one
-INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3, CASE WHEN $3 = 'published' THEN now() END) RETURNING id, entry_date, created_at, created_by, status, published_at
+INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3,
+  CASE WHEN $3 = 'published' AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > $1) THEN now() END) RETURNING id, entry_date, created_at, created_by, status, published_at
 `
 
 type CreateDigestParams struct {
@@ -76,6 +77,7 @@ type CreateDigestParams struct {
 	Status    string
 }
 
+// 保存前の最新日付より前の日付は、公開しても通知しない (issue #112)
 func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Digest, error) {
 	row := q.db.QueryRow(ctx, createDigest, arg.EntryDate, arg.CreatedBy, arg.Status)
 	var i Digest
@@ -355,12 +357,24 @@ func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLs
 	return items, nil
 }
 
+const lockDigestDates = `-- name: LockDigestDates :exec
+SELECT pg_advisory_xact_lock(hashtext('digests.entry_date'))
+`
+
+// READ COMMITTED では並行する保存のまだコミットしていない日付が見えず、最新日付の比較がずれるため直列にする
+func (q *Queries) LockDigestDates(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, lockDigestDates)
+	return err
+}
+
 const updateDigest = `-- name: UpdateDigest :one
 UPDATE digests SET
   entry_date = $1,
   status = COALESCE($2, status),
-  published_at = CASE WHEN status = 'draft' AND COALESCE($2, status) = 'published' THEN now() ELSE published_at END
-WHERE created_by = $3 AND entry_date = $4 RETURNING id, entry_date, created_at, created_by, status, published_at
+  -- 副問い合わせは更新前の行を見るので、保存前の最新日付と比べられる (issue #112)
+  published_at = CASE WHEN status = 'draft' AND COALESCE($2, status) = 'published'
+    AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > $1) THEN now() ELSE published_at END
+WHERE digests.created_by = $3 AND digests.entry_date = $4 RETURNING id, entry_date, created_at, created_by, status, published_at
 `
 
 type UpdateDigestParams struct {

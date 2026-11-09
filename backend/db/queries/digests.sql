@@ -22,8 +22,10 @@ SELECT * FROM digests WHERE entry_date = $1 ORDER BY created_at DESC LIMIT 1;
 UPDATE digests SET
   entry_date = sqlc.arg(new_date),
   status = COALESCE(sqlc.narg(status), status),
-  published_at = CASE WHEN status = 'draft' AND COALESCE(sqlc.narg(status), status) = 'published' THEN now() ELSE published_at END
-WHERE created_by = sqlc.arg(created_by) AND entry_date = sqlc.arg(old_date) RETURNING *;
+  -- 副問い合わせは更新前の行を見るので、保存前の最新日付と比べられる (issue #112)
+  published_at = CASE WHEN status = 'draft' AND COALESCE(sqlc.narg(status), status) = 'published'
+    AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > sqlc.arg(new_date)) THEN now() ELSE published_at END
+WHERE digests.created_by = sqlc.arg(created_by) AND digests.entry_date = sqlc.arg(old_date) RETURNING *;
 
 -- name: DeleteArticlesByDigest :exec
 DELETE FROM articles WHERE digest_id = $1;
@@ -33,7 +35,13 @@ DELETE FROM articles WHERE digest_id = $1;
 SELECT url FROM articles WHERE created_by = $1 AND url = ANY(sqlc.arg(urls)::text[]);
 
 -- name: CreateDigest :one
-INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3, CASE WHEN $3 = 'published' THEN now() END) RETURNING *;
+-- 保存前の最新日付より前の日付は、公開しても通知しない (issue #112)
+INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3,
+  CASE WHEN $3 = 'published' AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > $1) THEN now() END) RETURNING *;
+
+-- name: LockDigestDates :exec
+-- READ COMMITTED では並行する保存のまだコミットしていない日付が見えず、最新日付の比較がずれるため直列にする
+SELECT pg_advisory_xact_lock(hashtext('digests.entry_date'));
 
 -- name: CreateArticle :one
 INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
