@@ -15,12 +15,23 @@ const openDigest = async (page: Page, date: string) => {
   await page.locator(`a[href="/admin/digests/${date}/edit"]`).click();
 };
 
+// 記事の id は画面に出ないので、開いたときのサーバー関数のレスポンスから Digest と記事の id を拾う
+const idsOnOpen = async (page: Page, date: string, title: string) => {
+  const response = page.waitForResponse(async (res) => {
+    const text = await res.text().catch(() => "");
+    return res.url().includes("/_serverFn/") && text.includes(title);
+  });
+  await openDigest(page, date);
+  const text = await (await response).text();
+  return new Set(text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gu));
+};
+
 const previewLinks = async (page: Page) => {
   await page.getByRole("button", { name: "プレビュー" }).click();
   return page.getByRole("dialog").getByRole("link");
 };
 
-test("下書きで登録した Digest を一覧から開き、タイトル・記事・日付を直して公開で保存すると、開き直したときに直した内容で並び公開になっている", async ({
+test("下書きで登録した Digest を一覧から開き、タイトル・記事・日付を直して公開で保存すると、開き直したときに直した内容で並び公開になっていて、残した記事の id は変わらない", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -53,7 +64,9 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   // 下書きはトップに出ないので、登録後は一覧へ移る
   await page.waitForURL((url) => url.pathname === "/admin/digests");
   await expect(page.locator(`a[href="/admin/digests/${date}/edit"]`)).toContainText("下書き");
-  await openDigest(page, date);
+  // Digest と記事 3 件
+  const before = await idsOnOpen(page, date, other);
+  expect(before.size).toBe(4);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("group", { name: "日付" })).toHaveText(date.replaceAll("-", "/"));
@@ -72,7 +85,10 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
 
   await expect(page.locator(`a[href="/admin/digests/${moved}/edit"]`)).not.toContainText("下書き");
   await expect(page.locator(`a[href="/admin/digests/${date}/edit"]`)).toHaveCount(0);
-  await openDigest(page, moved);
+  // タイトルを直した記事もホットの記事も、日付を動かした Digest も id を保ち、新しい id は振られない
+  const after = await idsOnOpen(page, moved, other);
+  expect(after.size).toBe(3);
+  expect([...after].every((id) => before.has(id))).toBe(true);
   await page.waitForURL((url) => url.pathname === `/admin/digests/${moved}/edit`);
   await page.waitForLoadState("networkidle");
   // 公開した後のメニューに下書きはない

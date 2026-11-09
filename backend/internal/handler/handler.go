@@ -159,7 +159,6 @@ func (s *Server) withArticles(ctx context.Context, d db.Digest) (api.Digest, err
 	return toDigest(d, rows, links), nil
 }
 
-// 記事を消してから URL を判定するので、この Digest 自身の URL は登録済みに数えない
 func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestObject) (api.UpdateDigestResponseObject, error) {
 	p, ok := auth.PrincipalFrom(ctx)
 	if !ok {
@@ -184,7 +183,11 @@ func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestOb
 	if !publishable(d, time.Now()) {
 		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
 	}
-	if err := q.DeleteArticlesByDigest(ctx, d.ID); err != nil {
+	if err := q.DeleteArticlesNotIn(ctx, db.DeleteArticlesNotInParams{DigestID: d.ID, Urls: urlsOf(req.Body.Articles)}); err != nil {
+		return nil, err
+	}
+	// article_links は id を持たず外から参照されないので、張り直してよい
+	if err := q.DeleteArticleLinksByDigest(ctx, d.ID); err != nil {
 		return nil, err
 	}
 	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Articles)
@@ -235,7 +238,7 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 }
 
 func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, articles []api.NewArticle) ([]db.Article, []db.ArticleLink, error) {
-	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, Urls: urlsOf(articles)})
+	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, DigestID: d.ID, Urls: urlsOf(articles)})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -246,9 +249,13 @@ func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int6
 	var links []db.ArticleLink
 	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category と hot を引き継ぐ
 	insert := func(category, title, url string, hot bool) (db.Article, error) {
-		row, err := q.CreateArticle(ctx, db.CreateArticleParams{
+		row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{
 			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot, CreatedBy: userID,
 		})
+		// 判定の後に並行する登録が同じ URL を入れた場合
+		if errors.Is(err, pgx.ErrNoRows) {
+			return row, apperr.URLAlreadyRegistered([]string{url})
+		}
 		if err != nil {
 			return row, constraintViolation(err)
 		}

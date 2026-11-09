@@ -97,7 +97,7 @@ func run() error {
 		}
 		var pos int32
 		insert := func(cat string, hot bool, a article) (db.Article, error) {
-			row, err := q.CreateArticle(ctx, db.CreateArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url, IsHot: hot, CreatedBy: seeder.ID})
+			row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url, IsHot: hot, CreatedBy: seeder.ID})
 			if err != nil {
 				return row, fmt.Errorf("%d日目 %q: %w", dy.n, a.title, err)
 			}

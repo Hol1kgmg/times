@@ -27,12 +27,16 @@ UPDATE digests SET
     AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > sqlc.arg(new_date)) THEN now() ELSE published_at END
 WHERE digests.created_by = sqlc.arg(created_by) AND digests.entry_date = sqlc.arg(old_date) RETURNING *;
 
--- name: DeleteArticlesByDigest :exec
-DELETE FROM articles WHERE digest_id = $1;
+-- name: DeleteArticlesNotIn :exec
+-- 残る記事は消さずに upsert で更新し、id とサーバーだけが持つ列を保つ (issue #114)
+DELETE FROM articles WHERE digest_id = $1 AND url <> ALL(sqlc.arg(urls)::text[]);
+
+-- name: DeleteArticleLinksByDigest :exec
+DELETE FROM article_links l USING articles a WHERE a.id = l.child_id AND a.digest_id = $1;
 
 -- name: ListRegisteredURLs :many
 -- unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
-SELECT url FROM articles WHERE created_by = $1 AND url = ANY(sqlc.arg(urls)::text[]);
+SELECT url FROM articles WHERE created_by = $1 AND digest_id <> sqlc.arg(digest_id) AND url = ANY(sqlc.arg(urls)::text[]);
 
 -- name: CreateDigest :one
 -- 保存前の最新日付より前の日付は、公開しても通知しない (issue #112)
@@ -43,8 +47,13 @@ INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $
 -- READ COMMITTED では並行する保存のまだコミットしていない日付が見えず、最新日付の比較がずれるため直列にする
 SELECT pg_advisory_xact_lock(hashtext('digests.entry_date'));
 
--- name: CreateArticle :one
-INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+-- name: UpsertArticle :one
+-- 画面が送る列だけを更新する。他の Digest の URL には当たっても更新せず、行を返さない
+INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (created_by, url) DO UPDATE SET
+  position = EXCLUDED.position, category = EXCLUDED.category, title = EXCLUDED.title, is_hot = EXCLUDED.is_hot
+WHERE articles.digest_id = EXCLUDED.digest_id
+RETURNING *;
 
 -- name: ListArticlesByDigest :many
 -- position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
