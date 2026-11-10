@@ -1,14 +1,49 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  HeadContent,
+  Outlet,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import kleeOne400Css from "@fontsource/klee-one/400.css?url";
 import kleeOne600Css from "@fontsource/klee-one/600.css?url";
 import kleeOneFixed400 from "../styles/fonts/klee-one-fixed-400.woff2?url";
 import kleeOneFixed600 from "../styles/fonts/klee-one-fixed-600.woff2?url";
+import { reportPageView } from "#/shared/api";
 import { getCurrentAdmin } from "#/shared/auth";
 import { FEED_PATH, SITE_NAME, SITE_URL } from "#/shared/config/site";
+import type { FileRoutesById } from "../routeTree.gen";
 import appCss from "../styles/global.css?url";
 
 const description = "見かけて気になった技術や趣味の記事を、日ごとにゆるくまとめてます。";
+
+// 除外リストだとログイン画面の秘密のパスまで GA4 に載る (specs/014 research R2)
+const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
+  "/",
+  "/_shell/timeline",
+  "/digest/$date",
+] satisfies (keyof FileRoutesById)[]);
+
+// Strict Mode の effect の二重実行と同じ URL への移動で数を増やさないため、描画をまたいで持つ
+let lastPath: string | undefined;
+
+const PageView = () => {
+  const match = useRouterState({ select: (s) => s.matches.at(-1) });
+  const routeId = match?.routeId;
+  const pathname = match?.pathname;
+  useEffect(() => {
+    if (routeId === undefined || pathname === lastPath) {
+      return;
+    }
+    lastPath = pathname;
+    if (PUBLIC_ROUTES.has(routeId)) {
+      reportPageView();
+    }
+  }, [routeId, pathname]);
+  return null;
+};
 
 // 全文書 SSR: <html> から描画する
 export const Route = createRootRoute({
@@ -57,6 +92,7 @@ export const Route = createRootRoute({
       </head>
       <body>
         <Outlet />
+        <PageView />
         <Scripts />
       </body>
     </html>
