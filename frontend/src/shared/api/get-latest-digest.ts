@@ -1,6 +1,7 @@
 import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { digest } from "#/shared/api";
-import { backendFetchRaw, cachedJson } from "#/shared/api/index.server";
+import { backendFetchRaw } from "./backend.server";
+import { cachedJson } from "./cache.server";
+import { digest } from "./schemas";
 
 // Digest は管理者が手動で登録したときしか変わらないので 5 分の遅れを許容する (adr/frontend/0002)
 const TTL_SECONDS = 300;

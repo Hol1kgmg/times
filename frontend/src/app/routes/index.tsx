@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getLatestDigest, HomePage } from "#/pages/home";
+import { HomePage } from "#/pages/home";
+import { getLatestDigest } from "#/shared/api";
 import { SITE_URL } from "#/shared/config/site";
 import { RootLayout } from "../layout/root-layout";
 

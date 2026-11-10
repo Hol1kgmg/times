@@ -1,6 +1,7 @@
 import type { operations } from "./openapi.gen";
 
 export { fetchAnyLinkPreview } from "./fetch-any-link-preview";
+export { getLatestDigest } from "./get-latest-digest";
 export { listAllArticleDomains, listArticleDomains } from "./list-article-domains";
 export { listDigests } from "./list-digests";
 export { listPublishedDigests } from "./list-published-digests";

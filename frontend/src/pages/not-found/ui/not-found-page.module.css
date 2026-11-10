@@ -1,0 +1,77 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  /* 案内の上下の空きを 3:7 に分けて上寄せにする。中央だと積もった粒に早く埋もれる */
+  grid-template-rows: 3fr auto 7fr;
+  min-height: 100dvh;
+  overflow: hidden;
+  /* Fixed のサブセットはトップとシェルの文字だけなので、ほかの画面の字は Klee One から取る (adr/frontend/0005) */
+  font-family: var(--font-dynamic);
+}
+
+@media (--narrow) {
+  .page {
+    min-height: calc(100dvh - var(--header-offset));
+  }
+}
+
+/* 積もった粒の上でも読めるよう、地の色で文字の外側を縁取る */
+.outlined {
+  font-weight: 600;
+  paint-order: stroke fill;
+  -webkit-text-stroke: var(--space-half) var(--color-bg);
+}
+
+/* 積もった粒が文字の上下で途切れず、地に溶けるようにする */
+.content {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: calc(var(--space-4) * 4) var(--space-4);
+  text-align: center;
+  background: linear-gradient(
+    to top,
+    transparent,
+    var(--color-bg) 15%,
+    var(--color-bg) 70%,
+    transparent
+  );
+}
+
+/* 見出しのクラスでは足りない、この画面だけの大きさ */
+.code {
+  composes: outlined;
+  margin: 0;
+  font-size: 6rem;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.heading {
+  composes: t-title from global;
+  composes: outlined;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.body {
+  composes: t-body from global;
+  composes: outlined;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* 画面で唯一の行き先なので、ホバー前からリンクと分かる色にする */
+.link {
+  composes: t-title from global;
+  composes: outlined;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link[data-hovered] {
+  text-decoration: underline;
+}

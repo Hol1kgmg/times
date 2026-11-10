@@ -5,8 +5,8 @@ export const getRouter = () =>
   createRouter({
     routeTree,
     scrollRestoration: true,
-    // 未設定だと notFound のたびに Router が警告を出す。表示は既定と同じ (e2e が "Not Found" を見る)
-    defaultNotFoundComponent: () => <p>Not Found</p>,
+    // 既定の fuzzy だと、未知の URL はシェルの外、ローダーの notFound はシェルの中と出る場所が割れる
+    notFoundMode: "root",
   });
 
 declare module "@tanstack/react-router" {
