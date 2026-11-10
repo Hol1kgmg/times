@@ -1,8 +1,12 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
+import { useFocusVisible, useHover } from "react-aria";
 import { Link } from "react-aria-components";
 import type { ArticleId, Digest, DigestContent, NewArticle, NewChildArticle } from "#/shared/api";
 import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
+import { reducedMotion } from "#/shared/lib/reduced-motion";
+import { AskAi } from "#/shared/ui/ask-ai";
 import { categoryIcons } from "#/shared/ui/category-icons";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
@@ -13,6 +17,10 @@ import styles from "./digest-post.module.css";
 // 取得先は呼び出し側が決める。公開ページは Digest 内の URL に限り、管理画面は任意の URL を取る
 type LoadPreview = (url: string) => Promise<LinkPreview | null>;
 type Open = (url: string) => void;
+// 渡したときだけ AI のアイコンを置く。shown はホバーできない環境でも出すかどうか
+interface Ai {
+  shown: boolean;
+}
 
 // entryDate は日付だけの ISO で UTC の 0 時として読まれるため、UTC で書式化しないと前日になりうる
 export const dateFormat = new Intl.DateTimeFormat("ja-JP", {
@@ -22,18 +30,18 @@ export const dateFormat = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "UTC",
 });
 
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 const ArticleLink = ({
   article,
   hot = false,
   loadPreview,
   open,
+  ai,
 }: {
   article: NewChildArticle;
   hot?: boolean;
   loadPreview: LoadPreview;
   open?: Open;
+  ai?: Ai;
 }) => {
   const { show, dismissed, card } = useLinkPreview({
     url: article.url,
@@ -41,50 +49,56 @@ const ArticleLink = ({
     className: styles.preview,
     load: loadPreview,
   });
+  const { hoverProps, isHovered } = useHover({});
+  const [linkFocused, setLinkFocused] = useState(false);
+  const { isFocusVisible } = useFocusVisible();
+  // タップでもフォーカスは来るので、動かすのはキーボードのフォーカスだけにする
+  const pointed = isHovered || (linkFocused && isFocusVisible);
   return (
-    <div className={styles.row}>
+    <div className={styles.row} data-ai-shown={ai?.shown === true ? "" : undefined}>
       <Favicon className={styles.favicon} url={article.url} />
       <span className={styles.text}>
-        <Link
-          className={styles.title}
-          data-dismissed={dismissed ? "" : undefined}
-          href={article.url}
-          rel="noopener noreferrer"
-          target="_blank"
-          onAuxClick={(e) => {
-            // auxclick は右クリックでも来るので、中クリックだけに絞る
-            if (e.button === 1) {
-              open?.(article.url);
-            }
-          }}
-          onFocus={show}
-          onHoverStart={show}
-          onPress={() => open?.(article.url)}
-        >
-          {({ isHovered, isFocusVisible }) => {
-            // タップでもフォーカスは来るので、動かすのはキーボードのフォーカスだけにする
-            const pointed = (isHovered || isFocusVisible) && !reducedMotion();
-            return (
-              <>
-                {article.title.trim() === "" ? (
-                  <span className={styles.untitled}>タイトルを入れてください</span>
-                ) : (
-                  article.title
-                )}
-                {hot && (
-                  <span className={styles.hot}>
-                    <Flame animate={pointed} role="none" size={16} />
-                    {/* 炎にも名前を付けると HOT と二重に読まれるので、読み上げは吹き出しだけにする */}
-                    <span className={styles.hotLabel}>
-                      <HotBubble animate={pointed} />
-                    </span>
-                  </span>
-                )}
-              </>
-            );
-          }}
-        </Link>
-        {card}
+        {/* リンクとアイコンを 1 つのインラインに入れ、間の隙間と折り返しの先もホバーに含める */}
+        <span className={styles.zone} {...hoverProps} data-hovered={isHovered ? "" : undefined}>
+          <Link
+            className={styles.title}
+            data-dismissed={dismissed ? "" : undefined}
+            href={article.url}
+            rel="noopener noreferrer"
+            target="_blank"
+            onAuxClick={(e) => {
+              // auxclick は右クリックでも来るので、中クリックだけに絞る
+              if (e.button === 1) {
+                open?.(article.url);
+              }
+            }}
+            onFocus={show}
+            onFocusChange={setLinkFocused}
+            onHoverStart={show}
+            onPress={() => open?.(article.url)}
+          >
+            <span className={styles.titleText}>
+              {article.title.trim() === "" ? (
+                <span className={styles.untitled}>タイトルを入れてください</span>
+              ) : (
+                article.title
+              )}
+            </span>
+          </Link>
+          {card}
+          {ai !== undefined && (
+            <AskAi className={styles.askAi} title={article.title} url={article.url} />
+          )}
+        </span>
+        {hot && (
+          <span className={styles.hot} data-pointed={pointed ? "" : undefined}>
+            <Flame animate={pointed && !reducedMotion()} role="none" size={16} />
+            {/* 炎にも名前を付けると HOT と二重に読まれるので、読み上げは吹き出しだけにする */}
+            <span className={styles.hotLabel}>
+              <HotBubble animate={pointed && !reducedMotion()} />
+            </span>
+          </span>
+        )}
       </span>
     </div>
   );
@@ -95,18 +109,26 @@ const Entry = ({
   article,
   loadPreview,
   open,
+  ai,
 }: {
   article: NewArticle;
   loadPreview: LoadPreview;
   open?: Open;
+  ai?: Ai;
 }) => (
   <>
-    <ArticleLink article={article} hot={article.hot} loadPreview={loadPreview} open={open} />
+    <ArticleLink
+      ai={ai}
+      article={article}
+      hot={article.hot}
+      loadPreview={loadPreview}
+      open={open}
+    />
     {article.children.length > 0 && (
       <ul className={styles.children}>
         {article.children.map((c) => (
           <li key={c.url}>
-            <ArticleLink article={c} loadPreview={loadPreview} open={open} />
+            <ArticleLink ai={ai} article={c} loadPreview={loadPreview} open={open} />
           </li>
         ))}
       </ul>
@@ -115,9 +137,13 @@ const Entry = ({
 );
 
 type DigestPostProps = { loadPreview: LoadPreview; action?: ReactNode } & (
-  | { digest: Digest; onOpen?: (article: { id: ArticleId; url: string }) => void }
+  | {
+      digest: Digest;
+      onOpen?: (article: { id: ArticleId; url: string }) => void;
+      ai?: Ai;
+    }
   // 下書きの記事は id を持たず、数える記事として送れない (specs/013 FR-009)
-  | { digest: DigestContent; onOpen?: never }
+  | { digest: DigestContent; onOpen?: never; ai?: never }
 );
 
 // URL は UNIQUE (digest_id, url) で親子をまたいでも重ならない
@@ -139,7 +165,7 @@ const opener = (props: DigestPostProps): Open | undefined => {
 
 // 下書きも描くので id のない登録の型で受ける。key の URL は UNIQUE (digest_id, url) で重ならない
 export const DigestPost = (props: DigestPostProps) => {
-  const { digest, loadPreview, action } = props;
+  const { digest, loadPreview, action, ai } = props;
   const open = opener(props);
   return (
     <>
@@ -163,7 +189,7 @@ export const DigestPost = (props: DigestPostProps) => {
             <ul className={styles.entries}>
               {articles.map((a) => (
                 <li key={a.url}>
-                  <Entry article={a} loadPreview={loadPreview} open={open} />
+                  <Entry ai={ai} article={a} loadPreview={loadPreview} open={open} />
                 </li>
               ))}
             </ul>

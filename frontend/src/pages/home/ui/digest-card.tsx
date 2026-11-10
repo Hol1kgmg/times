@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "react-aria-components";
 import { reportArticleOpen } from "#/shared/api";
 import type { Digest } from "#/shared/api";
+import { AiToggle } from "#/shared/ui/ai-toggle";
+import { CopyToast, useCopyToast } from "#/shared/ui/copy-toast";
 import { DigestPost } from "#/shared/ui/digest-post";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
@@ -13,16 +15,13 @@ import styles from "./digest-card.module.css";
 const checkIcon = "M5 12l5 5l10 -10";
 
 const CopyButton = ({ digest }: { digest: Digest }) => {
-  const [copied, setCopied] = useState(false);
+  const { shown, show } = useCopyToast();
   const copy = async () => {
     await navigator.clipboard.writeText(digestMarkdown(digest));
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
+    show();
   };
   return (
-    <span className={styles.copyWrap}>
+    <CopyToast className={styles.copyWrap} shown={shown}>
       <Button
         aria-label="Markdown でコピー"
         className={styles.copy}
@@ -30,13 +29,27 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
           void copy();
         }}
       >
-        <LineIcon d={copied ? checkIcon : clipboardIcon} size={20} />
+        <LineIcon d={shown ? checkIcon : clipboardIcon} size={20} />
       </Button>
-      {/* 中身の差し替えで読み上げさせるため、領域は常に置いて文字だけ出し入れする */}
-      <output className={styles.toast}>
-        {copied && <span className={styles.toastText}>コピーしました</span>}
-      </output>
-    </span>
+    </CopyToast>
+  );
+};
+
+const Latest = ({ digest }: { digest: Digest }) => {
+  const [aiShown, setAiShown] = useState(false);
+  return (
+    <DigestPost
+      action={
+        <>
+          <CopyButton digest={digest} />
+          <AiToggle isSelected={aiShown} onChange={setAiShown} />
+        </>
+      }
+      ai={{ shown: aiShown }}
+      digest={digest}
+      loadPreview={loadLinkPreview}
+      onOpen={reportArticleOpen(digest.entryDate)}
+    />
   );
 };
 
@@ -44,16 +57,7 @@ const CopyButton = ({ digest }: { digest: Digest }) => {
 export const DigestCard = ({ digest }: { digest: Digest | null }) => (
   <CollapsiblePanel>
     <section aria-label="最新の Digest">
-      {digest ? (
-        <DigestPost
-          action={<CopyButton digest={digest} />}
-          digest={digest}
-          loadPreview={loadLinkPreview}
-          onOpen={reportArticleOpen(digest.entryDate)}
-        />
-      ) : (
-        <p className={styles.empty}>まだ記事がありません</p>
-      )}
+      {digest ? <Latest digest={digest} /> : <p className={styles.empty}>まだ記事がありません</p>}
     </section>
   </CollapsiblePanel>
 );

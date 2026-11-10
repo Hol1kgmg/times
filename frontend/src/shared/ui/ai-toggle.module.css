@@ -1,0 +1,14 @@
+.toggle {
+  composes: icon-button from global;
+}
+
+.toggle[data-selected] {
+  color: var(--color-accent);
+}
+
+/* ホバーできる環境では行のホバーで出すので要らない */
+@media (--hover) {
+  .toggle {
+    display: none;
+  }
+}

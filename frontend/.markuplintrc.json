@@ -12,7 +12,7 @@
     "security/no-event-handler-attr": false,
     "no-unknown-attr": {
       "options": {
-        "allowAttrs": ["onPointerDown"]
+        "allowAttrs": ["onPointerDown", "onPointerDownCapture", "onKeyDownCapture"]
       }
     }
   },

@@ -1,0 +1,97 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+}
+
+.button {
+  composes: icon-button from global;
+  height: 1lh;
+  padding-left: var(--space-half);
+  /* button は UA の小さいフォントになり、1lh が置かれた行の高さより低くなる */
+  font: inherit;
+  vertical-align: top;
+}
+
+.card {
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+}
+
+.card[data-entering] {
+  animation: fade 0.2s ease-out;
+}
+
+.card[data-exiting] {
+  animation: fade 0.2s ease-out reverse;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  outline: none;
+}
+
+.heading {
+  composes: t-meta from global;
+  margin: 0;
+  padding-inline: var(--space-half);
+  color: var(--color-text-muted);
+}
+
+.services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-half);
+}
+
+.service {
+  composes: t-meta from global;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-half);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  outline: none;
+  cursor: pointer;
+}
+
+.service svg {
+  color: var(--color-brand);
+}
+
+.service[data-hovered],
+.service[data-focus-visible] {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
+}
+
+.copy {
+  composes: t-body button from global;
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-entering],
+  .card[data-exiting] {
+    animation: none;
+  }
+}

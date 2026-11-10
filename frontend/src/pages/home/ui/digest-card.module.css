@@ -4,82 +4,13 @@
   color: var(--color-text-muted);
 }
 
-.copyWrap {
-  position: relative;
-  display: flex;
-}
-
-.toast {
-  position: absolute;
-  bottom: calc(100% + var(--space-1));
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-/* 折りたたみ中のパネルは overflow: clip で上端を切るので、fixed で抜け出してボタンに寄せる */
-@supports (position-area: top) {
-  .copy {
-    anchor-name: --copy;
-  }
-
-  .toast {
-    position: fixed;
-    inset: auto;
-    transform: none;
-    position-anchor: --copy;
-    position-area: top;
-    margin-bottom: var(--space-1);
-  }
-}
-
-.toastText {
-  composes: t-meta from global;
-  display: block;
-  padding: var(--space-half) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow-menu);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  animation: toast-in 0.15s ease-out;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-1));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toastText {
-    animation: none;
+/* ホバーできない環境では同じ位置に AI のトグルを出す (specs/015 FR-011) */
+@media not (--hover) {
+  .copyWrap {
+    display: none;
   }
 }
 
 .copy {
-  display: flex;
-  flex-shrink: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition:
-    color 0.15s ease-out,
-    transform 0.1s ease-out;
-}
-
-.copy[data-pressed] {
-  transform: scale(0.9);
-}
-
-.copy:focus-visible {
-  color: var(--color-accent);
-}
-
-.copy[data-hovered] {
-  color: var(--color-accent);
+  composes: icon-button from global;
 }
