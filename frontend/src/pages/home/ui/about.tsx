@@ -11,6 +11,9 @@ import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
 import { categoryIcons } from "#/shared/ui/category-icons";
 import { Archive } from "#/shared/ui/icons/archive";
+import { BrandIcon } from "#/shared/ui/icons/brand";
+import type { Brand } from "#/shared/ui/icons/brand";
+import { ChartLine } from "#/shared/ui/icons/chart-line";
 import { Cog } from "#/shared/ui/icons/cog";
 import { Globe } from "#/shared/ui/icons/globe";
 import { HotBubble } from "#/shared/ui/icons/hot-bubble";
@@ -30,10 +33,37 @@ const categoryTexts = {
 
 const arrowIcon = "M5 12h14M13 6l6 6-6 6";
 
-const Node = ({ className, icon, name }: { className: string; icon: ReactNode; name: string }) => (
-  <div className={`${styles.node} ${className}`}>
+const Node = ({ className, icon, name }: { className?: string; icon: ReactNode; name: string }) => (
+  <div className={`${styles.node} ${className ?? ""}`}>
     {icon}
     {name}
+  </div>
+);
+
+const Group = ({
+  children,
+  className,
+  label,
+  stack,
+}: {
+  children: ReactNode;
+  className: string;
+  label: string;
+  stack?: [Brand, string][];
+}) => (
+  <div className={`${styles.group} ${className}`}>
+    <span className={styles.groupLabel}>{label}</span>
+    <div className={styles.services}>{children}</div>
+    {stack && (
+      <ul className={styles.stack}>
+        {stack.map(([brand, name]) => (
+          <li key={name}>
+            <BrandIcon brand={brand} size={14} />
+            {name}
+          </li>
+        ))}
+      </ul>
+    )}
   </div>
 );
 
@@ -47,16 +77,37 @@ const Arrow = ({ className }: { className: string }) => (
 const Architecture = () => (
   <div aria-hidden="true" className={styles.architecture}>
     <Node className={styles.browser} icon={<Globe size={18} />} name="ブラウザ" />
-    <Arrow className={styles.toWorkers} />
-    <Node className={styles.workers} icon={<Zap size={18} />} name="Cloudflare Workers" />
-    <Arrow className={styles.toRun} />
-    <Node className={styles.run} icon={<Cog size={18} />} name="Cloud Run (Go)" />
-    <Arrow className={styles.toSql} />
-    <Node className={styles.sql} icon={<Archive size={18} />} name="Cloud SQL" />
-    <Arrow className={styles.toAi} />
-    <Node className={styles.ai} icon={<Sparkles size={18} />} name="Workers AI" />
-    <Arrow className={styles.toTranslation} />
-    <Node className={styles.translation} icon={<Translate size={18} />} name="Cloud Translation" />
+    <Arrow className={styles.toFrontend} />
+    <Group
+      className={styles.frontend}
+      label="フロントエンド"
+      stack={[
+        ["React", "React"],
+        ["TanStack", "TanStack Start"],
+      ]}
+    >
+      <Node icon={<Zap size={18} />} name="Cloudflare Workers" />
+    </Group>
+    <Arrow className={styles.toBackend} />
+    <Group
+      className={styles.backend}
+      label="バックエンド"
+      stack={[
+        ["Go", "Go"],
+        ["Gin", "Gin"],
+        ["PostgreSQL", "PostgreSQL"],
+      ]}
+    >
+      <Node icon={<Cog size={18} />} name="Cloud Run" />
+      <Arrow className={styles.toSql} />
+      <Node icon={<Archive size={18} />} name="Cloud SQL" />
+    </Group>
+    <Arrow className={styles.toExternal} />
+    <Group className={styles.external} label="外部サービス">
+      <Node icon={<Sparkles size={18} />} name="Workers AI" />
+      <Node icon={<Translate size={18} />} name="Cloud Translation" />
+      <Node icon={<ChartLine size={18} />} name="GA4" />
+    </Group>
   </div>
 );
 
@@ -84,7 +135,7 @@ const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
   },
   {
     q: "どうやって作ってる？",
-    a: "画面は Cloudflare Workers から出してて、記事のデータは Google Cloud (Cloud Run と Cloud SQL) に置いてます。カテゴリの振り分けは Workers AI、タイトルの翻訳は Google の Cloud Translation に任せてます。作りは TanStack Start (React) と Go です。",
+    a: "画面は Cloudflare Workers から出してて、記事のデータは Google Cloud (Cloud Run と Cloud SQL) に置いてます。カテゴリの振り分けは Workers AI、タイトルの翻訳は Google の Cloud Translation に任せてます。閲覧の数は Workers から Google アナリティクス (GA4) に送ってます。作りは TanStack Start (React) と Go です。",
     figure: <Architecture />,
   },
   {

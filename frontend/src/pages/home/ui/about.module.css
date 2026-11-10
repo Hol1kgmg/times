@@ -175,19 +175,23 @@
 }
 
 .architecture {
+  --group-head: calc(var(--space-2) + var(--space-4));
   display: grid;
   grid-template-areas:
-    "browser toWorkers workers workers toRun run toSql sql"
-    ". . toAi toTranslation . . . ."
-    ". . ai translation . . . .";
-  grid-template-columns: 1fr auto 1fr 1fr auto 1fr auto 1fr;
+    "browser toFrontend frontend toBackend backend"
+    ". . frontend . backend"
+    ". . toExternal . ."
+    ". . external external external";
+  grid-template-columns: auto auto auto auto 1fr;
+  align-items: center;
   gap: var(--space-1);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
 }
 
 .node {
   composes: t-label from global;
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -201,9 +205,56 @@
 }
 
 /* 横にサービス名があり装飾なので、非テキストの 3:1 を満たさないロゴ色でよい */
-.node > svg {
+.node > svg,
+.stack svg {
   flex-shrink: 0;
   color: var(--color-brand);
+}
+
+.group {
+  position: relative;
+  display: grid;
+  align-self: stretch;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--group-head) var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-fill-faint);
+}
+
+/* 見出しを行に入れると subgrid の 1 行目が見出しになり、枠の外のブラウザと矢印をサービスの箱にそろえられない */
+.groupLabel {
+  composes: t-meta from global;
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-3);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.services {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.stack {
+  composes: t-meta from global;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  list-style: none;
+}
+
+.stack li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
 }
 
 .arrow {
@@ -217,74 +268,76 @@
   grid-area: browser;
 }
 
-.workers {
-  grid-area: workers;
+.frontend {
+  grid-area: frontend;
 }
 
-.run {
-  grid-area: run;
+.backend {
+  grid-area: backend;
 }
 
-.sql {
-  grid-area: sql;
+/* サービスの行と技術の行を外の格子に合わせ、ブラウザと矢印をサービスの箱の高さにそろえる */
+.frontend,
+.backend {
+  grid-template-rows: subgrid;
 }
 
-.ai {
-  grid-area: ai;
+.external {
+  grid-area: external;
 }
 
-.translation {
-  grid-area: translation;
+.toFrontend {
+  grid-area: toFrontend;
 }
 
-.toWorkers {
-  grid-area: toWorkers;
+.toBackend {
+  grid-area: toBackend;
 }
 
-.toRun {
-  grid-area: toRun;
-}
-
-.toSql {
-  grid-area: toSql;
-}
-
-.toAi {
-  grid-area: toAi;
-}
-
-.toTranslation {
-  grid-area: toTranslation;
-}
-
-.toAi,
-.toTranslation {
+.toExternal {
+  grid-area: toExternal;
   transform: rotate(90deg);
 }
 
-/* Workers を枝の数だけ広げ (狭い画面では高くし)、枝ごとに矢印を 1 本ずつ引く */
+.browser,
+.toFrontend,
+.toBackend {
+  margin-top: calc(var(--group-head) + 1px);
+}
+
 @media (--narrow) {
   .architecture {
     grid-template-areas:
-      "browser . ."
-      "toWorkers . ."
-      "workers toAi ai"
-      "workers toTranslation translation"
-      "toRun . ."
-      "run . ."
-      "toSql . ."
-      "sql . .";
-    grid-template-columns: 1fr auto 1fr;
+      "browser browser"
+      "toFrontend toFrontend"
+      "frontend frontend"
+      "toBackend toExternal"
+      "backend external";
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
   }
 
-  .toWorkers,
-  .toRun,
-  .toSql {
+  .frontend,
+  .backend {
+    grid-template-rows: none;
+    align-content: start;
+  }
+
+  .browser,
+  .toFrontend,
+  .toBackend {
+    margin-top: 0;
+  }
+
+  .toFrontend,
+  .toBackend,
+  .backend .toSql {
     transform: rotate(90deg);
   }
 
-  .toAi,
-  .toTranslation {
-    transform: none;
+  .backend .services,
+  .external .services {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
