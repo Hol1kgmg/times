@@ -106,9 +106,12 @@ const parseBody = async (request: Request) => {
       return null;
     }
     return data;
-  } catch {
-    // JSON.parse の SyntaxError だけが来る。形の合わない本文と同じく断る
-    return null;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      // JSON でない本文は壊れた送信か手作りの送信で、再送も記録も要らない
+      return null;
+    }
+    throw error;
   }
 };
 

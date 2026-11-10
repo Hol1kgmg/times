@@ -29,9 +29,8 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
 let lastPath: string | undefined;
 
 const PageView = () => {
-  const match = useRouterState({ select: (s) => s.matches.at(-1) });
-  const routeId = match?.routeId;
-  const pathname = match?.pathname;
+  const routeId = useRouterState({ select: (s) => s.matches.at(-1)?.routeId });
+  const pathname = useRouterState({ select: (s) => s.matches.at(-1)?.pathname });
   useEffect(() => {
     if (routeId === undefined || pathname === lastPath) {
       return;
