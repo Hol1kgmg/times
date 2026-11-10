@@ -84,15 +84,30 @@ const send = async (url: string, body: string) => {
 };
 
 const parseBody = async (request: Request) => {
-  const text = await request.text();
-  if (text.length > MAX_BODY) {
+  // 読む前に断らないと、上限を超える本文もメモリに載ってしまう
+  if (Number(request.headers.get("content-length")) > MAX_BODY) {
+    return null;
+  }
+  const bytes = await request.arrayBuffer();
+  if (bytes.byteLength > MAX_BODY) {
     return null;
   }
   try {
-    const parsed = openEvent.safeParse(JSON.parse(text));
-    return parsed.success ? parsed.data : null;
+    const parsed = openEvent.safeParse(JSON.parse(new TextDecoder().decode(bytes)));
+    if (!parsed.success) {
+      return null;
+    }
+    const { data } = parsed;
+    // 他のホストの page_location を受けると GA4 のページのレポートが汚れる
+    if (
+      data.event === "page_view" &&
+      new URL(data.location).origin !== new URL(request.url).origin
+    ) {
+      return null;
+    }
+    return data;
   } catch {
-    // JSON でない本文は形の合わない本文と同じく 400 にする
+    // JSON.parse の SyntaxError だけが来る。形の合わない本文と同じく断る
     return null;
   }
 };

@@ -68,8 +68,14 @@ describe("閲覧と記事を開いた記録の受付", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("rejects a body larger than 4 KB", async () => {
-    const res = await open({ ...pageView, title: "a".repeat(5000) });
+  it("rejects a body larger than 4 KB in UTF-8 even when it has fewer than 4096 characters", async () => {
+    const res = await open({ ...pageView, title: "あ".repeat(1500) });
+    expect(res.status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects a page_location on another origin", async () => {
+    const res = await open({ ...pageView, location: "https://evil.example/spam" });
     expect(res.status).toBe(400);
     expect(fetch).not.toHaveBeenCalled();
   });
