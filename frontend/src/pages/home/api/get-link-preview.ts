@@ -1,9 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { loadLinkPreviewCached } from "#/shared/api/index.server";
+import { loadLatestDigest, loadLinkPreviewCached } from "#/shared/api/index.server";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { digestHasUrl } from "../model/digest-urls";
-import { loadLatestDigest } from "./get-latest-digest";
 
 export const getLinkPreview = createServerFn({ method: "GET" })
   .validator(z.url({ protocol: /^https?$/u }).max(2000))

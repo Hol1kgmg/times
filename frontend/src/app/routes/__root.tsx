@@ -11,9 +11,11 @@ import kleeOne400Css from "@fontsource/klee-one/400.css?url";
 import kleeOne600Css from "@fontsource/klee-one/600.css?url";
 import kleeOneFixed400 from "../styles/fonts/klee-one-fixed-400.woff2?url";
 import kleeOneFixed600 from "../styles/fonts/klee-one-fixed-600.woff2?url";
+import { NotFoundPage } from "#/pages/not-found";
 import { reportPageView } from "#/shared/api";
 import { getCurrentAdmin } from "#/shared/auth";
 import { FEED_PATH, SITE_NAME, SITE_URL } from "#/shared/config/site";
+import { RootLayout } from "../layout/root-layout";
 import type { FileRoutesById } from "../routeTree.gen";
 import appCss from "../styles/global.css?url";
 
@@ -47,13 +49,19 @@ const PageView = () => {
 export const Route = createRootRoute({
   // ログイン中はサイドバーに管理者向けリンクを出す
   beforeLoad: async () => ({ viewer: await getCurrentAdmin() }),
-  head: () => ({
+  // notFoundMode: "root" の 404 は root の match に status ではなく _notFound で付く
+  head: ({ match }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       // meta は CSS 変数を読めないので、ダークの --color-bg を直書きする。ライトはブラウザが地の色から取る
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#1e1f22" },
-      { title: SITE_NAME },
+      ...(match._notFound === true
+        ? [
+            { title: `ページが見つかりません | ${SITE_NAME}` },
+            { name: "robots", content: "noindex" },
+          ]
+        : [{ title: SITE_NAME }]),
       { name: "description", content: description },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE_NAME },
@@ -83,6 +91,11 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
     ],
   }),
+  notFoundComponent: () => (
+    <RootLayout>
+      <NotFoundPage />
+    </RootLayout>
+  ),
   component: () => (
     <html lang="ja">
       <head>

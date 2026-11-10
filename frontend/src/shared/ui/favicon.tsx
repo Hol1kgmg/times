@@ -1,8 +1,10 @@
 import fallbackFavicon from "./fallback-favicon.svg";
 import styles from "./favicon.module.css";
 
+export { default as fallbackFavicon } from "./fallback-favicon.svg";
+
 // sz=32 は 16px 表示を高密度画面でぼかさないため
-const faviconUrl = (url: string) =>
+export const faviconUrl = (url: string) =>
   `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`;
 
 export const Favicon = ({

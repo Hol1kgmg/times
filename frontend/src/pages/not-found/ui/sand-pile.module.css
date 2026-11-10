@@ -1,0 +1,9 @@
+/* 測った大きさで固定し、リサイズで favicon を伸ばさない。山は中央に積もるので下端・中央で切る */
+.pile {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: -1;
+  translate: -50% 0;
+  pointer-events: none;
+}
