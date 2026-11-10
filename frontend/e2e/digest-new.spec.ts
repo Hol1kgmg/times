@@ -1,9 +1,18 @@
 import { expect, test } from "@playwright/test";
+import type { Request } from "@playwright/test";
+import { z } from "zod";
 import { boardOf, fillDate, loggedInState } from "./admin";
 
 const newPath = "/admin/digests/new";
 
-test("URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並んで記事を押すと開いた記録が送られ、フィードに通知が載り、それより前の日付の公開は通知されず、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
+const openBody = z.looseObject({ event: z.string(), clientId: z.string() });
+
+const isOpen = (event: string) => (r: Request) =>
+  r.url().endsWith("/open") &&
+  r.method() === "POST" &&
+  openBody.safeParse(r.postDataJSON()).data?.event === event;
+
+test("トップを開くと閲覧の記録が送られ、URL を貼って集め、カテゴリへドラッグし、関連記事とホットを付けて登録すると、トップに配置どおり並んで記事を押すと同じ読み手の開いた記録が送られ、フィードに通知が載り、それより前の日付の公開は通知されず、タイムラインの最下段に古い順の続きとして出て、その日に登録を開き直すと編集へ移れる", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -14,7 +23,14 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   const date = new Date(run - 365 * 86_400_000).toISOString().slice(0, 10);
   const { unsorted, dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
 
-  await page.goto("/");
+  const viewed = page.waitForRequest(isOpen("page_view"));
+  await page.goto("/?utm_source=e2e");
+  const viewRequest = await viewed;
+  const pageView = openBody.parse(viewRequest.postDataJSON());
+  expect(pageView).toMatchObject({
+    clientId: expect.stringMatching(/^[\da-f-]{36}$/u),
+    location: new URL("/", page.url()).href,
+  });
   await page.waitForLoadState("networkidle");
   await page.getByRole("link", { name: "記事を登録" }).click();
   await page.waitForURL((url) => url.pathname === newPath);
@@ -63,11 +79,14 @@ test("URL を貼って集め、カテゴリへドラッグし、関連記事と�
   // 計測のために中継の URL へ差し替えず、コピーで記事の URL が取れること (specs/013)
   const securityUrl = `https://e2e.example/${run}/${encodeURIComponent(security)}`;
   await expect(links.first()).toHaveAttribute("href", securityUrl);
-  const opened = page.waitForRequest((r) => r.url().endsWith("/open") && r.method() === "POST");
+  const opened = page.waitForRequest(isOpen("article_click"));
   const tab = context.waitForEvent("page");
   await links.first().click();
   const openRequest = await opened;
+  // 見ただけの記録と押した記録が同じ匿名の読み手として数えられること (specs/014)
   expect(openRequest.postDataJSON()).toEqual({
+    event: "article_click",
+    clientId: pageView.clientId,
     articleId: expect.stringMatching(/^[\da-f-]{36}$/u),
     url: securityUrl,
     entryDate: date,

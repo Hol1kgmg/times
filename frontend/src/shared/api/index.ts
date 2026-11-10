@@ -5,7 +5,7 @@ export { listAllArticleDomains, listArticleDomains } from "./list-article-domain
 export { listDigests } from "./list-digests";
 export { listPublishedDigests } from "./list-published-digests";
 export { loadAnyLinkPreview } from "./load-any-link-preview";
-export { reportArticleOpen } from "./report-article-open";
+export { reportArticleOpen, reportPageView } from "./report";
 export * from "./schemas";
 export { suggestCategory } from "./suggest-category";
 export { autoTranslateTitle, translateTitle } from "./translate-title";
