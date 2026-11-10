@@ -293,7 +293,8 @@ dialog.modal {
 }
 
 .icon-button[data-hovered],
-.icon-button[data-focus-visible] {
+.icon-button[data-focus-visible],
+.icon-button[aria-expanded="true"] {
   color: var(--color-accent);
 }
 
