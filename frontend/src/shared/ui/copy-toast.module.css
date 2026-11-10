@@ -1,0 +1,59 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.toast {
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* 折りたたみ中のパネルは overflow: clip で上端を切るので、fixed で抜け出してボタンに寄せる */
+@supports (position-area: top) {
+  /* 記事行には同じ名前が記事の数だけ並び、閉じないと最後の 1 つに寄る */
+  .wrap {
+    anchor-scope: --copy;
+  }
+
+  .wrap > :first-child {
+    anchor-name: --copy;
+  }
+
+  .toast {
+    position: fixed;
+    inset: auto;
+    transform: none;
+    position-anchor: --copy;
+    position-area: top;
+    margin-bottom: var(--space-1);
+  }
+}
+
+.toastText {
+  composes: t-meta from global;
+  display: block;
+  padding: var(--space-half) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  animation: toast-in 0.15s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toastText {
+    animation: none;
+  }
+}

@@ -276,3 +276,38 @@ dialog.modal {
     transform: none;
   }
 }
+
+/* 行や日付の線に添えるアイコンだけのボタン。枠と地を持たず、色だけで状態を示す */
+.icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color 0.1s ease-out,
+    transform 0.1s ease-out;
+}
+
+.icon-button[data-hovered],
+.icon-button[data-focus-visible] {
+  color: var(--color-accent);
+}
+
+/* RAC は開いている間も data-pressed を残すので、縮めたままだとホバーの判定まで縮み、縁で開閉を繰り返す */
+.icon-button[data-pressed]:not([aria-expanded="true"]) {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-button {
+    transition: none;
+  }
+
+  .icon-button[data-pressed]:not([aria-expanded="true"]) {
+    transform: none;
+  }
+}

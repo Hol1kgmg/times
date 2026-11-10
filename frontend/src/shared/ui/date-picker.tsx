@@ -17,6 +17,7 @@ import {
   I18nProvider,
 } from "react-aria-components";
 import { Temporal } from "temporal-polyfill/implementation";
+import { reducedMotion } from "#/shared/lib/reduced-motion";
 import { Chevron } from "#/shared/ui/chevron";
 import { HoverButton } from "#/shared/ui/hover-button";
 import { monthDays } from "#/shared/lib/month-days";
@@ -231,7 +232,7 @@ export const DatePickerDialog = ({
     const entering = center(weekdaysAt);
     const card = entering ? leaving.current : center(cardAt(ym));
     const week = entering ?? leaving.current;
-    if (!card || !week || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!card || !week || reducedMotion()) {
       return;
     }
     const hidden = { opacity: 0, translate: `${card.x - week.x}px ${card.y - week.y}px` };

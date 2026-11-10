@@ -48,3 +48,5 @@ const meta = {
 export default meta;
 
 export const Default: StoryObj<typeof meta> = {};
+
+export const WithAskAi: StoryObj<typeof meta> = { args: { ai: { shown: true } } };

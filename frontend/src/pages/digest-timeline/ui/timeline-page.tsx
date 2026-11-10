@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Button } from "react-aria-components";
 import { flushSync } from "react-dom";
 import { listPublishedDigests, loadAnyLinkPreview, reportArticleOpen } from "#/shared/api";
+import { AiToggle } from "#/shared/ui/ai-toggle";
 import { DigestPost, dateFormat } from "#/shared/ui/digest-post";
 import { PAGE_SIZE, prependPage } from "../model/timeline";
 import styles from "./timeline-page.module.css";
@@ -17,6 +18,7 @@ export const TimelinePage = () => {
   const [timeline, setTimeline] = useState(() => prependPage([], first.digests));
   const { digests, done } = timeline;
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [aiShown, setAiShown] = useState(false);
   const edgeRef = useRef<HTMLOutputElement>(null);
 
   useLayoutEffect(() => {
@@ -82,6 +84,8 @@ export const TimelinePage = () => {
       {digests.map((d) => (
         <section key={d.id} aria-label={dateFormat.format(new Date(d.entryDate))}>
           <DigestPost
+            action={<AiToggle isSelected={aiShown} onChange={setAiShown} />}
+            ai={{ shown: aiShown }}
             digest={d}
             loadPreview={loadAnyLinkPreview}
             onOpen={reportArticleOpen(d.entryDate)}

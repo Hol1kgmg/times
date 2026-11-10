@@ -20,6 +20,9 @@
 }
 
 .row {
+  --ask-ai-width: calc(var(--space-half) + 16px);
+  /* 吹き出しは IconWrapper の既定の size 28 で描かれ、幅はその 2 倍 */
+  --hot-width: calc(var(--space-half) + 16px + var(--space-half) + 56px);
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -29,6 +32,74 @@
 /* リンクをインラインのままにして、ホバーがテキストの行ボックスだけで効くようにする */
 .text {
   min-width: 0;
+  /* 改行をタイトルの文字の中だけに絞る。Chrome は WORD JOINER があってもアイコンと炎の間で折り返す */
+  white-space: nowrap;
+}
+
+.titleText,
+.preview {
+  white-space: normal;
+}
+
+/*
+ * 幅はリンクの末尾で普段から取り、アイコンは送り幅 0 でその上に重ねる (specs/015 R8)。
+ * リンクの外に幅を持たせると、直前との間で折り返してアイコンだけ次の行へ落ちる。
+ */
+.row:has(.askAi) .title::after {
+  display: inline-block;
+  width: var(--ask-ai-width);
+  content: "";
+}
+
+/* 確保した幅の上へ普段は寄せておき、アイコンを出すときに戻す */
+.row:has(.askAi) .hot {
+  translate: calc(-1 * var(--ask-ai-width));
+}
+
+/* リンクの外でも 1lh をタイトルの行の高さにそろえる */
+.askAi {
+  composes: t-title from global;
+  align-items: center;
+  width: var(--ask-ai-width);
+  height: 1lh;
+  margin-left: calc(-1 * var(--ask-ai-width));
+  vertical-align: top;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease-out,
+    visibility 0s 0.2s;
+}
+
+.askAi > :first-child {
+  scale: 0;
+  transform-origin: left center;
+  transition: scale 0.2s ease-out;
+}
+
+/* タップでもフォーカスは来るので、:focus-within ではなくキーボードのフォーカスだけを見る */
+.row:is(
+  [data-ai-shown],
+  :has(
+    .zone[data-hovered],
+    .zone [data-focus-visible],
+    .askAi [aria-expanded="true"],
+    .askAi[data-holding]
+  )
+) {
+  & .askAi {
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  & .askAi > :first-child {
+    scale: 1;
+  }
+
+  & .hot {
+    translate: 0;
+  }
 }
 
 /* 24px の行高に対して 16px を上下中央に置く */
@@ -72,8 +143,8 @@
   }
 
   /* 一覧の上を通り過ぎただけで出さないよう待つ。interestfor は Chrome だけなので使わない (adr/frontend/0006) */
-  .text > a:not([data-dismissed])[data-hovered] + .preview,
-  .text > a:not([data-dismissed]):focus-visible + .preview {
+  .zone > a:not([data-dismissed])[data-hovered] + .preview,
+  .zone > a:not([data-dismissed]):focus-visible + .preview {
     position: absolute;
     top: 100%;
     left: var(--space-4);
@@ -91,8 +162,8 @@
 
   /* カード下端で収まらなければリンクの上側に出す。fixed にしないと溢れ判定の基準が行の高さになり常に flip する */
   @supports (position-area: bottom span-right) {
-    .text > a:not([data-dismissed])[data-hovered] + .preview,
-    .text > a:not([data-dismissed]):focus-visible + .preview {
+    .zone > a:not([data-dismissed])[data-hovered] + .preview,
+    .zone > a:not([data-dismissed]):focus-visible + .preview {
       position: fixed;
       inset: auto;
       position-anchor: --link;
@@ -103,14 +174,18 @@
   }
 }
 
+/* リンクの外でも 1lh をタイトルの行の高さにそろえる */
 .hot {
+  composes: t-title from global;
   display: inline-flex;
   align-items: center;
   gap: var(--space-half);
+  width: var(--hot-width);
   height: 1lh;
-  margin-left: var(--space-half);
+  padding-left: var(--space-half);
   color: var(--color-brand);
   vertical-align: top;
+  transition: translate 0.2s ease-out;
 }
 
 /* ロゴのタイルと同じ「橙の地に白」の小さな印 */
@@ -135,15 +210,17 @@
       opacity 0.1s ease-out;
   }
 
-  .title[data-hovered] .hotLabel,
-  .title:focus-visible .hotLabel {
+  .hot[data-pointed] .hotLabel {
     opacity: 1;
     transform: scale(1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hotLabel {
+  .hotLabel,
+  .hot,
+  .askAi,
+  .askAi > :first-child {
     transition: none;
   }
 }

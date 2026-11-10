@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { reducedMotion } from "#/shared/lib/reduced-motion";
 import { fallbackFavicon, faviconUrl } from "#/shared/ui/favicon";
 import { buildPile } from "../lib/pile";
 import styles from "./sand-pile.module.css";
@@ -91,7 +92,7 @@ const startPile = async (
   if (signal.aborted) {
     return;
   }
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (reducedMotion()) {
     draw(total);
     return;
   }
