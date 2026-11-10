@@ -44,6 +44,10 @@ const faqs = [
     a: "Google アナリティクスで、ページが見られた数と記事が押された数を数えてます。同じブラウザを見分けるために、ランダムな ID をブラウザに保存してます (名前やログインとは結び付けてません)。ブラウザの設定でこのサイトのデータを消すと、ID も消えます。",
   },
   {
+    q: "どうやって作ってる？",
+    a: "画面は Cloudflare Workers から出してて、記事のデータは Google Cloud (Cloud Run と Cloud SQL) に置いてます。カテゴリの振り分けは Workers AI、タイトルの翻訳は Google の Cloud Translation に任せてます。作りは TanStack Start (React) と Go です。",
+  },
+  {
     q: "誰がやってる？",
     a: (
       <>
