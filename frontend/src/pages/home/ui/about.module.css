@@ -173,3 +173,171 @@
 .answer a {
   color: var(--color-accent);
 }
+
+.architecture {
+  --group-head: calc(var(--space-2) + var(--space-4));
+  display: grid;
+  grid-template-areas:
+    "browser toFrontend frontend toBackend backend"
+    ". . frontend . backend"
+    ". . toExternal . ."
+    ". . external external external";
+  grid-template-columns: auto auto auto auto 1fr;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.node {
+  composes: t-label from global;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  text-align: center;
+}
+
+/* 横にサービス名があり装飾なので、非テキストの 3:1 を満たさないロゴ色でよい */
+.node > svg,
+.stack svg {
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.group {
+  position: relative;
+  display: grid;
+  align-self: stretch;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--group-head) var(--space-3) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-fill-faint);
+}
+
+/* 見出しを行に入れると subgrid の 1 行目が見出しになり、枠の外のブラウザと矢印をサービスの箱にそろえられない */
+.groupLabel {
+  composes: t-meta from global;
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-3);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.services {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.stack {
+  composes: t-meta from global;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  list-style: none;
+}
+
+.stack li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faint);
+}
+
+.browser {
+  grid-area: browser;
+}
+
+.frontend {
+  grid-area: frontend;
+}
+
+.backend {
+  grid-area: backend;
+}
+
+/* サービスの行と技術の行を外の格子に合わせ、ブラウザと矢印をサービスの箱の高さにそろえる */
+.frontend,
+.backend {
+  grid-template-rows: subgrid;
+}
+
+.external {
+  grid-area: external;
+}
+
+.toFrontend {
+  grid-area: toFrontend;
+}
+
+.toBackend {
+  grid-area: toBackend;
+}
+
+.toExternal {
+  grid-area: toExternal;
+  transform: rotate(90deg);
+}
+
+.browser,
+.toFrontend,
+.toBackend {
+  margin-top: calc(var(--group-head) + 1px);
+}
+
+@media (--narrow) {
+  .architecture {
+    grid-template-areas:
+      "browser browser"
+      "toFrontend toFrontend"
+      "frontend frontend"
+      "toBackend toExternal"
+      "backend external";
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+
+  .frontend,
+  .backend {
+    grid-template-rows: none;
+    align-content: start;
+  }
+
+  .browser,
+  .toFrontend,
+  .toBackend {
+    margin-top: 0;
+  }
+
+  .toFrontend,
+  .toBackend,
+  .backend .toSql {
+    transform: rotate(90deg);
+  }
+
+  .backend .services,
+  .external .services {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -10,7 +10,17 @@ import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
 import { categoryIcons } from "#/shared/ui/category-icons";
+import { Archive } from "#/shared/ui/icons/archive";
+import { BrandIcon } from "#/shared/ui/icons/brand";
+import type { Brand } from "#/shared/ui/icons/brand";
+import { ChartLine } from "#/shared/ui/icons/chart-line";
+import { Cog } from "#/shared/ui/icons/cog";
+import { Globe } from "#/shared/ui/icons/globe";
 import { HotBubble } from "#/shared/ui/icons/hot-bubble";
+import { LineIcon } from "#/shared/ui/icons/line-icon";
+import { Sparkles } from "#/shared/ui/icons/sparkles";
+import { Translate } from "#/shared/ui/icons/translate";
+import { Zap } from "#/shared/ui/icons/zap";
 
 const categoryTexts = {
   セキュリティ: "注意喚起とか脆弱性の話",
@@ -21,7 +31,87 @@ const categoryTexts = {
   その他: "どれにも入らなかったもの",
 } satisfies Record<Category, string>;
 
-const faqs = [
+const arrowIcon = "M5 12h14M13 6l6 6-6 6";
+
+const Node = ({ className, icon, name }: { className?: string; icon: ReactNode; name: string }) => (
+  <div className={`${styles.node} ${className ?? ""}`}>
+    {icon}
+    {name}
+  </div>
+);
+
+const Group = ({
+  children,
+  className,
+  label,
+  stack,
+}: {
+  children: ReactNode;
+  className: string;
+  label: string;
+  stack?: [Brand, string][];
+}) => (
+  <div className={`${styles.group} ${className}`}>
+    <span className={styles.groupLabel}>{label}</span>
+    <div className={styles.services}>{children}</div>
+    {stack && (
+      <ul className={styles.stack}>
+        {stack.map(([brand, name]) => (
+          <li key={name}>
+            <BrandIcon brand={brand} size={14} />
+            {name}
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+);
+
+const Arrow = ({ className }: { className: string }) => (
+  <span className={`${styles.arrow} ${className}`}>
+    <LineIcon d={arrowIcon} size={18} />
+  </span>
+);
+
+// 構成が変わったら docs/tech-stack.md と FAQ の文章もあわせて直す
+const Architecture = () => (
+  <div aria-hidden="true" className={styles.architecture}>
+    <Node className={styles.browser} icon={<Globe size={18} />} name="ブラウザ" />
+    <Arrow className={styles.toFrontend} />
+    <Group
+      className={styles.frontend}
+      label="フロントエンド"
+      stack={[
+        ["React", "React"],
+        ["TanStack", "TanStack Start"],
+      ]}
+    >
+      <Node icon={<Zap size={18} />} name="Cloudflare Workers" />
+    </Group>
+    <Arrow className={styles.toBackend} />
+    <Group
+      className={styles.backend}
+      label="バックエンド"
+      stack={[
+        ["Go", "Go"],
+        ["Gin", "Gin"],
+        ["PostgreSQL", "PostgreSQL"],
+      ]}
+    >
+      <Node icon={<Cog size={18} />} name="Cloud Run" />
+      <Arrow className={styles.toSql} />
+      <Node icon={<Archive size={18} />} name="Cloud SQL" />
+    </Group>
+    <Arrow className={styles.toExternal} />
+    <Group className={styles.external} label="外部サービス">
+      <Node icon={<Sparkles size={18} />} name="Workers AI" />
+      <Node icon={<Translate size={18} />} name="Cloud Translation" />
+      <Node icon={<ChartLine size={18} />} name="GA4" />
+    </Group>
+  </div>
+);
+
+const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
   {
     q: "どうやって見ればいい？",
     a: "記事はカテゴリごとに並んでます。押すと元のページが別タブで開きます。",
@@ -44,6 +134,11 @@ const faqs = [
     a: "Google アナリティクスで、ページが見られた数と記事が押された数を数えてます。同じブラウザを見分けるために、ランダムな ID をブラウザに保存してます (名前やログインとは結び付けてません)。ブラウザの設定でこのサイトのデータを消すと、ID も消えます。",
   },
   {
+    q: "どうやって作ってる？",
+    a: "画面は Cloudflare Workers から出してて、記事のデータは Google Cloud (Cloud Run と Cloud SQL) に置いてます。カテゴリの振り分けは Workers AI、タイトルの翻訳は Google の Cloud Translation に任せてます。閲覧の数は Workers から Google アナリティクス (GA4) に送ってます。作りは TanStack Start (React) と Go です。",
+    figure: <Architecture />,
+  },
+  {
     q: "誰がやってる？",
     a: (
       <>
@@ -58,7 +153,17 @@ const faqs = [
 ];
 
 // <details> は閉じると中身が描画されず、閉じる側のアニメーションを CSS だけで付けられない
-const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: boolean }) => (
+const FaqItem = ({
+  q,
+  a,
+  figure,
+  defaultOpen,
+}: {
+  q: string;
+  a: ReactNode;
+  figure?: ReactNode;
+  defaultOpen: boolean;
+}) => (
   <Disclosure className={styles.faqItem} defaultExpanded={defaultOpen}>
     <Button className={styles.question} slot="trigger">
       {q}
@@ -66,6 +171,7 @@ const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: 
     </Button>
     <DisclosurePanel className={styles.panel}>
       <p className={styles.answer}>{a}</p>
+      {figure}
     </DisclosurePanel>
   </Disclosure>
 );
@@ -119,8 +225,8 @@ export const About = () => (
     <div className={styles.block}>
       <h3 className={styles.blockHeading}>気になりそうなこと</h3>
       <div className={styles.faq}>
-        {faqs.map(({ q, a }, i) => (
-          <FaqItem key={q} a={a} defaultOpen={i === 0} q={q} />
+        {faqs.map(({ q, a, figure }, i) => (
+          <FaqItem key={q} a={a} defaultOpen={i === 0} figure={figure} q={q} />
         ))}
       </div>
     </div>
