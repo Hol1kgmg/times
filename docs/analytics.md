@@ -21,7 +21,7 @@
 
 | イベント | いつ | params |
 |---|---|---|
-| `page_view` | 公開画面 (`/`・`/timeline`・`/digest/$date`) を開く・移るたび。管理画面とログイン画面は送らない | `page_location` (クエリ・フラグメントなし)、`page_title` |
+| `page_view` | 公開画面 (`/`・`/timeline`) を開く・移るたび。管理画面とログイン画面は送らない。通知のリンク先 `/digest/$date` はすぐトップへ移るので、トップの分だけ数える | `page_location` (クエリ・フラグメントなし)、`page_title` |
 | `article_click` | トップ・タイムラインの記事リンクのクリック・タップ・中クリック。プレビューは送らない | `article_id`、`article_url` (先頭 100 文字)、`digest_date` |
 
 - どちらも `client_id` = 匿名 ID (localStorage `times.cid` の UUID。保存できないブラウザではページの中だけの ID)、`engagement_time_msec: 1`、`ip_override` (地域)、`device.category` を付ける。`session_id` は付けない。

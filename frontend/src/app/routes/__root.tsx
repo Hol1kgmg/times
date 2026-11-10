@@ -19,11 +19,10 @@ import appCss from "../styles/global.css?url";
 
 const description = "見かけて気になった技術や趣味の記事を、日ごとにゆるくまとめてます。";
 
-// 除外リストだとログイン画面の秘密のパスまで GA4 に載る (specs/014 research R2)
+// 除外リストだとログイン画面の秘密のパスまで GA4 に載る。/digest/$date は meta refresh で / へ移り二重に数えるので入れない (specs/014 research R2)
 const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   "/",
   "/_shell/timeline",
-  "/digest/$date",
 ] satisfies (keyof FileRoutesById)[]);
 
 // Strict Mode の effect の二重実行と同じ URL への移動で数を増やさないため、描画をまたいで持つ

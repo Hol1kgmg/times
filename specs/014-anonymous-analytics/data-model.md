@@ -43,4 +43,4 @@ DB は変えない。値はブラウザの localStorage と GA4 にだけ置く�
 
 ## 公開画面 (page_view を送る routeId)
 
-`/`、`/_shell/timeline`、`/digest/$date`。これ以外 (`/_shell/admin.*`、`/_shell/$loginPath.auth.login`、`/auth/github/callback`、`/_shell/health`) は送らない。
+`/`、`/_shell/timeline`。これ以外 (`/digest/$date` (トップへ移るだけ)、`/_shell/admin.*`、`/_shell/$loginPath.auth.login`、`/auth/github/callback`、`/_shell/health`) は送らない。
