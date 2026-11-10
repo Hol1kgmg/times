@@ -173,3 +173,118 @@
 .answer a {
   color: var(--color-accent);
 }
+
+.architecture {
+  display: grid;
+  grid-template-areas:
+    "browser toWorkers workers workers toRun run toSql sql"
+    ". . toAi toTranslation . . . ."
+    ". . ai translation . . . .";
+  grid-template-columns: 1fr auto 1fr 1fr auto 1fr auto 1fr;
+  gap: var(--space-1);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.node {
+  composes: t-label from global;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  text-align: center;
+}
+
+/* 横にサービス名があり装飾なので、非テキストの 3:1 を満たさないロゴ色でよい */
+.node > svg {
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faint);
+}
+
+.browser {
+  grid-area: browser;
+}
+
+.workers {
+  grid-area: workers;
+}
+
+.run {
+  grid-area: run;
+}
+
+.sql {
+  grid-area: sql;
+}
+
+.ai {
+  grid-area: ai;
+}
+
+.translation {
+  grid-area: translation;
+}
+
+.toWorkers {
+  grid-area: toWorkers;
+}
+
+.toRun {
+  grid-area: toRun;
+}
+
+.toSql {
+  grid-area: toSql;
+}
+
+.toAi {
+  grid-area: toAi;
+}
+
+.toTranslation {
+  grid-area: toTranslation;
+}
+
+.toAi,
+.toTranslation {
+  transform: rotate(90deg);
+}
+
+/* Workers を枝の数だけ広げ (狭い画面では高くし)、枝ごとに矢印を 1 本ずつ引く */
+@media (--narrow) {
+  .architecture {
+    grid-template-areas:
+      "browser . ."
+      "toWorkers . ."
+      "workers toAi ai"
+      "workers toTranslation translation"
+      "toRun . ."
+      "run . ."
+      "toSql . ."
+      "sql . .";
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .toWorkers,
+  .toRun,
+  .toSql {
+    transform: rotate(90deg);
+  }
+
+  .toAi,
+  .toTranslation {
+    transform: none;
+  }
+}

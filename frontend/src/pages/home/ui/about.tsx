@@ -10,7 +10,14 @@ import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
 import { categoryIcons } from "#/shared/ui/category-icons";
+import { Archive } from "#/shared/ui/icons/archive";
+import { Cog } from "#/shared/ui/icons/cog";
+import { Globe } from "#/shared/ui/icons/globe";
 import { HotBubble } from "#/shared/ui/icons/hot-bubble";
+import { LineIcon } from "#/shared/ui/icons/line-icon";
+import { Sparkles } from "#/shared/ui/icons/sparkles";
+import { Translate } from "#/shared/ui/icons/translate";
+import { Zap } from "#/shared/ui/icons/zap";
 
 const categoryTexts = {
   セキュリティ: "注意喚起とか脆弱性の話",
@@ -21,7 +28,39 @@ const categoryTexts = {
   その他: "どれにも入らなかったもの",
 } satisfies Record<Category, string>;
 
-const faqs = [
+const arrowIcon = "M5 12h14M13 6l6 6-6 6";
+
+const Node = ({ className, icon, name }: { className: string; icon: ReactNode; name: string }) => (
+  <div className={`${styles.node} ${className}`}>
+    {icon}
+    {name}
+  </div>
+);
+
+const Arrow = ({ className }: { className: string }) => (
+  <span className={`${styles.arrow} ${className}`}>
+    <LineIcon d={arrowIcon} size={18} />
+  </span>
+);
+
+// 構成が変わったら docs/tech-stack.md と FAQ の文章もあわせて直す
+const Architecture = () => (
+  <div aria-hidden="true" className={styles.architecture}>
+    <Node className={styles.browser} icon={<Globe size={18} />} name="ブラウザ" />
+    <Arrow className={styles.toWorkers} />
+    <Node className={styles.workers} icon={<Zap size={18} />} name="Cloudflare Workers" />
+    <Arrow className={styles.toRun} />
+    <Node className={styles.run} icon={<Cog size={18} />} name="Cloud Run (Go)" />
+    <Arrow className={styles.toSql} />
+    <Node className={styles.sql} icon={<Archive size={18} />} name="Cloud SQL" />
+    <Arrow className={styles.toAi} />
+    <Node className={styles.ai} icon={<Sparkles size={18} />} name="Workers AI" />
+    <Arrow className={styles.toTranslation} />
+    <Node className={styles.translation} icon={<Translate size={18} />} name="Cloud Translation" />
+  </div>
+);
+
+const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
   {
     q: "どうやって見ればいい？",
     a: "記事はカテゴリごとに並んでます。押すと元のページが別タブで開きます。",
@@ -46,6 +85,7 @@ const faqs = [
   {
     q: "どうやって作ってる？",
     a: "画面は Cloudflare Workers から出してて、記事のデータは Google Cloud (Cloud Run と Cloud SQL) に置いてます。カテゴリの振り分けは Workers AI、タイトルの翻訳は Google の Cloud Translation に任せてます。作りは TanStack Start (React) と Go です。",
+    figure: <Architecture />,
   },
   {
     q: "誰がやってる？",
@@ -62,7 +102,17 @@ const faqs = [
 ];
 
 // <details> は閉じると中身が描画されず、閉じる側のアニメーションを CSS だけで付けられない
-const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: boolean }) => (
+const FaqItem = ({
+  q,
+  a,
+  figure,
+  defaultOpen,
+}: {
+  q: string;
+  a: ReactNode;
+  figure?: ReactNode;
+  defaultOpen: boolean;
+}) => (
   <Disclosure className={styles.faqItem} defaultExpanded={defaultOpen}>
     <Button className={styles.question} slot="trigger">
       {q}
@@ -70,6 +120,7 @@ const FaqItem = ({ q, a, defaultOpen }: { q: string; a: ReactNode; defaultOpen: 
     </Button>
     <DisclosurePanel className={styles.panel}>
       <p className={styles.answer}>{a}</p>
+      {figure}
     </DisclosurePanel>
   </Disclosure>
 );
@@ -123,8 +174,8 @@ export const About = () => (
     <div className={styles.block}>
       <h3 className={styles.blockHeading}>気になりそうなこと</h3>
       <div className={styles.faq}>
-        {faqs.map(({ q, a }, i) => (
-          <FaqItem key={q} a={a} defaultOpen={i === 0} q={q} />
+        {faqs.map(({ q, a, figure }, i) => (
+          <FaqItem key={q} a={a} defaultOpen={i === 0} figure={figure} q={q} />
         ))}
       </div>
     </div>
