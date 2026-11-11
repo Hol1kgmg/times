@@ -69,4 +69,5 @@ decision-makers: 'Hol1kgmg'
 ## More Information
 
 - 関連: [adr/backend/0003](../backend/0003-call-backend-from-server-functions-only.md) (Workers だけが backend を呼ぶ前提)、[adr/backend/0006](../backend/0006-host-backend-on-cloud-run-and-cloud-sql.md) (min instances 0 と月額の目安)
+- 計測: ヒット率と backend への到達は Workers Logs で見る ([docs/cache-metrics.md](../../docs/cache-metrics.md)、issue #140)
 - 再検討条件: 更新の即時反映が要るとき、ヒット率が低くて Cloud Run の請求が目安を超えるとき、backend に Workers 以外の消費者が付いたとき

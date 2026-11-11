@@ -30,7 +30,16 @@ export const backendFetchRaw = createServerOnlyFn(
     if (auth?.token !== undefined) {
       headers.set("Authorization", `Bearer ${auth.token}`);
     }
-    return await fetch(new URL(path, BACKEND_URL), { ...init, headers });
+    const url = new URL(path, BACKEND_URL);
+    const startedAt = Date.now();
+    const res = await fetch(url, { ...init, headers });
+    // キャッシュのログと突き合わせて backend への到達を数える (docs/cache-metrics.md)。クエリは値の種類を増やすので出さない
+    console.log({
+      backend: `${init?.method ?? "GET"} ${url.pathname}`,
+      status: res.status,
+      ms: Date.now() - startedAt,
+    });
+    return res;
   },
 );
 

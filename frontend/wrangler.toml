@@ -22,3 +22,7 @@ binding = "AI"
 [observability]
 enabled = true
 head_sampling_rate = 1
+
+# 自動のリクエストログは IP・位置・UA を毎回残すので止め、console のログだけ残す (docs/cache-metrics.md)
+[observability.logs]
+invocation_logs = false
