@@ -5,6 +5,7 @@ import { Button, Dialog, DialogTrigger, Link, Popover, Toolbar } from "react-ari
 import { aiChatUrl, aiPrompt } from "#/shared/lib/ai-chat";
 import type { AiService } from "#/shared/lib/ai-chat";
 import { reducedMotion } from "#/shared/lib/reduced-motion";
+import { safeTriangle } from "#/shared/lib/safe-triangle";
 import { CopyToast, useCopyToast } from "./copy-toast";
 import { AiBrandIcon } from "./icons/ai-brand";
 import { BotMessageSquare } from "./icons/bot-message-square";
@@ -111,6 +112,18 @@ export const AskAi = ({
 
   const { hoverProps } = useHover({ onHoverStart: keep, onHoverEnd: leave });
 
+  // アイコンからカードへ斜めに動かすと、間の記事行のプレビューやアイコンが反応するため
+  const card = useRef<HTMLElement>(null);
+  const safe = useRef<HTMLSpanElement>(null);
+  const aim = (icon: Element) => {
+    if (safe.current !== null && card.current !== null) {
+      safe.current.style.clipPath = safeTriangle(
+        icon.getBoundingClientRect(),
+        card.current.getBoundingClientRect(),
+      );
+    }
+  };
+
   // RAC がフォーカスをボタンへ戻すのは閉じるアニメーションの後なので、それまでボタンを隠さない
   const [holding, setHolding] = useState(false);
   const holder = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -183,6 +196,9 @@ export const AskAi = ({
           onPointerDownCapture={(e) => {
             pressed.current = e.pointerType === "mouse" ? "mouse" : "other";
           }}
+          onPointerMove={(e) => {
+            aim(e.currentTarget);
+          }}
         >
           <Button
             aria-label={`「${title}」を AI で解説`}
@@ -200,7 +216,12 @@ export const AskAi = ({
             )}
           </Button>
         </span>
-        <Popover className={styles.card} isNonModal={shape === "hover"} placement="bottom start">
+        <Popover
+          ref={card}
+          className={styles.card}
+          isNonModal={shape === "hover"}
+          placement="bottom start"
+        >
           {/* Dialog は開くとフォーカスを自分へ移すので、ホバーで開いたときは使わない */}
           {shape === "press" ? (
             <Dialog aria-label={`「${title}」を AI で解説`} className={styles.panel}>
@@ -209,6 +230,7 @@ export const AskAi = ({
             </Dialog>
           ) : (
             <div className={styles.panel} {...hoverProps}>
+              <span ref={safe} aria-hidden className={styles.safe} />
               {choices}
             </div>
           )}

@@ -45,6 +45,14 @@
   outline: none;
 }
 
+.safe {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  /* 座標が入る前に全画面を覆って、ほかの操作を塞がないため */
+  clip-path: polygon(0 0, 0 0, 0 0);
+}
+
 .heading {
   composes: t-meta from global;
   margin: 0;
