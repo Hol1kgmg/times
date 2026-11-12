@@ -27,7 +27,7 @@ export interface Viewer {
 
 - `AdminViewer` は、セッションの応答と `loginPath` を 1 回の `parse` で作る。`user` を `AdminUser` として parse した後で、もう一度検証し直さない
 - 使う側は `viewer.admin` があるかどうかで分ける。文字列の比較は書かない
-- 権限を受け取る関数は、必要な分だけを引数に取る。秘匿パス (`loginPath`) が要らないなら `AdminViewer` ではなく `AdminUser` を渡す (adr/frontend/0014 の WebMCP のツール)
+- 権限を受け取る関数は、必要な分だけを引数に取る。秘匿パス (`loginPath`) が要らないなら `AdminViewer` ではなく `AdminUser` を渡す。値の有無だけで足りるなら中身を渡さない (adr/frontend/0014 の WebMCP のツールは `viewer.admin` の有無だけを見る)
 - specs/016 の「全期間を見られる」は、実装するときに権限ごとのブランド型 (例: `fullTimeline?: FullTimelineAccess`) として `Viewer` に足す。今は作らない
 
 ## Consequences
@@ -41,7 +41,7 @@ export interface Viewer {
 
 - **Affected paths**: `frontend/src/shared/auth/{get-current-admin,session.server,index}.ts`、`frontend/src/app/layout/sidebar.tsx`
 - **Pattern**:
-  - `adminViewer` のスキーマは、`adminUser` と `session` のスキーマがある `session.server.ts` に置き、`session` を `extend` して作る。セッションの応答を `currentAdmin` (`AdminUser` を返す) と `currentAdminViewer` (`AdminViewer` を返す) のそれぞれが 1 回だけ parse する。`getCurrentAdmin` は `currentAdminViewer` を呼ぶだけにする
+  - `adminViewer` のスキーマは、`adminUser` と `session` のスキーマがある `session.server.ts` に置き、`session` を `extend` して作る。セッションの応答は `currentAdminViewer` が `adminViewer.parse` で 1 回だけ契約に照らす。その前の `z.looseObject({})` は `loginPath` と合わせて展開するためにオブジェクトであることだけを見る。`currentAdmin` (`AdminUser` を返す) は `currentAdminViewer` の `user` を返すだけで、検証し直さない。`getCurrentAdmin` は `currentAdminViewer` を呼ぶだけにする
   - `getCurrentAdmin` は `{ admin: AdminViewer | undefined }` を返す。秘匿パスをログイン中の応答にだけ載せる (FR-014) 点は変えない
   - `ChannelNav` は `viewer.admin && <AdminTabs admin={viewer.admin} />` にする
 - **Patterns to avoid**:
