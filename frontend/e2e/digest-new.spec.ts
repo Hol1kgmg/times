@@ -74,8 +74,14 @@ test("トップを開くと閲覧の記録が送られ、URL を貼って集め�
   await expect(panel.getByText(dateLabel, { exact: true })).toBeVisible();
   await expect(panel.getByRole("heading", { level: 3 })).toHaveText(["セキュリティ", "その他"]);
   const links = panel.getByRole("link");
-  await expect(links).toHaveText([security, related, `${other}HOT`]);
-  await expect(links.filter({ hasText: "HOT" })).toHaveText([`${other}HOT`]);
+  await expect(links).toHaveText([security, related, other]);
+  // HOT の吹き出しはリンクの外に置く (specs/015)。ホットにした記事の行にだけ出ること
+  await expect(
+    panel
+      .getByRole("listitem")
+      .filter({ has: page.getByRole("img", { name: "HOT" }) })
+      .getByRole("link"),
+  ).toHaveText([other]);
   // 計測のために中継の URL へ差し替えず、コピーで記事の URL が取れること (specs/013)
   const securityUrl = `https://e2e.example/${run}/${encodeURIComponent(security)}`;
   await expect(links.first()).toHaveAttribute("href", securityUrl);

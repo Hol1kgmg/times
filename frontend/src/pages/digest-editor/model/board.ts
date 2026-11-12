@@ -181,6 +181,75 @@ export const settleCategory = (board: Board, id: string, suggested: Category | n
 export const toggleHot = (board: Board, id: string): Board =>
   mapDrafts(board, (d) => (d.id === id ? { ...d, hot: !d.hot } : d));
 
+const hasLink = (board: Board, id: string) => links(board).some((l) => l.id === id);
+
+const linkLine = (l: Link) => `${l.id}: ${l.title === "" ? "(タイトルなし)" : l.title} / ${l.url}`;
+
+export const describeBoard = (board: Board): string =>
+  boxIds
+    .flatMap((box) => [
+      `${box} (${board[box].length} 件)`,
+      ...board[box].flatMap((d) => [
+        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}`,
+        ...d.children.map((c) => `  - 子記事 ${linkLine(c)}`),
+      ]),
+    ])
+    .join("\n");
+
+export type UpdateRejected = "missing" | "child";
+
+export const rejectUpdate = (
+  board: Board,
+  { id, category: box, hot }: DraftUpdate & { id: string },
+): UpdateRejected | null => {
+  if (locate(board, id) !== null) {
+    return null;
+  }
+  if (!hasLink(board, id)) {
+    return "missing";
+  }
+  return box === undefined && hot === undefined ? null : "child";
+};
+
+// 取得を待つ間にエージェントや人が入れたタイトルを、後から届いた取得結果で消さない
+export const fillTitle = (
+  board: Board,
+  id: string,
+  title: string,
+  translation: string | null,
+): Board =>
+  mapLink(board, id, (l) =>
+    l.title === "" && l.initial.title === ""
+      ? {
+          ...l,
+          title: translation ?? title,
+          initial: { url: l.initial.url, title },
+          translated: translation !== null,
+        }
+      : l,
+  );
+
+interface Entry {
+  id: string;
+  url: string;
+}
+
+export const addUntitled = (board: Board, entries: readonly Entry[]) => {
+  let next = board;
+  const accepted: Entry[] = [];
+  const rejected: { url: string; reason: Rejected }[] = [];
+  for (const entry of entries) {
+    const added = addDraft(next, entry.url, entry.id, "", null);
+    if (typeof added === "string") {
+      rejected.push({ url: entry.url, reason: added });
+    } else {
+      next = added;
+      accepted.push(entry);
+    }
+  }
+  return { board: next, accepted, rejected };
+};
+
 export const remove = (board: Board, id: string): Board =>
   byBox((b) =>
     board[b]
@@ -281,6 +350,28 @@ export const moveToBoxEnd = (board: Board, id: string, box: BoxId): Board => {
     ...without[box],
     at.box === box || !draft.suggested ? draft : { ...draft, suggested: false },
   ]);
+};
+
+export interface DraftUpdate {
+  title?: string;
+  category?: Category;
+  hot?: boolean;
+}
+
+export const updateDraft = (
+  board: Board,
+  id: string,
+  { title, category: box, hot }: DraftUpdate,
+): Board => {
+  const titled = title === undefined ? board : mapLink(board, id, (l) => ({ ...l, title }));
+  // moveToBoxEnd は箱を移ると印を消すが、エージェントが移したことは人に見せる
+  const moved =
+    box === undefined
+      ? titled
+      : mapDrafts(moveToBoxEnd(titled, id, box), (d) =>
+          d.id === id ? { ...d, suggested: true } : d,
+        );
+  return hot === undefined ? moved : mapDrafts(moved, (d) => (d.id === id ? { ...d, hot } : d));
 };
 
 export const toIds = (board: Board): Record<BoxId, string[]> =>

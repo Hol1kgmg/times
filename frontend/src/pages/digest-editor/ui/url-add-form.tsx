@@ -1,40 +1,22 @@
-import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "react-aria-components";
-import {
-  autoTranslateTitle,
-  fetchAnyLinkPreview,
-  newChildArticle,
-  suggestCategory,
-} from "#/shared/api";
-import type { Category } from "#/shared/api";
+import { newChildArticle } from "#/shared/api";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
-import {
-  addDraft,
-  draftTitle,
-  MAX_DRAFTS,
-  rejectAdd,
-  settleCategory,
-  stripTracking,
-} from "../model/board";
-import type { Board, Rejected } from "../model/board";
+import { rejectedText, useAddUrl } from "../model/add-url";
+import { rejectAdd, stripTracking } from "../model/board";
+import type { Board } from "../model/board";
 import styles from "./url-add-form.module.css";
 
 const clearIcon = "M18 6l-12 12M6 6l12 12";
-
-const rejectedText: Record<Rejected, string> = {
-  duplicate: "その URL はもう入ってます",
-  limit: `記事は ${MAX_DRAFTS} 件までです`,
-};
 
 interface UrlAddFormProps {
   board: Board;
   setBoard: Dispatch<SetStateAction<Board>>;
   setSuggesting: Dispatch<SetStateAction<number>>;
   adding: boolean;
-  setAdding: Dispatch<SetStateAction<boolean>>;
+  setAdding: Dispatch<SetStateAction<number>>;
 }
 
 export const UrlAddForm = ({
@@ -44,9 +26,7 @@ export const UrlAddForm = ({
   adding,
   setAdding,
 }: UrlAddFormProps) => {
-  const getPreview = useServerFn(fetchAnyLinkPreview);
-  const suggest = useServerFn(suggestCategory);
-  const autoTranslate = useServerFn(autoTranslateTitle);
+  const { load, add } = useAddUrl(setBoard, setSuggesting);
   const [url, setUrl] = useState("");
   const [addError, setAddError] = useState<string>();
   const urlInput = useRef<HTMLInputElement>(null);
@@ -63,40 +43,12 @@ export const UrlAddForm = ({
       return;
     }
     setAddError(undefined);
-    setAdding(true);
-    let title = "";
-    try {
-      title = draftTitle(link, await getPreview({ data: link })) ?? "";
-    } catch {
-      // 取れなかったときはタイトル空の候補として出し、手で入れてもらう
-    }
-    let translation: string | null = null;
-    if (title.trim() !== "") {
-      try {
-        translation = await autoTranslate({ data: { title } });
-      } catch {
-        // 未翻訳のまま出し、編集画面の翻訳ボタンで訳してもらう (#105)
-      }
-    }
-    const id = crypto.randomUUID();
-    // ponytail: 待つ間に別の記事の URL を同じに直すなどで断られたら、何も出さずに捨てる。起きるようなら入力欄に残して知らせる
-    setBoard((b) => {
-      const added = addDraft(b, link, id, title, translation);
-      return typeof added === "string" ? b : added;
-    });
+    setAdding((n) => n + 1);
+    const settled = add(link, await load(link));
     setUrl("");
-    setAdding(false);
+    setAdding((n) => n - 1);
     urlInput.current?.focus();
-    setSuggesting((n) => n + 1);
-    let suggested: Category | null = null;
-    try {
-      // 訳したタイトルで分類したほうが当たるかは確かめていないので、原文で推定する (#110)
-      suggested = await suggest({ data: { url: link, title } });
-    } catch {
-      // 推定は補助で、失敗しても未分類から手で振り分けられる (FR-007)
-    }
-    setSuggesting((n) => n - 1);
-    setBoard((b) => settleCategory(b, id, suggested));
+    await settled;
   };
 
   const onPaste = async () => {

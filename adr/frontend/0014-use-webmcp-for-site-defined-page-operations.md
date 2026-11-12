@@ -51,10 +51,25 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - 行き先が 1 つもない閲覧者 (今の未ログイン) には、ツール自体を登録しない。公開予定の行き先を見せると、呼んだエージェントを 404 に送り、成功の返事で使う人まで誤解させるため。`/timeline` は specs/016 で公開したら未ログインにも加える
 - トップ自身 (`#general`) とログアウトは行き先に入れない
 
+### 2 つ目のツール: 登録・編集画面の `add_articles` / `update_articles` / `list_articles` (試験導入)
+
+`navigate` は画面が移るだけで、人の UI に「エージェントの入り口」を足す役割が見えにくい。そこで、下書きの state を変えるツールを置く。人の操作 (URL を貼る、カードを直す) に合わせて 2 つに分け、`id` を調べ直すための読むツールを 1 つ足す。
+
+- `add_articles({ urls })`: カードを未分類にすぐ出し、タイトルの取得・翻訳と clef の推定は、出した後にアプリが行う (`useAddUrl` の `load` / `settle`)。返事は推定の完了まで待ち、記事ごとの `id`・タイトル・推定したカテゴリ (決められなかった・失敗したも区別する) を返す。推定を返さないと、エージェントは振り分けを直すべきか分からないため。重複と件数の上限は呼ばれた時点の下書きに順に足して判定し (`addUntitled`)、断った URL と理由も返す。取得中の印 (`adding`) は件数で持ち、推定を待つ間は外す
+- `update_articles({ articles: [{ id, title?, category?, hot? }] })`: 指定した項目だけ直す (`updateDraft`)。箱を移した記事には `suggested` の印 (「AI が振り分けました」) を付ける。`hot` はトグルではなく値を入れる。下書きにない `id` と、子記事への `category` / `hot` は直さずに返事で知らせる (`rejectUpdate`)。黙って無視すると、直していないのに「直しました」と返すため。返事には直した後の下書きを `list_articles` と同じ形で付ける。結果を確かめるために `list_articles` を呼び直させないため
+- `list_articles()`: 下書きを箱ごとに `id`・タイトル・URL・ホット・子記事で返す (`describeBoard`)。`readOnlyHint`。`add_articles` の返事を取りこぼすと `id` を知る手段がなく、編集画面に元からある記事の `id` はどこからも渡らないため (2026-11-13、Claude in Chrome から呼んだとき、返事の YouTube の URL のクエリで拡張機能が返事を止め、`id` を失った)
+- ツールの説明と返事は「画面の Digest」と書き、新規作成・編集や、下書き・公開・非公開に限る言葉を使わない。同じツールを登録画面と編集画面の両方で、公開の状態を問わず使うため
+- 記事のタイトルは外部のサイトから取るので、それを返す `add_articles`・`update_articles`・`list_articles` に `untrustedContentHint` を付ける
+- 取得・推定とエージェントの更新は同時に走りうる。取得したタイトルはタイトルが空のときだけ入れ (`fillTitle`)、エージェントが先に入れたタイトルを消さない。clef は未分類の記事しか動かさないので、エージェントが先に移した記事には触らない
+- `id` は入力の enum にしない。Decision 7 の「状態から入力を作る」に沿うなら下書きの id から作るが、下書きが変わるたびに登録し直すことになり、呼ばれている途中のツールが外れるかは確かめていないため。`execute` の中で下書きと照らす
+- 人の URL の入力欄は今のまま (取得してからカードを出す)。カードを先に出すのはツールの経路だけ
+- 保存はしない。人が画面で確かめて保存ボタンを押す (Decision 2)
+- 登録と編集は同じ `DigestForm` なので両方に出る。ルートが管理者専用なので、`AdminViewer` を受け取らない
+
 ### Non-goals
 
 - 公開データを読むだけのツール (HTML と RSS で足りる)
-- 編集画面の下書きの操作 (分類・ホット・関連記事)。WebMCP の本命だが次の段階にする
+- 下書きの手直しの操作 (入れ直し・削除・関連記事)。人が画面で行う
 - フォームに属性を書く宣言的な API、polyfill
 - 全ツールをまとめた一覧。ツールが増え、名前の重複を型で防ぎたくなったら作る
 - specs/016 の範囲 (31 日) で入力を変えるツール
@@ -74,11 +89,13 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
   - `frontend/src/shared/config/channels.ts` (新規): `channelsFor(viewer)` と `ChannelPath`。`app/layout/sidebar.tsx` と `pages/home` の両方から使うので `shared` に置く (FSD で `pages` は `app` を import できない)
   - `frontend/src/app/layout/sidebar.tsx`: 誰でも見る行き先を `publicChannels(viewer)` から、管理者向けを `AdminTabs` (ログアウトの秘匿パスが要るので `AdminViewer` を受け取る) の中で `adminChannels` から描く。`adminChannels` は秘匿パスを使わないので `AdminUser` を受け取る (adr/frontend/0013)。`channelsFor` はこの 2 つをつなぐだけ。`#general` とログアウトのタブはサイドバーに残す
   - `frontend/src/pages/home/model/navigate-tool.ts` (新規) と `ui/home-page.tsx`: ツールを定義し、effect で登録する。行き先の説明はエージェント向けの文なので、ここに置き、`scripts/fixed-chars.ts` の走査から外す (`ai-chat.ts` と同じ。adr/frontend/0005)
+  - `frontend/src/pages/digest-editor/model/add-url.ts` (新規) と `ui/url-add-form.tsx`: URL を下書きに入れる流れを `useAddUrl` に切り出し、入力欄とツールで使う。下書きの更新と読み出しは `board.ts` の `addUntitled` / `fillTitle` / `updateDraft` / `rejectUpdate` / `describeBoard`
+  - `frontend/src/pages/digest-editor/model/article-tools.ts` (新規) と `ui/digest-editor-page.tsx`: `DigestForm` の effect で登録する。`board` が変わるたびに登録し直さないよう、最新の値は ref で読む
   - `frontend/e2e/webmcp.spec.ts` (新規): WebMCP の確認。ファイルの先頭で `test.use({ launchOptions: { args: ["--enable-features=WebMCP"] } })`。ほかの spec をフラグ付きで動かさないため、ファイルを分ける
 - **Pattern**:
   - `ChannelPath` は `as const satisfies` で TanStack Router の `to` の型に縛る。存在しないパスは typecheck で落ちる
   - `navigate` の `execute` は router の `navigate({ to })` を呼ぶだけ。結果は `{ content: [{ type: "text", text }] }`
-  - 注釈は付けない (`readOnlyHint` は画面が移るので false で、既定と同じ)
+  - `navigate` には注釈を付けない (`readOnlyHint` は画面が移るので false で、既定と同じ)。注釈は `defineTool` の `annotations` からそのまま渡す
   - e2e の入力は `satisfies { to: ChannelPath }` で書く
 - **Patterns to avoid**:
   - `viewer` を丸ごとツールに渡す
@@ -95,6 +112,8 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - [x] `just fe-test-e2e webmcp admin-login` (2026-11-13、2 件)
 - [x] フラグなしの Chromium でトップを開いても、エラーが出ない (2026-11-12、Playwright のフラグなしの Chromium)
 - [x] `grep -rn "modelContext" frontend/src` が `shared/lib/webmcp.ts` の中だけ
+- [x] `add_articles` / `update_articles`: Vitest `updateDraft`・`fillTitle` 各 1 件、`just fe-test-e2e webmcp` (2026-11-12、2 件。add → update → 下書きで登録まで)
+- [x] `list_articles` と推定の返事・子記事の拒否: Vitest `describeBoard`・`rejectUpdate` 各 1 件、`just fe-test-e2e webmcp` (2026-11-13、2 件)
 
 ## Revisit
 

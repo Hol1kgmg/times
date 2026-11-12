@@ -26,6 +26,7 @@ import {
   UNSORTED,
 } from "../model/board";
 import type { Blocker, Board, BoxId, Rejected } from "../model/board";
+import { useArticleTools } from "../model/article-tools";
 import { AiSortingStatus } from "./ai-sorting-status";
 import { BoardDragDrop } from "./board-drag-drop";
 import { Box } from "./box";
@@ -100,7 +101,9 @@ const DigestForm = <S extends DigestStatus>({
   const [board, setBoard] = useState<Board>(initialBoard);
   // URL を続けて足すと推定が重なるので、件数で持つ
   const [suggesting, setSuggesting] = useState(0);
-  const [adding, setAdding] = useState(false);
+  // エージェントは取得の途中でも続けて足せるので、件数で持つ
+  const [addingCount, setAddingCount] = useState(0);
+  const adding = addingCount > 0;
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
@@ -113,6 +116,7 @@ const DigestForm = <S extends DigestStatus>({
   const [previewing, setPreviewing] = useState(false);
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
+  useArticleTools({ board, setBoard, setSuggesting, setAdding: setAddingCount });
 
   // 登録できない理由とエラーで高さが変わるので、下の面を留める位置を CSS だけでは決められない
   useEffect(() => {
@@ -282,7 +286,7 @@ const DigestForm = <S extends DigestStatus>({
           <UrlAddForm
             adding={adding}
             board={board}
-            setAdding={setAdding}
+            setAdding={setAddingCount}
             setBoard={setBoard}
             setSuggesting={setSuggesting}
           />

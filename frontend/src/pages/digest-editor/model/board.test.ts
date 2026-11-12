@@ -3,13 +3,16 @@ import {
   addDraft,
   blockers,
   canMakeChild,
+  describeBoard,
   draftTitle,
   editLink,
   emptyBoard,
+  fillTitle,
   fromDigest,
   fromIds,
   makeChild,
   moveToBoxEnd,
+  rejectUpdate,
   revert,
   settleCategory,
   stripTracking,
@@ -18,6 +21,7 @@ import {
   toNewDigest,
   unmakeChild,
   UNSORTED,
+  updateDraft,
 } from "./board";
 import { digest } from "#/shared/api";
 import type { Board, BoxId, Draft, Link } from "./board";
@@ -296,6 +300,39 @@ describe("カテゴリの推定", () => {
   it("keeps the suggestion mark when reordering within the same box", () => {
     const b = board({ AI系: [draft("a", { suggested: true }), draft("b")] });
     expect(fromIds(b, { ...toIds(b), AI系: ["b", "a"] }).AI系[1]?.suggested).toBeTruthy();
+  });
+});
+
+describe("エージェントの更新", () => {
+  it("moves the draft to the agent's category with the AI mark even after clef sorted it elsewhere", () => {
+    const b = updateDraft(board({ IT系: [draft("a", { suggested: true })] }), "a", {
+      category: "AI系",
+      hot: true,
+    });
+    expect(b.IT系).toHaveLength(0);
+    expect(b.AI系.map((d) => [d.id, d.suggested, d.hot])).toStrictEqual([["a", true, true]]);
+  });
+
+  it("lists every box in order with draft ids, the hot mark and children", () => {
+    const b = board({ AI系: [draft("a", { hot: true, children: [link("c")] })] });
+    const text = describeBoard(b);
+    expect(text).toContain(
+      "AI系 (1 件)\n- a: title a / https://example.com/a [hot]\n  - 子記事 c: title c / https://example.com/c",
+    );
+    expect(text.indexOf(UNSORTED)).toBeLessThan(text.indexOf("AI系"));
+  });
+
+  it("rejects moving or marking a child article while letting its title be fixed", () => {
+    const b = board({ AI系: [draft("a", { children: [link("c")] })] });
+    expect(rejectUpdate(b, { id: "c", category: "その他" })).toBe("child");
+    expect(rejectUpdate(b, { id: "c", title: "直す" })).toBeNull();
+    expect(rejectUpdate(b, { id: "x", title: "直す" })).toBe("missing");
+  });
+
+  it("keeps a title entered while the fetch was in flight", () => {
+    const empty = ok(addDraft(emptyBoard(), "https://example.com/a", "a", "", null));
+    const b = fillTitle(updateDraft(empty, "a", { title: "手入力" }), "a", "取得", null);
+    expect(b[UNSORTED][0]?.title).toBe("手入力");
   });
 });
 

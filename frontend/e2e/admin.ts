@@ -78,5 +78,5 @@ export const boardOf = (page: Page) => {
     await dialog.getByRole("button", { name: "確定" }).click();
     await expect(dialog).toBeHidden();
   };
-  return { unsorted, dragFirstUnsortedTo, menuOf, collect };
+  return { unsorted, boxOf, dragFirstUnsortedTo, menuOf, collect };
 };
