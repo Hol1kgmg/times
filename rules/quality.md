@@ -42,7 +42,11 @@
 - **DB に接続するテストは書かない** (constitution V)。handler のテストは sqlc の Queries をモックせず、変換関数とエラー写像を切り出して試す。DB を通す確認 (トランザクション、制約違反) は e2e が担う。CI で compose の `db` が動くようになったら見直す。
 - **テスト名は仕様の言葉で書く**。`it("rejects a category outside the fixed set")` のように、何が守られるかを書く。実装名を書かない。
 - **e2e はつながりにつき 1 本**。1 つの機能の中の分岐 (404、エラーの振り分け、表示の出し分け) は書かず、unit (zod / Vitest / go test) か型で押さえる。ただし SQL は e2e でしか通らないので、DB に読み書きする経路は e2e に 1 本残す。
-- **ログイン状態を確かめる e2e は `admin-login` の 1 本だけ**。ほかの e2e はログインを前提 (`loggedInState`) に使うだけで、ログイン状態や未ログインの振る舞いを確かめない。画面 × ログイン状態の組み合わせで e2e を増やさないため。
+- **ログイン・セッション・Cookie そのものを確かめる e2e は `admin-login` だけ**。ほかの e2e はログインを前提 (`loggedInState`) に使う。
+- **ログイン状態による違いは、違いが決まる場所で確かめ方を分ける**。画面 × ログイン状態の組み合わせで e2e を増やさないため。
+  - ログイン中しか見られない画面: 未ログインの e2e は書かない。`AdminToken` / `AdminViewer` の型で塞がっている。未ログインのリダイレクトは unit で押さえる
+  - 誰でも見られて、違いがサーバー (セッション → サーバー関数 → backend・SQL) で決まる画面 (公開範囲が違う一覧など): 未ログインとログイン中の e2e を 1 本ずつ書く。SQL は e2e でしか通らないため
+  - 誰でも見られて、違いが `viewer` を受け取る純粋な関数で決まる画面 (サイドバーや WebMCP の行き先): 違いは Vitest と型で押さえ、e2e は機能のつながりを 1 本 (ログイン状態はどちらか一方の前提) だけ書く
 - **テストのための export をしない**。テストしたいものが private なら、切り出して独立した関数にする。
 - **モックは外部 I/O だけ** (GitHub、`fetch`)。自分のコードはモックしない。
 
@@ -57,9 +61,9 @@ just fe-typecheck
 just fe-test-e2e       # サーバー関数と backend の受け渡し・SQL・セッションと Cookie に触れたとき
 ```
 
-- e2e は変更に関わる spec だけを回す (`just fe-test-e2e <ファイル名>`)。登録とトップの表示のつながり (登録の送信・最新の Digest の取得) なら `digest-new`、編集の保存と読み直しなら `digest-edit`、ログイン・セッション・Cookie なら `admin-login`。画面の中の分岐・表示・見た目だけの変更では回さない
+- e2e は変更に関わる spec だけを回す (`just fe-test-e2e <ファイル名>`)。登録とトップの表示のつながり (登録の送信・最新の Digest の取得) なら `digest-new`、編集の保存と読み直しなら `digest-edit`、ログイン・セッション・Cookie なら `admin-login`、WebMCP のツールなら `webmcp`。画面の中の分岐・表示・見た目だけの変更では回さない
 - e2e は backend を切り替えて回す。開発用 (`just be-dev`、DB `times`) と e2e 用 (`just be-dev-e2e`、DB `times_e2e`) は同じ 8080 を使うため、同時には動かせない。
-  1. 開発用の backend が動いていたら止める (`lsof -iTCP:8080 -sTCP:LISTEN -P` で確認)。ユーザーが別のターミナルで動かしていて止められないときは、止めてもらうよう伝えて待つ
+  1. 開発用の backend が動いていたら止める (`lsof -iTCP:8080 -sTCP:LISTEN -P` で確認)。ユーザーが別のターミナルで動かしていて止められないときは、止めてもらうよう伝えて待つ。e2e の dev server が使う 3001 (`lsof -iTCP:3001 -sTCP:LISTEN -P`) も同じく空ける。開発用の `pnpm dev` は 3000 が埋まると 3001 にずれ、Playwright はそれを使い回すので、秘匿パスが違ってログインが 404 になる
   2. `just be-dev-e2e` をバックグラウンドで起動し、`/health` が返るのを待つ
   3. `just fe-test-e2e`
   4. 結果に関わらず `docker compose stop api` で e2e 用を止め、1 で止めた開発用を `just be-dev` で起動し直す
