@@ -1,2 +1,7 @@
 export { SESSION_EXPIRED } from "./errors";
-export { type AdminViewer, getCurrentAdmin, type Viewer } from "./get-current-admin";
+export {
+  type AdminUser,
+  type AdminViewer,
+  getCurrentAdmin,
+  type Viewer,
+} from "./get-current-admin";

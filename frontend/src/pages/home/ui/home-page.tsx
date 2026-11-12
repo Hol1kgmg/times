@@ -3,6 +3,7 @@ import { Link } from "react-aria-components";
 import { FEED_PATH } from "#/shared/config/site";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { Logo } from "#/shared/ui/logo";
+import { useNavigateTool } from "../model/navigate-tool";
 import { About } from "./about";
 import { DigestCard } from "./digest-card";
 import styles from "./home-page.module.css";
@@ -16,6 +17,7 @@ const rssIcon = "M5 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M4 4a16 16 0 0 1 16 16M4
 // トップはシェルの外の入り口ページ (adr/frontend/0003)
 export const HomePage = () => {
   const digest = route.useLoaderData();
+  useNavigateTool();
   return (
     <div className={styles.page}>
       <div className={styles.hero}>

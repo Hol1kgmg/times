@@ -296,6 +296,7 @@
         "security-audit-skill": "security-audit-skill",
         "vercel-ai": "vercel-ai",
         "web-quality-skills": "web-quality-skills",
+        "webmcp-tools": "webmcp-tools",
         "yomiyasu": "yomiyasu"
       }
     },
@@ -380,6 +381,22 @@
       "original": {
         "owner": "addyosmani",
         "repo": "web-quality-skills",
+        "type": "github"
+      }
+    },
+    "webmcp-tools": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794306879,
+        "narHash": "sha256-aYCDBQiH2VRYuNALI42kxnChF/a9LNPIy0hLJih4Y2E=",
+        "owner": "GoogleChromeLabs",
+        "repo": "webmcp-tools",
+        "rev": "5fe4d6a99486c52d665d7f1f15ebeb3ed29855b1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "GoogleChromeLabs",
+        "repo": "webmcp-tools",
         "type": "github"
       }
     },

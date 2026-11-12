@@ -18,3 +18,5 @@
 | 0010 | [リンクプレビューの HTML は正規表現のまま読み、HTMLRewriter への移行は CPU 時間の上限に当たるまで見送る](0010-keep-regex-link-preview-parser-defer-htmlrewriter.md) | accepted |
 | 0011 | [記事のカテゴリは Workers AI の clef で推定し、ローカル開発では推定しない](0011-suggest-category-with-workers-ai-clef.md) | accepted |
 | 0012 | [記事タイトルは clef の noul で固有名称を決め、Cloud Translation v2 で翻訳する](0012-translate-titles-with-clef-noul-and-translation-v2.md) | accepted |
+| 0013 | [閲覧者の権限は `kind` の文字列ではなく、照合で作るブランド型の値で表す](0013-represent-viewer-privileges-as-branded-values.md) | accepted |
+| 0014 | [WebMCP は画面の状態をサイトが決めた操作として渡すために使い、トップの行き先の案内から試験導入する](0014-use-webmcp-for-site-defined-page-operations.md) | accepted |
