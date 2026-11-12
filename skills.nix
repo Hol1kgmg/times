@@ -14,6 +14,9 @@
     "cloud-sql-basics"
     "google-cloud-recipe-auth"
 
+    # GoogleChromeLabs/webmcp-tools (adr/frontend/0014 の次の段階のツール設計用)
+    "build-webmcp-tools"
+
     # ./skills（speckit-* は specify init が出力したもの。skills/README.md）
     "speckit-analyze"
     "speckit-checklist"

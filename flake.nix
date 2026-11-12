@@ -25,6 +25,7 @@
     # --- project inputs: 派生先が管理。adr/from-template/0005 ---
     feature-sliced-skills = { url = "github:feature-sliced/skills"; flake = false; };
     google-skills = { url = "github:google/skills"; flake = false; };
+    webmcp-tools = { url = "github:GoogleChromeLabs/webmcp-tools"; flake = false; };
   };
 
   outputs = inputs@{ self, nixpkgs, flake-utils, agent-skills, nur-packages, agent-rules, nix-claude-code, ... }:

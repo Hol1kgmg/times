@@ -3,6 +3,7 @@ inputs: {
   skills = {
     feature-sliced = { path = inputs.feature-sliced-skills.outPath; };
     google = { path = inputs.google-skills.outPath; subdir = "skills/cloud"; };
+    webmcp = { path = inputs.webmcp-tools.outPath; subdir = "webmcp-skills/skills"; };
   };
 
   rules = {
