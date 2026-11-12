@@ -46,9 +46,15 @@ const session = z.object({ user: adminUser }) satisfies z.ZodType<
   Pick<ApiResponse<"getCurrentSession">, "user">
 >;
 export type AdminUser = z.infer<typeof adminUser>;
+const AdminViewerBrand = Symbol("AdminViewer");
+// adr/frontend/0013
+const adminViewer = session
+  .extend({ loginPath: z.string().optional() })
+  .brand<typeof AdminViewerBrand>();
+export type AdminViewer = z.infer<typeof adminViewer>;
 
-// Cookie のトークンを backend に照合する。有効なら user、無効 (401) なら Cookie を消して undefined
-export const currentAdmin = async (): Promise<AdminUser | undefined> => {
+// Cookie のトークンを backend に照合する。有効なら AdminViewer、無効 (401) なら Cookie を消して undefined
+export const currentAdminViewer = async (loginPath?: string): Promise<AdminViewer | undefined> => {
   const token = readAdminToken();
   if (token === undefined) {
     return undefined;
@@ -58,7 +64,13 @@ export const currentAdmin = async (): Promise<AdminUser | undefined> => {
     clearAdminToken();
     return undefined;
   }
-  return session.parse(await Result.unwrap(result).json()).user;
+  const body = z.looseObject({}).parse(await Result.unwrap(result).json());
+  return adminViewer.parse({ ...body, loginPath });
+};
+
+export const currentAdmin = async (): Promise<AdminUser | undefined> => {
+  const viewer = await currentAdminViewer();
+  return viewer?.user;
 };
 
 // 管理者専用ページの beforeLoad で呼ぶ。未ログイン・期限切れ・失効はすべて 404

@@ -9,8 +9,11 @@ const dateChars = ["月", "日", "火", "水", "木", "金", "土"];
 const sources = globSync(
   ["src/app/**/*.{ts,tsx}", "src/pages/home/**/*.{ts,tsx}", "src/shared/**/*.{ts,tsx}"],
   {
-    // 日付ピッカーはトップに出ず、モーダルの --font-dynamic で描く。*.server.ts と AI への依頼の文は画面に出ない
-    exclude: (f) => /\.(?:test|gen|stories|server)\.tsx?$|date-picker\.tsx$|ai-chat\.ts$/u.test(f),
+    // 日付ピッカーはトップに出ず、モーダルの --font-dynamic で描く。*.server.ts と AI への依頼の文・WebMCP のツールの説明は画面に出ない
+    exclude: (f) =>
+      /\.(?:test|gen|stories|server)\.tsx?$|date-picker\.tsx$|ai-chat\.ts$|navigate-tool\.ts$/u.test(
+        f,
+      ),
   },
 );
 const literals = sources

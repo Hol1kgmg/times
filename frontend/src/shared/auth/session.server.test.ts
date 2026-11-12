@@ -1,6 +1,7 @@
 import { isNotFound } from "@tanstack/react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { SESSION_EXPIRED } from "./errors";
+import type { AdminUser, AdminViewer } from "./session.server";
 import { requireAdminToken } from "./session.server";
 
 const cookies = vi.hoisted(() => new Map<string, string>());
@@ -34,5 +35,11 @@ describe(requireAdminToken, () => {
   it("returns the token from the cookie", () => {
     cookies.set("times_admin", "tok");
     expect(requireAdminToken()).toBe("tok");
+  });
+});
+
+describe("admin viewer", () => {
+  it("cannot be built without the session check", () => {
+    expectTypeOf<{ user: AdminUser; loginPath?: string }>().not.toExtend<AdminViewer>();
   });
 });
