@@ -1,5 +1,5 @@
 import type { RegisteredRouter } from "@tanstack/react-router";
-import type { AdminViewer, Viewer } from "#/shared/auth";
+import type { AdminUser, Viewer } from "#/shared/auth";
 
 type RoutePath = RegisteredRouter["routeTree"]["types"]["fileRouteTypes"]["to"];
 const channelPaths = [
@@ -22,7 +22,7 @@ const timeline: Channel = { to: "/timeline", label: "timeline", mark: "#", reset
 
 export const publicChannels = ({ admin }: Viewer): Channel[] => (admin ? [timeline] : []);
 
-export const adminChannels = (_admin: AdminViewer): Channel[] => [
+export const adminChannels = (_admin: AdminUser): Channel[] => [
   { to: "/admin/digests/new", label: "記事を登録", mark: "+" },
   { to: "/admin/digests", label: "記事を編集", mark: "#" },
 ];
@@ -30,5 +30,5 @@ export const adminChannels = (_admin: AdminViewer): Channel[] => [
 // トップ自身とログアウトは含めない。管理者向けは照合済みの viewer.admin があるときだけ (adr/frontend/0013, 0014)
 export const channelsFor = (viewer: Viewer): Channel[] => [
   ...publicChannels(viewer),
-  ...(viewer.admin ? adminChannels(viewer.admin) : []),
+  ...(viewer.admin ? adminChannels(viewer.admin.user) : []),
 ];

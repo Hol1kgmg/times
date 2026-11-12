@@ -3,7 +3,7 @@ import { readAuthConfig } from "./config.server";
 import type { AdminViewer } from "./session.server";
 import { currentAdminViewer } from "./session.server";
 
-export type { AdminViewer } from "./session.server";
+export type { AdminUser, AdminViewer } from "./session.server";
 // 権限は kind ではなく照合済みの値の有無で表す (adr/frontend/0013)。トークンはクライアントに渡さないので持たせない
 export interface Viewer {
   admin?: AdminViewer;

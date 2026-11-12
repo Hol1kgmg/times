@@ -33,7 +33,7 @@ const ChannelLink = ({ channel, onNavigate }: Props & { channel: Channel }) => {
 
 const AdminTabs = ({ admin, onNavigate }: Props & { admin: AdminViewer }) => (
   <>
-    {adminChannels(admin).map((channel) => (
+    {adminChannels(admin.user).map((channel) => (
       <ChannelLink key={channel.to} channel={channel} onNavigate={onNavigate} />
     ))}
     {admin.loginPath !== undefined && (

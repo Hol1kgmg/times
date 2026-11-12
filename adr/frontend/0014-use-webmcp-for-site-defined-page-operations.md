@@ -72,7 +72,7 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - **Affected paths**:
   - `frontend/src/shared/lib/webmcp.ts` (新規): `defineTool`、`registerTool(tool, signal)`。ブラウザ API の型は `webmcp-types` (devDependencies、`tsconfig.json` の `types`)
   - `frontend/src/shared/config/channels.ts` (新規): `channelsFor(viewer)` と `ChannelPath`。`app/layout/sidebar.tsx` と `pages/home` の両方から使うので `shared` に置く (FSD で `pages` は `app` を import できない)
-  - `frontend/src/app/layout/sidebar.tsx`: 誰でも見る行き先を `publicChannels(viewer)` から、管理者向けを `AdminTabs` (`AdminViewer` を受け取る) の中で `adminChannels` から描く。`channelsFor` はこの 2 つをつなぐだけ。`#general` とログアウトのタブはサイドバーに残す
+  - `frontend/src/app/layout/sidebar.tsx`: 誰でも見る行き先を `publicChannels(viewer)` から、管理者向けを `AdminTabs` (ログアウトの秘匿パスが要るので `AdminViewer` を受け取る) の中で `adminChannels` から描く。`adminChannels` は秘匿パスを使わないので `AdminUser` を受け取る (adr/frontend/0013)。`channelsFor` はこの 2 つをつなぐだけ。`#general` とログアウトのタブはサイドバーに残す
   - `frontend/src/pages/home/model/navigate-tool.ts` (新規) と `ui/home-page.tsx`: ツールを定義し、effect で登録する。行き先の説明はエージェント向けの文なので、ここに置き、`scripts/fixed-chars.ts` の走査から外す (`ai-chat.ts` と同じ。adr/frontend/0005)
   - `frontend/e2e/webmcp.spec.ts` (新規): WebMCP の確認。ファイルの先頭で `test.use({ launchOptions: { args: ["--enable-features=WebMCP"] } })`。ほかの spec をフラグ付きで動かさないため、ファイルを分ける
 - **Pattern**:
