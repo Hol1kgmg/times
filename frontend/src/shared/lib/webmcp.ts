@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { toJSONSchema } from "zod";
+import { prettifyError, toJSONSchema } from "zod";
 
 export interface Tool<I extends z.ZodType> {
   name: string;
@@ -22,10 +22,14 @@ export const registerTool = async <I extends z.ZodType>(tool: Tool<I>, signal: A
         name: tool.name,
         description: tool.description,
         inputSchema,
-        // エージェントからの入力は信頼境界の外にある
-        execute: async (raw, options) => ({
-          content: [{ type: "text", text: await tool.execute(tool.input.parse(raw), options) }],
-        }),
+        // ブラウザは inputSchema に照らさず、throw した文はエージェントに届かないので、検証の失敗は isError で返す
+        execute: async (raw, options) => {
+          const input = tool.input.safeParse(raw);
+          if (!input.success) {
+            return { content: [{ type: "text", text: prettifyError(input.error) }], isError: true };
+          }
+          return { content: [{ type: "text", text: await tool.execute(input.data, options) }] };
+        },
       },
       { signal },
     );
