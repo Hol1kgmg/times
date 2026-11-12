@@ -11,8 +11,7 @@ const descriptions: Record<ChannelPath, string> = {
   "/admin/digests": "登録済みの Digest を日付から選んで編集する",
 };
 
-const line = (channel: Channel) =>
-  `- ${channel.to}: ${descriptions[channel.to]}${channel.status === "planned" ? " (公開予定。今は開けない)" : ""}`;
+const line = (channel: Channel) => `- ${channel.to}: ${descriptions[channel.to]}`;
 
 // adr/frontend/0014
 export const useNavigateTool = () => {
@@ -22,19 +21,23 @@ export const useNavigateTool = () => {
     const channels = channelsFor(viewer);
     const [first, ...rest] = channels;
     const controller = new AbortController();
-    void registerTool(
-      defineTool({
-        name: "navigate",
-        description: ["z_times.dev の中のページへ移る。行き先:", ...channels.map(line)].join("\n"),
-        input: z.object({ to: z.enum([first.to, ...rest.map((c) => c.to)]) }),
-        execute: async ({ to }) => {
-          const channel = channels.find((c) => c.to === to);
-          await navigate({ to, resetScroll: channel?.resetScroll });
-          return `${to} に移りました`;
-        },
-      }),
-      controller.signal,
-    );
+    if (first !== undefined) {
+      void registerTool(
+        defineTool({
+          name: "navigate",
+          description: ["z_times.dev の中のページへ移る。行き先:", ...channels.map(line)].join(
+            "\n",
+          ),
+          input: z.object({ to: z.enum([first.to, ...rest.map((c) => c.to)]) }),
+          execute: async ({ to }) => {
+            const channel = channels.find((c) => c.to === to);
+            await navigate({ to, resetScroll: channel?.resetScroll });
+            return `${to} に移りました`;
+          },
+        }),
+        controller.signal,
+      );
+    }
     return () => {
       controller.abort();
     };

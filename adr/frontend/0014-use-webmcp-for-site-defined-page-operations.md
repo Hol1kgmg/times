@@ -44,11 +44,11 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 
   | 行き先 | 未ログイン | ログイン中 |
   |---|---|---|
-  | `/timeline` | `planned` (説明に「公開予定。今は開けない」と書く) | `open` |
-  | `/admin/digests/new` (記事を登録) | なし | `open` |
-  | `/admin/digests` (記事を編集) | なし | `open` |
+  | `/timeline` | なし | あり |
+  | `/admin/digests/new` (記事を登録) | なし | あり |
+  | `/admin/digests` (記事を編集) | なし | あり |
 
-- `planned` の行き先も、呼ばれたらそのまま移る。今の未ログインの `/timeline` は 404 になる。比べやすさを優先する試験導入なので、呼んでも移らずにエラーを返す形にはしない
+- 行き先が 1 つもない閲覧者 (今の未ログイン) には、ツール自体を登録しない。公開予定の行き先を見せると、呼んだエージェントを 404 に送り、成功の返事で使う人まで誤解させるため。`/timeline` は specs/016 で公開したら未ログインにも加える
 - トップ自身 (`#general`) とログアウトは行き先に入れない
 
 ### Non-goals
@@ -65,7 +65,7 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - Good, because サイドバーと WebMCP の行き先が 1 つの定義にそろう
 - Bad, because 普通のリンクで行ける先なので、DOM を操作するエージェントに比べて得るものは少ない。目的は型で出し分ける形の確認と割り切る
 - Bad, because API は実験段階で変わりうる。`webmcp-types` を上げて typecheck で落ちた所と `shared/lib/webmcp.ts` を直す
-- Bad, because 未ログインのエージェントを、わざと 404 へ送る行き先がある。specs/016 で公開するまでの間だけ
+- Bad, because specs/016 で `/timeline` を公開するまで、未ログインにはツールがなく、ログイン前後の差は「ツールがあるかどうか」でしか比べられない
 
 ## Implementation Plan
 
@@ -83,10 +83,10 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - **Patterns to avoid**:
   - `viewer` を丸ごとツールに渡す
   - `modelContext` を `shared/lib/webmcp.ts` の外で触る
-  - 管理者向けの行き先を `planned` で未ログインに見せる (秘匿でないパスでも、ログイン後にだけある画面の存在は出さない)
+  - 開けない行き先を「公開予定」として見せる (呼ぶと 404 に着く。管理者向けは、秘匿でないパスでもログイン後にだけある画面の存在を出さない)
 - **Tests**:
   - Vitest 1 件: `registerTool` が、入力が正しくないときにツールを動かさず、何が違うかを `isError` で返す (`document.modelContext` はブラウザの外部 I/O なので差し替える)
-  - Vitest 1 件: `channelsFor` が未ログインには `/timeline` の `planned` だけを返す。管理者の場合は、`AdminViewer` をテストから作れない (照合の parse からしか作れない) ので型に任せる
+  - Vitest 1 件: `channelsFor` が未ログインには行き先を返さない。管理者の場合は、`AdminViewer` をテストから作れない (照合の parse からしか作れない) ので型に任せる
   - Playwright は `webmcp.spec.ts` に 1 本: ログインを前提 (`loggedInState`) にし、`navigate` で `/admin/digests/new` を呼ぶと記事の登録の画面に移る。ログイン状態による行き先の違いは確かめない (quality.md: ログイン状態を確かめる e2e は `admin-login` の 1 本だけ)。違いは Vitest の `channelsFor` と型で押さえる
 
 ### Verification

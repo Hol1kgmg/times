@@ -57,11 +57,9 @@ export const ChannelNav = ({ onNavigate }: Props) => {
       <RouterLink className={styles.link} to="/" onClick={onNavigate}>
         <span className={styles.hash}>#</span>general
       </RouterLink>
-      {publicChannels(viewer)
-        .filter((channel) => channel.status === "open")
-        .map((channel) => (
-          <ChannelLink key={channel.to} channel={channel} onNavigate={onNavigate} />
-        ))}
+      {publicChannels(viewer).map((channel) => (
+        <ChannelLink key={channel.to} channel={channel} onNavigate={onNavigate} />
+      ))}
       {viewer.admin && <AdminTabs admin={viewer.admin} onNavigate={onNavigate} />}
     </nav>
   );
