@@ -136,7 +136,7 @@ const Entry = ({
   </>
 );
 
-type DigestPostProps = { loadPreview: LoadPreview; action?: ReactNode } & (
+type DigestPostProps = { loadPreview: LoadPreview; action?: ReactNode; headingId?: string } & (
   | {
       digest: Digest;
       onOpen?: (article: { id: ArticleId; url: string }) => void;
@@ -165,12 +165,12 @@ const opener = (props: DigestPostProps): Open | undefined => {
 
 // 下書きも描くので id のない登録の型で受ける。key の URL は UNIQUE (digest_id, url) で重ならない
 export const DigestPost = (props: DigestPostProps) => {
-  const { digest, loadPreview, action, ai } = props;
+  const { digest, loadPreview, action, ai, headingId } = props;
   const open = opener(props);
   return (
     <>
       <div className={styles.divider}>
-        <h2 className={styles.center}>
+        <h2 className={styles.center} id={headingId}>
           <time className={styles.date} dateTime={digest.entryDate}>
             {dateFormat.format(new Date(digest.entryDate))}
           </time>
