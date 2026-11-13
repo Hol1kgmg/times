@@ -20,3 +20,4 @@
 | 0012 | [記事タイトルは clef の noul で固有名称を決め、Cloud Translation v2 で翻訳する](0012-translate-titles-with-clef-noul-and-translation-v2.md) | accepted |
 | 0013 | [閲覧者の権限は `kind` の文字列ではなく、照合で作るブランド型の値で表す](0013-represent-viewer-privileges-as-branded-values.md) | accepted |
 | 0014 | [WebMCP は画面の状態をサイトが決めた操作として渡すために使い、トップの行き先の案内から試験導入する](0014-use-webmcp-for-site-defined-page-operations.md) | accepted |
+| 0015 | [404 の 3D の山は three の WebGL とインスタンス描画で描き、着地点を先に決め、favicon は同じオリジンで中継する](0015-draw-not-found-pile-with-three-webgl.md) | accepted |

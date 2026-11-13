@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { reducedMotion } from "#/shared/lib/reduced-motion";
-import { fallbackFavicon, faviconUrl } from "#/shared/ui/favicon";
+import { loadFallback, loadFavicon } from "../lib/load-favicon";
 import { buildPile } from "../lib/pile";
 import styles from "./sand-pile.module.css";
 
@@ -11,24 +11,6 @@ const INTERVAL_MS = 50;
 // 落とし続けると重くなるので、時間で打ち切る
 const DURATION_MS = 24_000;
 const FALL_MS = 900;
-
-const loadImage = async (src: string) => {
-  const img = new Image();
-  img.src = src;
-  try {
-    await img.decode();
-    return img;
-  } catch {
-    // 読めない favicon は代替に替えるか描かないだけで、山は成り立つ
-    return null;
-  }
-};
-
-// Google は favicon 無しに 16px の既定画像を返すので、Favicon と同じく代替 SVG に替える
-const loadFavicon = async (url: string, fallback: HTMLImageElement | null) => {
-  const img = await loadImage(faviconUrl(url));
-  return img !== null && img.naturalWidth >= 32 ? img : fallback;
-};
 
 const startPile = async (
   canvas: HTMLCanvasElement,
@@ -64,7 +46,7 @@ const startPile = async (
   });
   const total = Math.max(0, ...grains.map((g) => g.start + g.duration));
 
-  const fallback = await loadImage(fallbackFavicon);
+  const fallback = await loadFallback();
   const images = await Promise.all(urls.map(async (u) => await loadFavicon(u, fallback)));
 
   // ponytail: 毎フレーム全粒を描き直す。粒が千を超えるなら着地済みを別 canvas に焼き付ける
