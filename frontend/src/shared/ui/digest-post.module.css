@@ -263,8 +263,67 @@
   color: var(--color-text);
 }
 
+/* 呼び出し側の並び (flex の gap など) を変えないよう、普段は箱を作らない */
+.root {
+  display: contents;
+}
+
+/* sticky は親の箱の中でしか止まらないので、ピルの親を 1 日分の箱にする。次の日の箱が来ると押し出される */
+.root[data-sticky-date] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.root[data-sticky-date] > * {
+  grid-column: 1 / -1;
+}
+
+.root[data-sticky-date] > .divider {
+  display: contents;
+}
+
+.root[data-sticky-date] > .divider::before {
+  grid-column: 1;
+}
+
+.root[data-sticky-date] .center {
+  grid-column: 2;
+  position: sticky;
+  top: calc(var(--header-offset) + var(--space-2));
+  /* 記事プレビュー (z-index: 1) より手前に出す */
+  z-index: 2;
+  container-type: scroll-state;
+}
+
+.root[data-sticky-date] .end {
+  grid-column: 3;
+}
+
+.root[data-sticky-date] > .divider + * {
+  margin-top: var(--space-3);
+}
+
+/* 止まっている間は下の本文が透けるので、普段から地を敷く */
+.root[data-sticky-date] .date {
+  background: var(--color-bg);
+}
+
+/* scroll-state 未対応のブラウザでは、止まっても普段の形のまま */
+@container scroll-state(stuck: top) {
+  .root[data-sticky-date] .date {
+    border-color: transparent;
+    background: var(--color-surface-floating);
+    backdrop-filter: var(--backdrop-floating);
+    box-shadow: var(--shadow-floating);
+  }
+}
+
+/* 線は .end::before で描くので、件数をその手前へ回してピルの隣に置く */
 .count {
   composes: t-meta from global;
+  order: -1;
   color: var(--color-text-muted);
 }
 

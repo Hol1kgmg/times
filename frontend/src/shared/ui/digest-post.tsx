@@ -29,6 +29,19 @@ export const dateFormat = new Intl.DateTimeFormat("ja-JP", {
   weekday: "short",
   timeZone: "UTC",
 });
+const withYearFormat = new Intl.DateTimeFormat("ja-JP", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  weekday: "short",
+  timeZone: "UTC",
+});
+
+// サーバー (UTC) とブラウザで年明けの判定がずれると、SSR とハイドレーションの結果が食い違う
+export const formatEntryDate = (entryDate: string) => {
+  const thisYear = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }).slice(0, 4);
+  return (entryDate.startsWith(thisYear) ? dateFormat : withYearFormat).format(new Date(entryDate));
+};
 
 const ArticleLink = ({
   article,
@@ -136,7 +149,13 @@ const Entry = ({
   </>
 );
 
-type DigestPostProps = { loadPreview: LoadPreview; action?: ReactNode; headingId?: string } & (
+type DigestPostProps = {
+  loadPreview: LoadPreview;
+  action?: ReactNode;
+  headingId?: string;
+  // 読んでいる Digest の日付を上端に貼り付ける
+  stickyDate?: boolean;
+} & (
   | {
       digest: Digest;
       onOpen?: (article: { id: ArticleId; url: string }) => void;
@@ -168,15 +187,17 @@ export const DigestPost = (props: DigestPostProps) => {
   const { digest, loadPreview, action, ai, headingId } = props;
   const open = opener(props);
   return (
-    <>
+    <div className={styles.root} data-sticky-date={props.stickyDate === true ? "" : undefined}>
       <div className={styles.divider}>
         <h2 className={styles.center} id={headingId}>
           <time className={styles.date} dateTime={digest.entryDate}>
-            {dateFormat.format(new Date(digest.entryDate))}
+            {formatEntryDate(digest.entryDate)}
           </time>
-          <span className={styles.count}>{countArticles(digest.articles)} 件</span>
         </h2>
-        <span className={styles.end}>{action}</span>
+        <span className={styles.end}>
+          <span className={styles.count}>{countArticles(digest.articles)} 件</span>
+          {action}
+        </span>
       </div>
       {groupByCategory(digest.articles).map(([name, articles]) => {
         const Icon = categoryIcons[name];
@@ -196,6 +217,6 @@ export const DigestPost = (props: DigestPostProps) => {
           </article>
         );
       })}
-    </>
+    </div>
   );
 };
