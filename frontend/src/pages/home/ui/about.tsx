@@ -131,7 +131,15 @@ const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
   },
   {
     q: "何か記録してる？",
-    a: "Google アナリティクスで、ページが見られた数と記事が押された数を数えてます。同じブラウザを見分けるために、ランダムな ID をブラウザに保存してます (名前やログインとは結び付けてません)。ブラウザの設定でこのサイトのデータを消すと、ID も消えます。",
+    a: (
+      <>
+        Google
+        アナリティクスで、ページが見られた数と記事が押された数を数えてます。同じブラウザを見分けるために、ランダムな
+        ID をブラウザに保存してます
+        (名前やログインとは結び付けてません)。ブラウザの設定でこのサイトのデータを消すと、ID
+        も消えます。詳しくは <a href="/privacy">プライバシーポリシー</a> に書いてます。
+      </>
+    ),
   },
   {
     q: "どうやって作ってる？",
@@ -146,7 +154,7 @@ const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
         <a href="https://github.com/Hol1kgmg" rel="noopener noreferrer" target="_blank">
           GitHub
         </a>
-        )。
+        )。連絡は <a href="/contact">お問い合わせ</a> から。
       </>
     ),
   },
