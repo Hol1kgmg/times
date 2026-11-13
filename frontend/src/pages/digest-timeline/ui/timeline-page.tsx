@@ -89,6 +89,7 @@ export const TimelinePage = () => {
             digest={d}
             headingId={`digest-${d.id}`}
             loadPreview={loadAnyLinkPreview}
+            stickyDate
             onOpen={reportArticleOpen(d.entryDate)}
           />
         </section>

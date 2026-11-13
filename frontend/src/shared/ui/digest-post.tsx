@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useFocusVisible, useHover } from "react-aria";
 import { Link } from "react-aria-components";
 import type { ArticleId, Digest, DigestContent, NewArticle, NewChildArticle } from "#/shared/api";
+import { formatEntryDate } from "#/shared/lib/entry-date";
 import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { reducedMotion } from "#/shared/lib/reduced-motion";
@@ -21,14 +22,6 @@ type Open = (url: string) => void;
 interface Ai {
   shown: boolean;
 }
-
-// entryDate は日付だけの ISO で UTC の 0 時として読まれるため、UTC で書式化しないと前日になりうる
-export const dateFormat = new Intl.DateTimeFormat("ja-JP", {
-  month: "long",
-  day: "numeric",
-  weekday: "short",
-  timeZone: "UTC",
-});
 
 const ArticleLink = ({
   article,
@@ -136,7 +129,12 @@ const Entry = ({
   </>
 );
 
-type DigestPostProps = { loadPreview: LoadPreview; action?: ReactNode; headingId?: string } & (
+type DigestPostProps = {
+  loadPreview: LoadPreview;
+  action?: ReactNode;
+  headingId?: string;
+  stickyDate?: boolean;
+} & (
   | {
       digest: Digest;
       onOpen?: (article: { id: ArticleId; url: string }) => void;
@@ -167,16 +165,24 @@ const opener = (props: DigestPostProps): Open | undefined => {
 export const DigestPost = (props: DigestPostProps) => {
   const { digest, loadPreview, action, ai, headingId } = props;
   const open = opener(props);
+  const count = `${countArticles(digest.articles)} 件`;
   return (
-    <>
+    <div className={styles.root} data-sticky-date={props.stickyDate === true ? "" : undefined}>
       <div className={styles.divider}>
         <h2 className={styles.center} id={headingId}>
-          <time className={styles.date} dateTime={digest.entryDate}>
-            {dateFormat.format(new Date(digest.entryDate))}
+          {/* 年明けをまたぐと、サーバーとブラウザで今年かどうかの判定が分かれうる */}
+          <time className={styles.date} dateTime={digest.entryDate} suppressHydrationWarning>
+            {formatEntryDate(digest.entryDate)}
           </time>
-          <span className={styles.count}>{countArticles(digest.articles)} 件</span>
+          {/* 件数は見た目ではピルの外に置くが、見出しとリージョン名では日付と一緒に読ませる */}
+          <span className={styles.srOnly}>{` ${count}`}</span>
         </h2>
-        <span className={styles.end}>{action}</span>
+        <span className={styles.end}>
+          <span aria-hidden className={styles.count}>
+            {count}
+          </span>
+          {action}
+        </span>
       </div>
       {groupByCategory(digest.articles).map(([name, articles]) => {
         const Icon = categoryIcons[name];
@@ -196,6 +202,6 @@ export const DigestPost = (props: DigestPostProps) => {
           </article>
         );
       })}
-    </>
+    </div>
   );
 };
