@@ -1,4 +1,4 @@
-import type { DigestContent, NewChildArticle } from "#/shared/api";
+import type { Digest, DigestContent, NewChildArticle } from "#/shared/api";
 import { groupByCategory } from "#/shared/lib/group-by-category";
 
 const link = (a: NewChildArticle) => {
@@ -20,3 +20,6 @@ export const digestMarkdown = (digest: DigestContent) => {
   );
   return (hot.length > 0 ? [section("ホットトピック", hot), ...sections] : sections).join("\n\n");
 };
+
+export const latestDigestMarkdown = (digest: Digest | null) =>
+  digest === null ? "まだ記事がありません" : `${digest.entryDate}\n\n${digestMarkdown(digest)}`;
