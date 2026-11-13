@@ -142,11 +142,11 @@
     "hol1kgmg-skills": {
       "flake": false,
       "locked": {
-        "lastModified": 1792211563,
-        "narHash": "sha256-1d+SFsKYV+f15iVk6UZp/R8W5/ckHyATfFdhBOhTNOM=",
+        "lastModified": 1794405827,
+        "narHash": "sha256-EZzXIj6NcsdihqOnniMiqmWwwO7Kliq+uWODDoqwZg8=",
         "owner": "Hol1kgmg",
         "repo": "skills",
-        "rev": "edc303a27fabbb2314c839e9332ab970c7e2f287",
+        "rev": "e153ace0393dae2b0117a2d92524b14ab77c2e65",
         "type": "github"
       },
       "original": {
