@@ -13,6 +13,8 @@ const hasTool = async (page: Page, name: string) => {
   return tools.some((t) => t.name === name);
 };
 
+const toolText = z.object({ content: z.tuple([z.object({ text: z.string() })]) });
+
 test("トップの WebMCP の navigate を呼ぶと、指定した画面に移る", async ({ browser }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
@@ -25,7 +27,16 @@ test("トップの WebMCP の navigate を呼ぶと、指定した画面に移�
   await context.close();
 });
 
-const toolText = z.object({ content: z.tuple([z.object({ text: z.string() })]) });
+test("未ログインでトップを開くと、WebMCP には最新の Digest を読むツールだけが渡り、それを呼ぶと日付が返る", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect.poll(async () => await hasTool(page, "get_latest_digest")).toBe(true);
+  const tools = await page.webmcp.tools();
+  expect(tools.map((t) => t.name)).toEqual(["get_latest_digest"]);
+  const result = toolText.parse(await page.webmcp.callTool("get_latest_digest", {}));
+  expect(result.content[0].text).toMatch(/^\d{4}-\d{2}-\d{2}\n|^まだ記事がありません$/u);
+});
 
 test("登録画面の WebMCP の add_articles で URL を入れ、update_articles でタイトル・カテゴリ・ホットを直すと、人は保存を押すだけで登録できる", async ({
   browser,
