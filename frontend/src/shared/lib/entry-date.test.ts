@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatEntryDate } from "./digest-post";
+import { formatEntryDate } from "./entry-date";
 
 describe(formatEntryDate, () => {
   beforeEach(() => {

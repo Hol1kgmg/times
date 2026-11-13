@@ -48,7 +48,7 @@ func (s *Server) GetFeedImage(ctx context.Context, req api.GetFeedImageRequestOb
 	return api.GetFeedImage200ImagepngResponse{Body: bytes.NewReader(img), ContentLength: int64(len(img))}, nil
 }
 
-// サイトの日付の形 (shared/ui/digest-post の dateFormat) と揃える。date 型は UTC の 0 時で届く
+// サイトの日付の形 (shared/lib/entry-date の formatEntryDateWithoutYear) と揃える。date 型は UTC の 0 時で届く
 func formatEntryDate(t time.Time) string {
 	t = t.UTC()
 	return fmt.Sprintf("%d月%d日(%c)", t.Month(), t.Day(), []rune("日月火水木金土")[t.Weekday()])

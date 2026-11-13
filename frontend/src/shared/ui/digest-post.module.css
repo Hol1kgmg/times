@@ -225,12 +225,13 @@
   }
 }
 
-.divider {
+/* 1fr の下限は中身の幅なので、狭い画面では件数とボタンを縮めずピルを左へ寄せる */
+.divider,
+.root[data-sticky-date] {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: var(--space-2);
-  margin: 0 0 var(--space-3);
+  column-gap: var(--space-2);
 }
 
 .divider::before,
@@ -269,15 +270,10 @@
 }
 
 /* sticky は親の箱の中でしか止まらないので、ピルの親を 1 日分の箱にする。次の日の箱が来ると押し出される */
-.root[data-sticky-date] {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  column-gap: var(--space-2);
-}
-
+/* 全幅の投稿の中身の幅で両脇の列が広がり、ピルが中央からずれないようにする */
 .root[data-sticky-date] > * {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .root[data-sticky-date] > .divider {
@@ -292,17 +288,13 @@
   grid-column: 2;
   position: sticky;
   top: calc(var(--header-offset) + var(--space-2));
-  /* 記事プレビュー (z-index: 1) より手前に出す */
-  z-index: 2;
+  /* 記事プレビュー (z-index: 1) とは同じ値にして、DOM で後のプレビューを上に重ねる */
+  z-index: 1;
   container-type: scroll-state;
 }
 
 .root[data-sticky-date] .end {
   grid-column: 3;
-}
-
-.root[data-sticky-date] > .divider + * {
-  margin-top: var(--space-3);
 }
 
 /* 止まっている間は下の本文が透けるので、普段から地を敷く */
@@ -325,9 +317,12 @@
   composes: t-meta from global;
   order: -1;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
+/* 直前は日付の線か投稿なので、どちらとの間もこの 1 か所で空ける */
 .post {
+  margin-top: var(--space-3);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-3) var(--space-2);
@@ -339,10 +334,6 @@
   .post {
     padding-inline: 0;
   }
-}
-
-.post + .post {
-  margin-top: var(--space-3);
 }
 
 .botIcon {
@@ -359,4 +350,13 @@
   composes: t-label from global;
   margin: 0;
   color: var(--color-text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

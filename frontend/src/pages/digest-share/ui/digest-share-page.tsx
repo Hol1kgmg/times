@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { SITE_URL } from "#/shared/config/site";
-import { dateFormat } from "#/shared/ui/digest-post";
+import { formatEntryDateWithoutYear } from "#/shared/lib/entry-date";
 import styles from "./digest-share-page.module.css";
 
 // 題名はフィードの item と同じ形にする。fixed-chars の対象外に置き、表示しない字でトップのサブセットを太らせない
 export const digestShareHead = (date: string) => {
-  const label = dateFormat.format(new Date(date));
+  const label = formatEntryDateWithoutYear(date);
   return {
     meta: [
       { httpEquiv: "refresh", content: "0; url=/" },
