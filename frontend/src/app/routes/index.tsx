@@ -23,7 +23,13 @@ const JSON_LD = {
   inLanguage: "ja",
   // 検索の語に使われるので、ページの本文に出ている語だけにする
   keywords: "記事, セキュリティ, AI, ホットトピック",
-  author: { "@type": "Person", name: "Hol1kgmg", url: AUTHOR_URL, sameAs: [AUTHOR_URL] },
+  author: {
+    "@type": "Person",
+    name: "Hol1kgmg",
+    description: "z-times.dev をひとりでやってます。",
+    url: AUTHOR_URL,
+    sameAs: [AUTHOR_URL],
+  },
 };
 
 // loader でサーバー関数を呼ぶ。SSR は既定の true
