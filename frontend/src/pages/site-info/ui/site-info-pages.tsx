@@ -1,13 +1,40 @@
 import type { ReactNode } from "react";
 import { Link } from "react-aria-components";
-import { AUTHOR_URL, FEED_PATH } from "#/shared/config/site";
+// バレルは server function も再エクスポートしていて、Storybook で Start のサーバー実装まで引き込むため
+import { category } from "#/shared/api/schemas";
+import { AUTHOR_URL, FEED_PATH, SITE_NAME, SITE_URL } from "#/shared/config/site";
 import { RouterLink } from "#/shared/ui/router-link";
 import styles from "./site-info-page.module.css";
 
-export const SITE_INFO_TITLES = {
-  about: "このサイトについて",
-  contact: "お問い合わせ",
-  privacy: "プライバシーポリシー",
+const SITE_INFO = {
+  about: {
+    title: "このサイトについて",
+    description: "z-times.dev が何を載せてて、どのくらい更新してて、誰がどう作ってるかの説明です。",
+  },
+  contact: {
+    title: "お問い合わせ",
+    description: "z-times.dev への連絡のしかたと、載せた記事を外してほしいときの頼み方です。",
+  },
+  privacy: {
+    title: "プライバシーポリシー",
+    description:
+      "z-times.dev が計測で集めてる情報、ブラウザに保存するもの、ほかのサービスへ渡るものです。",
+  },
+};
+
+export const siteInfoHead = (page: keyof typeof SITE_INFO) => {
+  const { title, description } = SITE_INFO[page];
+  const url = `${SITE_URL}/${page}`;
+  return {
+    meta: [
+      { title: `${title} | ${SITE_NAME}` },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:url", content: url },
+    ],
+    links: [{ rel: "canonical", href: url }],
+  };
 };
 
 const Page = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -39,15 +66,15 @@ const Contact = () => (
 );
 
 export const AboutPage = () => (
-  <Page title={SITE_INFO_TITLES.about}>
+  <Page title={SITE_INFO.about.title}>
     <P>
       z-times.dev (ロゴでは z_times.dev)
       は、見かけて気になった技術や趣味の記事を、日ごとにゆるくまとめてる個人サイトです。ニュースサイトや会社の公式サイトではなく、ひとりで読んだものを残しておく場所として続けてます。
     </P>
     <Section title="何を載せてる？">
       <P>
-        記事のリンクを日付ごとの Digest
-        にまとめて、セキュリティ・IT系・UI系・AI系・面白そうなツール・サービス・その他の 6
+        記事のリンクを日付ごとの Digest にまとめて、{category.options.join("・")}の{" "}
+        {category.options.length}{" "}
         つのカテゴリに分けて並べてます。個人的にホットな話題の記事には炎を付けてます。載せてるのはタイトルとリンクだけで、記事の中身は写してません。続きは元のページで読んでください。
       </P>
     </Section>
@@ -82,7 +109,7 @@ export const AboutPage = () => (
 );
 
 export const ContactPage = () => (
-  <Page title={SITE_INFO_TITLES.contact}>
+  <Page title={SITE_INFO.contact.title}>
     <P>
       z-times.dev は Hol1kgmg
       がひとりでやってる個人サイトです。窓口の会社や担当者はいないので、連絡はすべて本人に届きます。
@@ -124,7 +151,7 @@ export const ContactPage = () => (
 );
 
 export const PrivacyPage = () => (
-  <Page title={SITE_INFO_TITLES.privacy}>
+  <Page title={SITE_INFO.privacy.title}>
     <P>
       z-times.dev
       で集めている情報と、その使い方です。名前やメールアドレスなど、人を特定する情報を入力してもらう場所はありません。
