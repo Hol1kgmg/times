@@ -4,8 +4,9 @@ import { Button, Disclosure, DisclosurePanel } from "react-aria-components";
 // バレルは server function も再エクスポートしていて、Storybook で Start のサーバー実装まで引き込むため
 import { category } from "#/shared/api/schemas";
 import type { Category } from "#/shared/api";
-import { FEED_PATH } from "#/shared/config/site";
+import { AUTHOR_URL, FEED_PATH } from "#/shared/config/site";
 import { useHovered } from "#/shared/lib/use-hovered";
+import { RouterLink } from "#/shared/ui/router-link";
 import { Flame } from "#/shared/ui/icons/flame";
 import styles from "./about.module.css";
 import { Chevron } from "#/shared/ui/chevron";
@@ -137,7 +138,8 @@ const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
         アナリティクスで、ページが見られた数と記事が押された数を数えてます。同じブラウザを見分けるために、ランダムな
         ID をブラウザに保存してます
         (名前やログインとは結び付けてません)。ブラウザの設定でこのサイトのデータを消すと、ID
-        も消えます。詳しくは <a href="/privacy">プライバシーポリシー</a> に書いてます。
+        も消えます。詳しくは <RouterLink to="/privacy">プライバシーポリシー</RouterLink>{" "}
+        に書いてます。
       </>
     ),
   },
@@ -151,10 +153,10 @@ const faqs: { q: string; a: ReactNode; figure?: ReactNode }[] = [
     a: (
       <>
         Hol1kgmg がひとりでやってます (
-        <a href="https://github.com/Hol1kgmg" rel="noopener noreferrer" target="_blank">
+        <a href={AUTHOR_URL} rel="noopener noreferrer" target="_blank">
           GitHub
         </a>
-        )。連絡は <a href="/contact">お問い合わせ</a> から。
+        )。連絡は <RouterLink to="/contact">お問い合わせ</RouterLink> から。
       </>
     ),
   },

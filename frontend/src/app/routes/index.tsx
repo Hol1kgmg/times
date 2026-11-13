@@ -16,7 +16,7 @@ const LINK = [
 const JSON_LD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "z-times.dev",
+  name: new URL(SITE_URL).host,
   alternateName: SITE_NAME,
   url: `${SITE_URL}/`,
   description: SITE_DESCRIPTION,
