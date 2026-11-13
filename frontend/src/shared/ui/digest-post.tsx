@@ -170,12 +170,12 @@ export const DigestPost = (props: DigestPostProps) => {
   return (
     <>
       <div className={styles.divider}>
-        <span className={styles.center}>
+        <h2 className={styles.center}>
           <time className={styles.date} dateTime={digest.entryDate}>
             {dateFormat.format(new Date(digest.entryDate))}
           </time>
           <span className={styles.count}>{countArticles(digest.articles)} 件</span>
-        </span>
+        </h2>
         <span className={styles.end}>{action}</span>
       </div>
       {groupByCategory(digest.articles).map(([name, articles]) => {

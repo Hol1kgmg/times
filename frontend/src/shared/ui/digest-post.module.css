@@ -250,6 +250,11 @@
   flex: 1;
 }
 
+.center {
+  margin: 0;
+  font: inherit;
+}
+
 .date {
   composes: t-label from global;
   padding: var(--space-half) var(--space-2);
