@@ -6,9 +6,11 @@ const robots = readFileSync("public/robots.txt", "utf-8");
 const sitemap = readFileSync("public/sitemap.xml", "utf-8");
 
 describe("crawl control", () => {
-  it("lists only the top page in the sitemap", () => {
+  it("lists only the top page and the site info pages in the sitemap", () => {
     const locs = [...sitemap.matchAll(/<loc>(?<loc>.*?)<\/loc>/gu)].map((m) => m.groups?.loc);
-    expect(locs).toStrictEqual([`${SITE_URL}/`]);
+    expect(locs).toStrictEqual(
+      ["/", "/about", "/contact", "/privacy"].map((path) => `${SITE_URL}${path}`),
+    );
   });
 
   it("points robots.txt at the sitemap", () => {
