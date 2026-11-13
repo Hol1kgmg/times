@@ -66,9 +66,18 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - 保存はしない。人が画面で確かめて保存ボタンを押す (Decision 2)
 - 登録と編集は同じ `DigestForm` なので両方に出る。ルートが管理者専用なので、`AdminViewer` を受け取らない
 
+### 3 つ目のツール: トップの `get_latest_digest`
+
+未ログインにもツールを 1 つ渡し、ログイン前後の差をツールの組み合わせで比べられるようにする。
+
+- トップの loader で取った最新の Digest (人が見ている画面の状態) を、日付とコピーボタンと同じ Markdown (`digestMarkdown`) で返す。サーバー関数を呼び直さないので、Decision 1 の「API を包むだけのツール」には当たらない
+- 閲覧者によらず登録する。`readOnlyHint` と、記事のタイトルが外部のサイト由来なので `untrustedContentHint` を付ける
+- Digest がなければ画面と同じ「まだ記事がありません」を返す
+- 未ログインのトップに渡るツールはこれだけ (`navigate` は行き先がないので登録しない)
+
 ### Non-goals
 
-- 公開データを読むだけのツール (HTML と RSS で足りる)
+- 画面に出していない公開データを読むツール (サーバー関数を包むだけになり、HTML と RSS で足りる)
 - 下書きの手直しの操作 (入れ直し・削除・関連記事)。人が画面で行う
 - フォームに属性を書く宣言的な API、polyfill
 - 全ツールをまとめた一覧。ツールが増え、名前の重複を型で防ぎたくなったら作る
@@ -80,7 +89,7 @@ WebMCP は、ページが `document.modelContext` (古い草案では `navigator
 - Good, because サイドバーと WebMCP の行き先が 1 つの定義にそろう
 - Bad, because 普通のリンクで行ける先なので、DOM を操作するエージェントに比べて得るものは少ない。目的は型で出し分ける形の確認と割り切る
 - Bad, because API は実験段階で変わりうる。`webmcp-types` を上げて typecheck で落ちた所と `shared/lib/webmcp.ts` を直す
-- Bad, because specs/016 で `/timeline` を公開するまで、未ログインにはツールがなく、ログイン前後の差は「ツールがあるかどうか」でしか比べられない
+- Bad, because specs/016 で `/timeline` を公開するまで、未ログインのツールは `get_latest_digest` だけで、ログイン前後の差は `navigate` があるかどうかでしか比べられない
 
 ## Implementation Plan
 
