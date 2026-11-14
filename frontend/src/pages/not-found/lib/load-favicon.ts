@@ -14,8 +14,10 @@ export const loadImage = async (src: string) => {
 
 export const loadFallback = async () => await loadImage(fallbackFavicon);
 
+export const proxiedFavicon = (url: string) => `/favicons/${new URL(url).hostname}`;
+
 // Google は favicon 無しに 16px の既定画像を返すので、Favicon と同じく代替 SVG に替える
-export const loadFavicon = async (url: string, fallback: HTMLImageElement | null) => {
-  const img = await loadImage(`/favicons/${new URL(url).hostname}`);
+export const loadFavicon = async (src: string, fallback: HTMLImageElement | null) => {
+  const img = await loadImage(src);
   return img !== null && img.naturalWidth >= 32 ? img : fallback;
 };

@@ -5,7 +5,8 @@ import { cachedResponse } from "#/shared/api/index.server";
 const host = z
   .string()
   .max(253)
-  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/u);
+  // 実在するホスト名には _ や末尾の . もあるので、クエリを壊す文字だけを断る
+  .regex(/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)*\.?$/u);
 
 // WebGL は CORS を通らない画像をテクスチャにできず、Google の favicon は Access-Control-Allow-Origin を返さない
 export const Route = createFileRoute("/favicons/$host")({
@@ -23,7 +24,10 @@ export const Route = createFileRoute("/favicons/$host")({
           async () => {
             let res: Response;
             try {
-              res = await fetch(`https://www.google.com/s2/favicons?domain=${parsed.data}&sz=64`);
+              // Google が応答を止めると、待っている立方体の山がいつまでも積もり始めないため
+              res = await fetch(`https://www.google.com/s2/favicons?domain=${parsed.data}&sz=64`, {
+                signal: AbortSignal.timeout(5000),
+              });
             } catch {
               return new Response(null, { status: 502 });
             }

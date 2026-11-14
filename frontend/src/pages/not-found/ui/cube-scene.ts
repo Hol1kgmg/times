@@ -18,7 +18,8 @@ import {
 } from "three";
 import { narrowQuery } from "#/shared/lib/narrow";
 import { reducedMotion } from "#/shared/lib/reduced-motion";
-import { loadFallback, loadFavicon } from "../lib/load-favicon";
+import { fitLayers } from "../lib/fit-layers";
+import { loadFallback, loadFavicon, proxiedFavicon } from "../lib/load-favicon";
 import { buildStack, dropY, FALL_S, SETTLE_S, startTimes } from "../lib/stack";
 
 // 段の高さと同じ 1 辺。マスとの隙間で回転とずれを取り、隣とめり込まないようにする
@@ -41,13 +42,10 @@ const token = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 // 透明な部分から裏の面が透けず、面の地の色が見えるよう、地を塗った正方形に描き直す
-const faceImage = (img: HTMLImageElement, surface: string) => {
-  const canvas = document.createElement("canvas");
-  canvas.width = TEXTURE_PX;
-  canvas.height = TEXTURE_PX;
+const paintFace = (canvas: HTMLCanvasElement, img: HTMLImageElement, surface: string) => {
   const ctx = canvas.getContext("2d");
   if (ctx === null) {
-    return canvas;
+    return;
   }
   ctx.fillStyle = surface;
   ctx.fillRect(0, 0, TEXTURE_PX, TEXTURE_PX);
@@ -55,45 +53,23 @@ const faceImage = (img: HTMLImageElement, surface: string) => {
   const w = img.naturalWidth * scale;
   const h = img.naturalHeight * scale;
   ctx.drawImage(img, (TEXTURE_PX - w) / 2, (TEXTURE_PX - h) / 2, w, h);
-  return canvas;
 };
 
-export const startCubePile = async (
+const run = async (
+  renderer: WebGLRenderer,
   area: HTMLElement,
+  ceiling: HTMLElement | null,
   urls: readonly string[],
   signal: AbortSignal,
-  onFail: () => void,
-  className: string,
+  q: ReturnType<typeof quality>,
+  release: () => void,
 ) => {
-  const q = quality(narrowQuery().matches);
-  let renderer: WebGLRenderer;
-  try {
-    renderer = new WebGLRenderer({ alpha: true, antialias: true });
-  } catch {
-    // WebGL を作れない環境では 2D の山に替える
-    onFail();
-    return;
-  }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.dpr));
-  // forceContextLoss した canvas は使い回せないので、回ごとに作って差し込む
-  renderer.domElement.className = className;
-  area.append(renderer.domElement);
-  // GPU のリセットや文脈の上限で後から失われても、背景を空にせず 2D の山に替える
-  renderer.domElement.addEventListener("webglcontextlost", () => {
-    if (!signal.aborted) {
-      onFail();
-    }
-  });
-  const release = () => {
-    renderer.dispose();
-    // 404 を行き来すると、ブラウザが同時に持てる WebGL の文脈の上限に届くため
-    renderer.forceContextLoss();
-    renderer.domElement.remove();
-  };
-
   const scene = new Scene();
-  scene.fog = new Fog(token("--color-bg"), 24, 48);
-  const grid = new GridHelper(q.grid, q.grid, token("--color-brand"), token("--color-brand"));
+  const fog = new Fog(token("--color-bg"), 24, 48);
+  scene.fog = fog;
+  const makeGrid = () =>
+    new GridHelper(q.grid, q.grid, token("--color-brand"), token("--color-brand"));
+  let grid = makeGrid();
   scene.add(grid);
   scene.add(new AmbientLight(0xff_ff_ff, 1.6));
   const sun = new DirectionalLight(0xff_ff_ff, 2);
@@ -115,7 +91,7 @@ export const startCubePile = async (
 
   const fallback = await loadFallback();
   const loaded = await Promise.all(
-    urls.slice(0, MAX_KINDS).map(async (u) => await loadFavicon(u, fallback)),
+    urls.slice(0, MAX_KINDS).map(async (u) => await loadFavicon(proxiedFavicon(u), fallback)),
   );
   // favicon の無いホストはどれも同じ代替になるので、1 種類にまとめる
   const images = [...new Set(loaded.filter((img) => img !== null))];
@@ -125,21 +101,51 @@ export const startCubePile = async (
     return;
   }
 
-  const surface = token("--color-surface");
+  // ponytail: 高さは開いたときに 1 回だけ測る。リサイズで山を作り直すなら ResizeObserver で buildStack から
+  const layers =
+    ceiling === null
+      ? q.layers
+      : fitLayers(
+          camera,
+          CUBE,
+          q.layers,
+          ceiling.getBoundingClientRect().bottom - area.getBoundingClientRect().top,
+          area.clientHeight,
+        );
   const geometry = new BoxGeometry(CUBE, CUBE, CUBE);
-  const blocks = images.length === 0 ? [] : buildStack(q.width, q.depth, q.layers, q.limit);
+  const blocks = images.length === 0 ? [] : buildStack(q.width, q.depth, layers, q.limit);
   const kinds = images.map((img, k) => {
-    const texture = new CanvasTexture(faceImage(img, surface));
+    const canvas = document.createElement("canvas");
+    canvas.width = TEXTURE_PX;
+    canvas.height = TEXTURE_PX;
+    const texture = new CanvasTexture(canvas);
     texture.colorSpace = SRGBColorSpace;
     const material = new MeshLambertMaterial({ map: texture });
     const count = Math.ceil((blocks.length - k) / images.length);
     const mesh = new InstancedMesh(geometry, material, Math.max(count, 1));
+    // 境界球は最初のフレームの原点に縮んだ立方体から作られ、後から積もった分を含まないため
+    mesh.frustumCulled = false;
     scene.add(mesh);
-    return { texture, material, mesh };
+    return { img, canvas, texture, material, mesh };
   });
 
+  // トークンの値はダークモードで差し替わるので、そのたびに読み直す
+  const paint = () => {
+    fog.color.set(token("--color-bg"));
+    scene.remove(grid);
+    grid.dispose();
+    grid = makeGrid();
+    scene.add(grid);
+    const surface = token("--color-surface");
+    for (const kind of kinds) {
+      paintFace(kind.canvas, kind.img, surface);
+      kind.texture.needsUpdate = true;
+    }
+  };
+  paint();
+
   const starts = startTimes(blocks, INTERVAL_S);
-  const top = q.layers * CUBE + 8;
+  const top = layers * CUBE + 8;
   const hidden = new Matrix4().makeScale(0, 0, 0);
   const matrix = new Matrix4();
   const rotation = new Euler();
@@ -191,10 +197,19 @@ export const startCubePile = async (
     }
   });
   observer.observe(area);
+  const scheme = matchMedia("(prefers-color-scheme: dark)");
+  const repaint = () => {
+    paint();
+    if (!running) {
+      renderer.render(scene, camera);
+    }
+  };
+  scheme.addEventListener("change", repaint);
 
   signal.addEventListener("abort", () => {
     running = false;
     observer.disconnect();
+    scheme.removeEventListener("change", repaint);
     for (const kind of kinds) {
       kind.texture.dispose();
       kind.material.dispose();
@@ -218,8 +233,9 @@ export const startCubePile = async (
     if (!running) {
       return;
     }
-    // タブが隠れている間は rAF が止まるので、戻ったときに離れていた分を一度に進めない
-    elapsed += Math.min((now - (last ?? now)) / 1000, 0.05);
+    const dt = (now - (last ?? now)) / 1000;
+    // タブが隠れて rAF が止まった間の分だけ飛ばす。毎フレーム詰めると遅い端末で落下まで遅くなる
+    elapsed += dt > 0.25 ? 0 : dt;
     last = now;
     place(elapsed);
     renderer.render(scene, camera);
@@ -230,4 +246,49 @@ export const startCubePile = async (
     }
   };
   requestAnimationFrame(tick);
+};
+
+export const startCubePile = async (
+  area: HTMLElement,
+  ceiling: HTMLElement | null,
+  urls: readonly string[],
+  signal: AbortSignal,
+  onFail: () => void,
+  className: string,
+) => {
+  const q = quality(narrowQuery().matches);
+  let renderer: WebGLRenderer;
+  try {
+    renderer = new WebGLRenderer({ alpha: true, antialias: true });
+  } catch {
+    // WebGL を作れない環境では 2D の山に替える
+    onFail();
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.dpr));
+  // forceContextLoss した canvas は使い回せないので、回ごとに作って差し込む
+  renderer.domElement.className = className;
+  area.append(renderer.domElement);
+  // GPU のリセットや文脈の上限で後から失われても、背景を空にせず 2D の山に替える
+  renderer.domElement.addEventListener("webglcontextlost", () => {
+    if (!signal.aborted) {
+      onFail();
+    }
+  });
+  const release = () => {
+    renderer.dispose();
+    // 404 を行き来すると、ブラウザが同時に持てる WebGL の文脈の上限に届くため
+    renderer.forceContextLoss();
+    renderer.domElement.remove();
+  };
+
+  try {
+    await run(renderer, area, ceiling, urls, signal, q, release);
+  } catch (error) {
+    release();
+    if (!signal.aborted) {
+      onFail();
+    }
+    throw error;
+  }
 };

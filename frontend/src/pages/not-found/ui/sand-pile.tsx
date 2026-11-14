@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { reducedMotion } from "#/shared/lib/reduced-motion";
+import { faviconUrl } from "#/shared/ui/favicon";
 import { loadFallback, loadFavicon } from "../lib/load-favicon";
 import { buildPile } from "../lib/pile";
 import styles from "./sand-pile.module.css";
@@ -47,7 +48,10 @@ const startPile = async (
   const total = Math.max(0, ...grains.map((g) => g.start + g.duration));
 
   const fallback = await loadFallback();
-  const images = await Promise.all(urls.map(async (u) => await loadFavicon(u, fallback)));
+  // canvas 2D は CORS が要らないので、中継が落ちていても Google から直接描ける
+  const images = await Promise.all(
+    urls.map(async (u) => await loadFavicon(faviconUrl(u), fallback)),
+  );
 
   // ponytail: 毎フレーム全粒を描き直す。粒が千を超えるなら着地済みを別 canvas に焼き付ける
   const draw = (elapsed: number) => {
