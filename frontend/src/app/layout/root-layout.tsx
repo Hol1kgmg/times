@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { narrowQuery } from "#/shared/lib/narrow";
 import { MobileHeader } from "./mobile-header";
 import styles from "./root-layout.module.css";
 import { Sidebar } from "./sidebar";
@@ -30,17 +31,17 @@ export const RootLayout = ({ children }: Props) => {
       }
     };
     // 開いたまま広い幅に変わるとヘッダーが消え、inert の main だけが残って操作できなくなる
-    const wide = window.matchMedia("(min-width: 768px)");
+    const narrow = narrowQuery();
     const onWide = () => {
-      if (wide.matches) {
+      if (!narrow.matches) {
         setOpen(false);
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    wide.addEventListener("change", onWide);
+    narrow.addEventListener("change", onWide);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      wide.removeEventListener("change", onWide);
+      narrow.removeEventListener("change", onWide);
     };
   }, [open]);
 

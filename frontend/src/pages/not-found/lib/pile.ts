@@ -14,7 +14,7 @@ export const settle = (heights: readonly number[], start: number): number => {
 };
 
 // 開くたびに山の形を変えないため、種から決まる乱数にする。飾りなので偏りは気にしない
-const seeded = (seed: number) => {
+export const seeded = (seed: number) => {
   let s = seed;
   return () => {
     s += 1;
