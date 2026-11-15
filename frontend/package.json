@@ -65,7 +65,7 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-you-might-not-need-an-effect": "^1.2.0",
-    "jsdom": "^30.1.3",
+    "jsdom": "^31.0.1",
     "markuplint": "^5.4.0",
     "openapi-typescript": "^7.13.0",
     "oxfmt": "^0.78.0",
