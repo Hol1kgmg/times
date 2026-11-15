@@ -364,6 +364,27 @@ dependencies:
   virtual_path: skills/cloud/cloud-run-basics
   is_virtual: true
   package_type: claude_skill
+  deployed_files:
+  - .agents/skills/cloud-run-basics
+  - .agents/skills/cloud-run-basics/SKILL.md
+  - .agents/skills/cloud-run-basics/references/attribution.md
+  - .agents/skills/cloud-run-basics/references/cli-usage.md
+  - .agents/skills/cloud-run-basics/references/client-library-usage.md
+  - .agents/skills/cloud-run-basics/references/core-concepts.md
+  - .agents/skills/cloud-run-basics/references/iac-usage.md
+  - .agents/skills/cloud-run-basics/references/iam-security.md
+  - .agents/skills/cloud-run-basics/references/mcp-usage.md
+  - .agents/skills/cloud-run-basics/references/networking.md
+  deployed_file_hashes:
+    .agents/skills/cloud-run-basics/SKILL.md: sha256:8bf95426fb0c74b7f4e1a66d906791f59c143959e8bc7205c9249ada00e24903
+    .agents/skills/cloud-run-basics/references/attribution.md: sha256:98430e3a22ad85719cd51d6eae0ea04c9ecfd1cd424431e4a5c562ebbd803d70
+    .agents/skills/cloud-run-basics/references/cli-usage.md: sha256:87a58f1c49b848f66fa6bf1e30882fe247232aa1bf76e90987abf5e8b031580e
+    .agents/skills/cloud-run-basics/references/client-library-usage.md: sha256:2f2c95b3fe6b8c36cfea903644279abe129816a84785739d4ba49e6bb571e772
+    .agents/skills/cloud-run-basics/references/core-concepts.md: sha256:459830cc25d643dfd255b127df4df01bf9987b9eafd5c8aa8baca054517ccffe
+    .agents/skills/cloud-run-basics/references/iac-usage.md: sha256:429c3a3edba4bd108c5faea064fdd17f13fddc3fd2238a245de0c700d29d940c
+    .agents/skills/cloud-run-basics/references/iam-security.md: sha256:9430085095a0d16243ef7b8eb5a875690df633f8626078d3b004387bae2a7721
+    .agents/skills/cloud-run-basics/references/mcp-usage.md: sha256:ad9aecf215e01dc4384918b39457a118d15d16f3f6c7e10aa80a50a686eca780
+    .agents/skills/cloud-run-basics/references/networking.md: sha256:8a62caf6ae07721c77d384ec30991df7349ebc674fb8152d58dcad216527866c
   content_hash: sha256:e022f184eb194cc0dd605b215eaaf3b3a8d42bbe318552946d09179d9c9abaf5
 - repo_url: google/skills
   name: cloud-sql-basics
@@ -374,6 +395,27 @@ dependencies:
   virtual_path: skills/cloud/cloud-sql-basics
   is_virtual: true
   package_type: claude_skill
+  deployed_files:
+  - .agents/skills/cloud-sql-basics
+  - .agents/skills/cloud-sql-basics/SKILL.md
+  - .agents/skills/cloud-sql-basics/references/attribution.md
+  - .agents/skills/cloud-sql-basics/references/cli-usage.md
+  - .agents/skills/cloud-sql-basics/references/client-library-usage.md
+  - .agents/skills/cloud-sql-basics/references/core-concepts.md
+  - .agents/skills/cloud-sql-basics/references/dr-backups.md
+  - .agents/skills/cloud-sql-basics/references/iac-usage.md
+  - .agents/skills/cloud-sql-basics/references/iam-security.md
+  - .agents/skills/cloud-sql-basics/references/mcp-usage.md
+  deployed_file_hashes:
+    .agents/skills/cloud-sql-basics/SKILL.md: sha256:d5f511b7876db1c11301274c0b6bc1c6ec3f26bc42a99ad493341a4691f0d6d4
+    .agents/skills/cloud-sql-basics/references/attribution.md: sha256:3b92915b1ec6ec501e52e7eeed79d3b0ad322eca3eec04500aca8afbbee4134d
+    .agents/skills/cloud-sql-basics/references/cli-usage.md: sha256:9a53e5bc9df9b2b672d7301cc381740ba3dc4eceabb5df99a3ddaf2337037a13
+    .agents/skills/cloud-sql-basics/references/client-library-usage.md: sha256:4f0cbb8375dc70030399344570deef700bd73b09733f3faac3c7acd43684141e
+    .agents/skills/cloud-sql-basics/references/core-concepts.md: sha256:873260c2549bad06287dea12c4ae98a14e7e5a1cab0fe14876c3979971b35502
+    .agents/skills/cloud-sql-basics/references/dr-backups.md: sha256:690980bf89e620111e6c20a2bd823996e49667f43ccd0165ef8da2064caeaad1
+    .agents/skills/cloud-sql-basics/references/iac-usage.md: sha256:e7755c5ea32aacaa5b9703d111e4c78a24f3667858af1dcfa2032caa52d64bc9
+    .agents/skills/cloud-sql-basics/references/iam-security.md: sha256:3152c4d2a3af18eccaa2d7cb15bdf2b838dc701f2e07ab3b5f32a5988c0cd91c
+    .agents/skills/cloud-sql-basics/references/mcp-usage.md: sha256:b20630471b59961d85b05c2116f58ed4f3f271146f65a3059f9b0b6a84da1143
   content_hash: sha256:4feb06bbbd6994696eaf78a6a1d366f8c4daadb22de997650a6ff1646f13024c
 - repo_url: google/skills
   name: gcloud
@@ -384,6 +426,17 @@ dependencies:
   virtual_path: skills/cloud/gcloud
   is_virtual: true
   package_type: claude_skill
+  deployed_files:
+  - .agents/skills/gcloud
+  - .agents/skills/gcloud/SKILL.md
+  - .agents/skills/gcloud/references/attribution.md
+  - .agents/skills/gcloud/references/cli-usage.md
+  - .agents/skills/gcloud/references/mcp-usage.md
+  deployed_file_hashes:
+    .agents/skills/gcloud/SKILL.md: sha256:a16e7688f5b64c155b2d8ca452f9196df259ef1bd3c0a35f23e4a5f941eb037b
+    .agents/skills/gcloud/references/attribution.md: sha256:eb1fd36307c413d79d6030ff26f835c75f2f064f52d3277c8bad8d71acf72141
+    .agents/skills/gcloud/references/cli-usage.md: sha256:7a8b5b2499a02cb397d1064663616d21c338c4b2a6fc6eeb77a6de749fc33e1b
+    .agents/skills/gcloud/references/mcp-usage.md: sha256:04645f54167f5cd917baa2e5caab91a9db9f56451fef7145c1361cc7e050f5b1
   content_hash: sha256:2a38da7c7bb5e4dcf474abeefbafa220b8806b0dce602598f10d8516da46cac6
 - repo_url: google/skills
   name: google-cloud-recipe-auth
@@ -394,6 +447,13 @@ dependencies:
   virtual_path: skills/cloud/google-cloud-recipe-auth
   is_virtual: true
   package_type: claude_skill
+  deployed_files:
+  - .agents/skills/google-cloud-recipe-auth
+  - .agents/skills/google-cloud-recipe-auth/SKILL.md
+  - .agents/skills/google-cloud-recipe-auth/references/attribution.md
+  deployed_file_hashes:
+    .agents/skills/google-cloud-recipe-auth/SKILL.md: sha256:3415b14510b1b32a25a04233d2e81b2c8f4a923e4a40486f5b6fe5a4439afa54
+    .agents/skills/google-cloud-recipe-auth/references/attribution.md: sha256:088a215373cfef7827688fc5f1e99c902d24616614cb978c0b0abf172480fb86
   content_hash: sha256:b5e13edec8b9c17a07a49fd88a735ea84d21a48fd09b4c6d7f258aafcc9c1633
 - repo_url: googlechromelabs/webmcp-tools
   materialization_repo_url: GoogleChromeLabs/webmcp-tools
@@ -405,6 +465,75 @@ dependencies:
   virtual_path: webmcp-skills/skills/build-webmcp-tools
   is_virtual: true
   package_type: claude_skill
+  deployed_files:
+  - .agents/skills/build-webmcp-tools
+  - .agents/skills/build-webmcp-tools/SKILL.md
+  - .agents/skills/build-webmcp-tools/evals/evals.json
+  - .agents/skills/build-webmcp-tools/evals/fixtures/hotel-app/schema.json
+  - .agents/skills/build-webmcp-tools/evals/fixtures/project-app/roleplay-triage.md
+  - .agents/skills/build-webmcp-tools/evals/fixtures/project-app/src/tools/project-tools.ts
+  - .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/package.json
+  - .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/App.tsx
+  - .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/store.ts
+  - .agents/skills/build-webmcp-tools/evals/suites/auditing-readiness.json
+  - .agents/skills/build-webmcp-tools/evals/suites/core-principles.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-0-router.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-1-ideation.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-2-context.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-3-roleplay.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-4-boundaries.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-5-specs.json
+  - .agents/skills/build-webmcp-tools/evals/suites/stage-6-frameworks.json
+  - .agents/skills/build-webmcp-tools/evals/trigger-queries.json
+  - .agents/skills/build-webmcp-tools/references/agent-security.md
+  - .agents/skills/build-webmcp-tools/references/angular-patterns.md
+  - .agents/skills/build-webmcp-tools/references/annotations.md
+  - .agents/skills/build-webmcp-tools/references/audit-checklist.md
+  - .agents/skills/build-webmcp-tools/references/conversational-design.md
+  - .agents/skills/build-webmcp-tools/references/declarative-patterns.md
+  - .agents/skills/build-webmcp-tools/references/error-handling.md
+  - .agents/skills/build-webmcp-tools/references/evals-format.md
+  - .agents/skills/build-webmcp-tools/references/live-site-discovery.md
+  - .agents/skills/build-webmcp-tools/references/react-patterns.md
+  - .agents/skills/build-webmcp-tools/references/sources.md
+  - .agents/skills/build-webmcp-tools/references/testing-and-debugging.md
+  - .agents/skills/build-webmcp-tools/references/tool-design.md
+  - .agents/skills/build-webmcp-tools/references/use-case-template.md
+  - .agents/skills/build-webmcp-tools/references/vanilla-patterns.md
+  deployed_file_hashes:
+    .agents/skills/build-webmcp-tools/SKILL.md: sha256:2ef4db0bd1b3b8b319f8e042d03fa2e957eacd98f8b2d004aabb65921a3b3784
+    .agents/skills/build-webmcp-tools/evals/evals.json: sha256:2ff1235af34cb2e04c6790ab91d78eb0dd958948d7caac0e7cc37b59c6571d59
+    .agents/skills/build-webmcp-tools/evals/fixtures/hotel-app/schema.json: sha256:abf3695392ea4130bb8ff28a3f9803bdee9781ee286993edb4099b1eea5f14f7
+    .agents/skills/build-webmcp-tools/evals/fixtures/project-app/roleplay-triage.md: sha256:8d04d0dea5a72e8cb4118e4b2869c5dfab4094c20564f0f734789879d7fe7acb
+    .agents/skills/build-webmcp-tools/evals/fixtures/project-app/src/tools/project-tools.ts: sha256:708be727e1cf6140af18efb0fc519951e4561d7f37508529583190d2f2922814
+    .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/package.json: sha256:c3442e2452f2d610433366590eebf1dc81627526af2da2618e14894afc29e358
+    .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/App.tsx: sha256:dbe89736591ee831fa71a6378b2540121d0646ec561a0b42d175f5527f020224
+    .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/store.ts: sha256:f746cab969e9d3b4d7266964e2358f7bd820d173a68e1b2a62253a388d55774b
+    .agents/skills/build-webmcp-tools/evals/suites/auditing-readiness.json: sha256:6c013a9b690880fb27a4d953bdcd74002875fbec3102fafa7bfa8a14ff7794a6
+    .agents/skills/build-webmcp-tools/evals/suites/core-principles.json: sha256:763f1d55e91cdc1fae1f829c5c7dad1c75beca6d5bff8d4c03ef1811125ea539
+    .agents/skills/build-webmcp-tools/evals/suites/stage-0-router.json: sha256:a7872abdce15cf0ff618abe9aaf755600b91eab1bd973c046c422d369c8d4100
+    .agents/skills/build-webmcp-tools/evals/suites/stage-1-ideation.json: sha256:7374f8b26c6e446a39b83c931135b25eef8e8744abfb5bb882cf58d917f69e2b
+    .agents/skills/build-webmcp-tools/evals/suites/stage-2-context.json: sha256:1d5699995f207761a07b8d93b0785d3c5909c53b9ac9374bcdaf78b500973566
+    .agents/skills/build-webmcp-tools/evals/suites/stage-3-roleplay.json: sha256:bffd71886cc390f179705deb4fed6c08e36d78a2a93721e76ef34d4c3d6e86cc
+    .agents/skills/build-webmcp-tools/evals/suites/stage-4-boundaries.json: sha256:1205f1e9cb888bb1bb0cdb18c6894a65b4d33034f9978c3fc487008124174a32
+    .agents/skills/build-webmcp-tools/evals/suites/stage-5-specs.json: sha256:e5b88ea0068dc46e73ae2bdf2d8697c3e07ff54e1b3216c3bdbaa3f4020dff54
+    .agents/skills/build-webmcp-tools/evals/suites/stage-6-frameworks.json: sha256:0e04cbdfec6cac0cd405f3969a3808cebcc082f0dd4939aa0593d4e6e1ad0f3b
+    .agents/skills/build-webmcp-tools/evals/trigger-queries.json: sha256:4c81f516ec5baf1baa44c562052aa7d9f6b095ac66c740fd69ccdb19278767e5
+    .agents/skills/build-webmcp-tools/references/agent-security.md: sha256:2f60e2d4b9f5d2c05670401dbfb55c133c899b37171c14d9ef754272bae7e2be
+    .agents/skills/build-webmcp-tools/references/angular-patterns.md: sha256:53cd0db12f6eecc18ce28a640b6da40f175e06f8fbfdafa2359575941385f156
+    .agents/skills/build-webmcp-tools/references/annotations.md: sha256:f0e767d52892e61b59fc495d53920ed4e2873ec97a66e7f4c25a7f97f303322b
+    .agents/skills/build-webmcp-tools/references/audit-checklist.md: sha256:0ec81a4ed52036cd473c69a1b0c8dc5d259e472fafe3a392d32a44b2fe4db431
+    .agents/skills/build-webmcp-tools/references/conversational-design.md: sha256:6a8da88b8835ff7830535750ca2e7724eaac9252e61ed05031454b9edbc99dbe
+    .agents/skills/build-webmcp-tools/references/declarative-patterns.md: sha256:35c3efa2063623049865967c83a207570e4a43c095b91ebfbd7cb4da4b13580b
+    .agents/skills/build-webmcp-tools/references/error-handling.md: sha256:085f3afb4e0f6cbffec5048a5d9dc2142a45e043fb553d66815c973dd1070715
+    .agents/skills/build-webmcp-tools/references/evals-format.md: sha256:b348f416ba82db604c868fcfb43181dce49ec3524880ee53db26941693c11ef0
+    .agents/skills/build-webmcp-tools/references/live-site-discovery.md: sha256:2d4e0449ad4fcfc3bd1ccee9261e7bb54313611017185ba1a1cb19ad0d6bba77
+    .agents/skills/build-webmcp-tools/references/react-patterns.md: sha256:69f2ef12f9b7205e80140b6ec60b59479502336c5acfad332c6fb2b1cbaf6c78
+    .agents/skills/build-webmcp-tools/references/sources.md: sha256:627da651405edc82816830a4c59427d01391517955f29fd37b598928204e4c0e
+    .agents/skills/build-webmcp-tools/references/testing-and-debugging.md: sha256:3ae12ec57273e21d8b578ef344f98ac421394aa721ee49e47a711054024e8828
+    .agents/skills/build-webmcp-tools/references/tool-design.md: sha256:49830180731ccc625e6cf1093432cb47d0181f804d1ad34b50b10cd8407580f5
+    .agents/skills/build-webmcp-tools/references/use-case-template.md: sha256:495a916dba89fecba9bfe15d91219affc09e362a1f0248248e773eaaa62793b0
+    .agents/skills/build-webmcp-tools/references/vanilla-patterns.md: sha256:a9f644fd6082d5faa66735b84e2a57b157b58c0dcbf2cf6f83507d3df4164601
   content_hash: sha256:293b3c1d5b02e5d7544ef44393013c485b268cebdff3918d2dbe9c8a848d1992
 - repo_url: hol1kgmg/rules
   materialization_repo_url: Hol1kgmg/rules
@@ -500,6 +629,11 @@ dependencies:
   virtual_path: skills/speckit-explain
   is_virtual: true
   package_type: claude_skill
+  deployed_files:
+  - .agents/skills/speckit-explain
+  - .agents/skills/speckit-explain/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/speckit-explain/SKILL.md: sha256:bb5d90ef999c37e085ab3672de7374b4fe8ae65dfd5d76987e3fa793ad3c0c5d
   content_hash: sha256:b13a393c846adad9d60dc8075378888f97b3f459f3a8b2a84faa0febc82017e8
 - repo_url: nanaism/yomiyasu
   name: yomiyasu
@@ -792,6 +926,492 @@ deployments:
   content_hash: sha256:418ced00e03c74c411c97befdd26e63d20eba20119966336c63c80601485c9e9
 - kind: project-relative
   target: agent-skills
+  value: .agents/skills/build-webmcp-tools
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:2ef4db0bd1b3b8b319f8e042d03fa2e957eacd98f8b2d004aabb65921a3b3784
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/evals.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:2ff1235af34cb2e04c6790ab91d78eb0dd958948d7caac0e7cc37b59c6571d59
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/fixtures/hotel-app/schema.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:abf3695392ea4130bb8ff28a3f9803bdee9781ee286993edb4099b1eea5f14f7
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/fixtures/project-app/roleplay-triage.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:8d04d0dea5a72e8cb4118e4b2869c5dfab4094c20564f0f734789879d7fe7acb
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/fixtures/project-app/src/tools/project-tools.ts
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:708be727e1cf6140af18efb0fc519951e4561d7f37508529583190d2f2922814
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/package.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:c3442e2452f2d610433366590eebf1dc81627526af2da2618e14894afc29e358
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/App.tsx
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:dbe89736591ee831fa71a6378b2540121d0646ec561a0b42d175f5527f020224
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/store.ts
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:f746cab969e9d3b4d7266964e2358f7bd820d173a68e1b2a62253a388d55774b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/auditing-readiness.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:6c013a9b690880fb27a4d953bdcd74002875fbec3102fafa7bfa8a14ff7794a6
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/core-principles.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:763f1d55e91cdc1fae1f829c5c7dad1c75beca6d5bff8d4c03ef1811125ea539
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-0-router.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:a7872abdce15cf0ff618abe9aaf755600b91eab1bd973c046c422d369c8d4100
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-1-ideation.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:7374f8b26c6e446a39b83c931135b25eef8e8744abfb5bb882cf58d917f69e2b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-2-context.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:1d5699995f207761a07b8d93b0785d3c5909c53b9ac9374bcdaf78b500973566
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-3-roleplay.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:bffd71886cc390f179705deb4fed6c08e36d78a2a93721e76ef34d4c3d6e86cc
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-4-boundaries.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:1205f1e9cb888bb1bb0cdb18c6894a65b4d33034f9978c3fc487008124174a32
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-5-specs.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:e5b88ea0068dc46e73ae2bdf2d8697c3e07ff54e1b3216c3bdbaa3f4020dff54
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/suites/stage-6-frameworks.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:0e04cbdfec6cac0cd405f3969a3808cebcc082f0dd4939aa0593d4e6e1ad0f3b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/evals/trigger-queries.json
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:4c81f516ec5baf1baa44c562052aa7d9f6b095ac66c740fd69ccdb19278767e5
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/agent-security.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:2f60e2d4b9f5d2c05670401dbfb55c133c899b37171c14d9ef754272bae7e2be
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/angular-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:53cd0db12f6eecc18ce28a640b6da40f175e06f8fbfdafa2359575941385f156
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/annotations.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:f0e767d52892e61b59fc495d53920ed4e2873ec97a66e7f4c25a7f97f303322b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/audit-checklist.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:0ec81a4ed52036cd473c69a1b0c8dc5d259e472fafe3a392d32a44b2fe4db431
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/conversational-design.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:6a8da88b8835ff7830535750ca2e7724eaac9252e61ed05031454b9edbc99dbe
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/declarative-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:35c3efa2063623049865967c83a207570e4a43c095b91ebfbd7cb4da4b13580b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/error-handling.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:085f3afb4e0f6cbffec5048a5d9dc2142a45e043fb553d66815c973dd1070715
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/evals-format.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:b348f416ba82db604c868fcfb43181dce49ec3524880ee53db26941693c11ef0
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/live-site-discovery.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:2d4e0449ad4fcfc3bd1ccee9261e7bb54313611017185ba1a1cb19ad0d6bba77
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/react-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:69f2ef12f9b7205e80140b6ec60b59479502336c5acfad332c6fb2b1cbaf6c78
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/sources.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:627da651405edc82816830a4c59427d01391517955f29fd37b598928204e4c0e
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/testing-and-debugging.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:3ae12ec57273e21d8b578ef344f98ac421394aa721ee49e47a711054024e8828
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/tool-design.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:49830180731ccc625e6cf1093432cb47d0181f804d1ad34b50b10cd8407580f5
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/use-case-template.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:495a916dba89fecba9bfe15d91219affc09e362a1f0248248e773eaaa62793b0
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/build-webmcp-tools/references/vanilla-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
+  content_hash: sha256:a9f644fd6082d5faa66735b84e2a57b157b58c0dcbf2cf6f83507d3df4164601
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:8bf95426fb0c74b7f4e1a66d906791f59c143959e8bc7205c9249ada00e24903
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/attribution.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:98430e3a22ad85719cd51d6eae0ea04c9ecfd1cd424431e4a5c562ebbd803d70
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/cli-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:87a58f1c49b848f66fa6bf1e30882fe247232aa1bf76e90987abf5e8b031580e
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/client-library-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:2f2c95b3fe6b8c36cfea903644279abe129816a84785739d4ba49e6bb571e772
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/core-concepts.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:459830cc25d643dfd255b127df4df01bf9987b9eafd5c8aa8baca054517ccffe
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/iac-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:429c3a3edba4bd108c5faea064fdd17f13fddc3fd2238a245de0c700d29d940c
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/iam-security.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:9430085095a0d16243ef7b8eb5a875690df633f8626078d3b004387bae2a7721
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/mcp-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:ad9aecf215e01dc4384918b39457a118d15d16f3f6c7e10aa80a50a686eca780
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-run-basics/references/networking.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-run-basics
+  active_owner: google/skills/skills/cloud/cloud-run-basics
+  content_hash: sha256:8a62caf6ae07721c77d384ec30991df7349ebc674fb8152d58dcad216527866c
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:d5f511b7876db1c11301274c0b6bc1c6ec3f26bc42a99ad493341a4691f0d6d4
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/attribution.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:3b92915b1ec6ec501e52e7eeed79d3b0ad322eca3eec04500aca8afbbee4134d
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/cli-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:9a53e5bc9df9b2b672d7301cc381740ba3dc4eceabb5df99a3ddaf2337037a13
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/client-library-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:4f0cbb8375dc70030399344570deef700bd73b09733f3faac3c7acd43684141e
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/core-concepts.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:873260c2549bad06287dea12c4ae98a14e7e5a1cab0fe14876c3979971b35502
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/dr-backups.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:690980bf89e620111e6c20a2bd823996e49667f43ccd0165ef8da2064caeaad1
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/iac-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:e7755c5ea32aacaa5b9703d111e4c78a24f3667858af1dcfa2032caa52d64bc9
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/iam-security.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:3152c4d2a3af18eccaa2d7cb15bdf2b838dc701f2e07ab3b5f32a5988c0cd91c
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/cloud-sql-basics/references/mcp-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/cloud-sql-basics
+  active_owner: google/skills/skills/cloud/cloud-sql-basics
+  content_hash: sha256:b20630471b59961d85b05c2116f58ed4f3f271146f65a3059f9b0b6a84da1143
+- kind: project-relative
+  target: agent-skills
   value: .agents/skills/cognitive-rhythm-writing
   runtime: null
   scope: project
@@ -1042,6 +1662,78 @@ deployments:
   - anthropics/skills/skills/frontend-design
   active_owner: anthropics/skills/skills/frontend-design
   content_hash: sha256:d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/gcloud
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/gcloud
+  active_owner: google/skills/skills/cloud/gcloud
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/gcloud/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/gcloud
+  active_owner: google/skills/skills/cloud/gcloud
+  content_hash: sha256:a16e7688f5b64c155b2d8ca452f9196df259ef1bd3c0a35f23e4a5f941eb037b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/gcloud/references/attribution.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/gcloud
+  active_owner: google/skills/skills/cloud/gcloud
+  content_hash: sha256:eb1fd36307c413d79d6030ff26f835c75f2f064f52d3277c8bad8d71acf72141
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/gcloud/references/cli-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/gcloud
+  active_owner: google/skills/skills/cloud/gcloud
+  content_hash: sha256:7a8b5b2499a02cb397d1064663616d21c338c4b2a6fc6eeb77a6de749fc33e1b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/gcloud/references/mcp-usage.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/gcloud
+  active_owner: google/skills/skills/cloud/gcloud
+  content_hash: sha256:04645f54167f5cd917baa2e5caab91a9db9f56451fef7145c1361cc7e050f5b1
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/google-cloud-recipe-auth
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/google-cloud-recipe-auth
+  active_owner: google/skills/skills/cloud/google-cloud-recipe-auth
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/google-cloud-recipe-auth/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/google-cloud-recipe-auth
+  active_owner: google/skills/skills/cloud/google-cloud-recipe-auth
+  content_hash: sha256:3415b14510b1b32a25a04233d2e81b2c8f4a923e4a40486f5b6fe5a4439afa54
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/google-cloud-recipe-auth/references/attribution.md
+  runtime: null
+  scope: project
+  owners:
+  - google/skills/skills/cloud/google-cloud-recipe-auth
+  active_owner: google/skills/skills/cloud/google-cloud-recipe-auth
+  content_hash: sha256:088a215373cfef7827688fc5f1e99c902d24616614cb978c0b0abf172480fb86
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/init-from-template
@@ -1591,6 +2283,24 @@ deployments:
   - ./packages/project
   active_owner: ./packages/project
   content_hash: sha256:6eca60f035306017d43afefd3a7a23ae448484b584080aa404ff65e3e3fdec0a
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/speckit-explain
+  runtime: null
+  scope: project
+  owners:
+  - hol1kgmg/skills/skills/speckit-explain
+  active_owner: hol1kgmg/skills/skills/speckit-explain
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/speckit-explain/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - hol1kgmg/skills/skills/speckit-explain
+  active_owner: hol1kgmg/skills/skills/speckit-explain
+  content_hash: sha256:bb5d90ef999c37e085ab3672de7374b4fe8ae65dfd5d76987e3fa793ad3c0c5d
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/speckit-implement
