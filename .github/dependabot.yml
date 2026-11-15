@@ -1,4 +1,6 @@
 version: 2
+# apm ecosystem の beta 指定が不要になった（dependabot-core#16885）かを本番で確かめるまで残す
+enable-beta-ecosystems: true
 updates:
   # ルート package.json の packageManager (pnpm 本体のバージョン) が対象。
   # corepack が親ディレクトリまで遡って読むため、定義はここ 1 箇所に置く。
@@ -79,11 +81,8 @@ updates:
     cooldown:
       default-days: 2
 
-  # flake.lock の全 input が対象。skill / rules の取得元も flake = false な input なので
-  # ここに含まれ、input ごとに PR が立つ。skill / rules の PR だけ dependabot-auto-merge が
-  # 素通りさせるので、dependabot-review スキルでレビューして手動マージする
-  - package-ecosystem: "nix"
-    directory: "/"
+  - package-ecosystem: nix
+    directory: /
     schedule:
       interval: weekly
       day: saturday
@@ -91,3 +90,12 @@ updates:
       timezone: Asia/Tokyo
     cooldown:
       default-days: 2
+
+  # skill / rules はエージェントの挙動を変えるため auto-merge せずレビューする。cooldown は apm では効かない（adr/from-template/0009）
+  - package-ecosystem: apm
+    directory: /
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "08:00"
+      timezone: Asia/Tokyo

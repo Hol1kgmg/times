@@ -36,7 +36,7 @@ Skill ツールで `template-sync-review` を実行し、完了まで進める�
 
 Skill ツールで `dependabot-review` を実行する（`$ARGUMENTS` に Dependabot の PR 番号があれば渡す）。
 
-`dependabot-review` が使えない（`skills.nix` の `disable` などで無効）ときは、一覧だけを出す。
+`dependabot-review` が使えない（`.agents/skills` に同期されていないなど）ときは、一覧だけを出す。
 
 ```bash
 gh pr list --author app/dependabot --state open --json number,title,url

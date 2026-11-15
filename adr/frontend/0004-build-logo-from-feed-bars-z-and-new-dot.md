@@ -51,7 +51,7 @@ decision-makers: 'Hol1kgmg'
 ## More Information
 
 - 元データ: `docs/logo.svg`。写し: `frontend/src/shared/ui/logo.tsx` / `logo.module.css`。favicon: `frontend/public/favicon.svg`
-- ルール: `rules/frontend-ui-design.md` のロゴの項
+- ルール: `packages/project/.apm/instructions/frontend-ui-design.instructions.md` のロゴの項
 - 色の決定: adr/frontend/0003
 - 残課題は TODO.md: OGP 画像、bot の投稿者名
 - 2026-10-22: アニメーションをトップの h1 から外し、サイドバー (ログイン中だけ表示) のロゴに移した。サイドバーは普段アイコンだけで、アイコンのホバー中に文字をフェードインして 1 回再生する。ホバーを外すと文字はフェードアウトする。トップの h1 は静止画にした

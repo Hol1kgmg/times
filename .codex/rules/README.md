@@ -1,7 +1,7 @@
 # Codex の実行許可ルール
 
 `default.rules` は Codex 専用のコマンド実行許可を管理する。`.claude/settings.json` の Bash 許可リストを移植している。
-共有 Markdown ルールの `rules/`、`rules.nix`、`.agents/rules/` とは独立して、このディレクトリの実ファイルを Git で管理する。
+共有 Markdown ルールの `packages/*/.apm/instructions/`、`apm.yml`、`.claude/rules/` とは独立して、このディレクトリの実ファイルを Git で管理する。
 
 Codex は信頼済みプロジェクトの `.codex/rules/*.rules` を起動時に読み込む。変更後は Codex を再起動する。
 `allow` は一致するコマンドのサンドボックス外実行を承認なしで許可する。他のルールや管理ポリシーによる制約は引き続き適用される。

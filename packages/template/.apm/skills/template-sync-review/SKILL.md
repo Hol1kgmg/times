@@ -66,7 +66,7 @@ just sync-pr
 
 #### 衝突の解消
 
-`template-sync` ブランチでマージが途中の状態になっている。`flake.lock` だけの衝突は `just sync` 内で自動解消されるので、ここに来るのは `flake.lock` 以外も衝突したか、`flake.lock` を書き戻せない（project inputs に flake の input がある）場合である。
+`template-sync` ブランチでマージが途中の状態になっている。`flake.lock` / `apm.lock.yaml` だけの衝突は `just sync` 内で自動解消されるので、ここに来るのは lock 以外も衝突したか、`flake.lock` を書き戻せない（project inputs に flake の input がある）か、`apm install` が失敗した場合である。
 
 ```bash
 git diff --name-only --diff-filter=U
@@ -75,7 +75,7 @@ git diff --name-only --diff-filter=U
 衝突ファイルごとに `git diff <file>` と、必要なら `git show :2:<file>`（派生側）/ `git show :3:<file>`（テンプレート側）を読み、解消案をユーザーに示す。
 
 - 派生側の独自変更を残し、テンプレート側の変更を取り込むのが基本方針
-- `flake.lock` を `nix flake lock` で作り直す解消はしない。project inputs が最新版になり、Dependabot PR と重複する
+- `flake.lock` を `nix flake lock` で、`apm.lock.yaml` を消して `apm install` で作り直す解消はしない。派生側の取得元が最新版になり、Dependabot PR と重複する
 - 解消案は AskUserQuestion で承認を得てから Edit で適用する
 
 全ファイルを解消したら:
@@ -127,7 +127,7 @@ git diff --name-only "$base" "$up"         # テンプレート側の変更
 |---|---|
 | 両側が変更したファイル | 自動マージの結果、派生側の変更が残っているか（`git diff origin/main origin/template-sync -- <file>` で派生側の行が消えていないか） |
 | 挙動が変わるファイル（`.github/workflows/`、`justfile`、`scripts/`、`flake.nix`） | 派生リポジトリの CI・レシピ・devShell への影響 |
-| `flake.lock` | 下記 |
+| `flake.lock` / `apm.lock.yaml` | 下記 |
 | それ以外（ドキュメント、skill / rules の宣言など） | 要約のみ |
 
 **`flake.lock`**
@@ -139,6 +139,16 @@ git show origin/template-sync:flake.lock | jq -r '.nodes | to_entries[] | "\(.ke
 
 - rev が変わった node、追加・削除された node を一覧する
 - project inputs（main 側の root にあり、テンプレート側にない input）の rev が変わっていないことを確認する。変わっていれば ❌ とする
+
+**`apm.lock.yaml`**
+
+```bash
+git show origin/main:apm.lock.yaml | yq '.dependencies[] | .repo_url + "#" + (.virtual_path // "") + " " + (.resolved_commit // "-")' | sort
+git show origin/template-sync:apm.lock.yaml | yq '.dependencies[] | .repo_url + "#" + (.virtual_path // "") + " " + (.resolved_commit // "-")' | sort
+```
+
+- commit が変わった依存、追加・削除された依存を一覧する
+- 派生側だけの依存（main 側にあり、テンプレートの `apm.lock.yaml` にない依存）の commit が変わっていないことを確認する。変わっていれば ❌ とする
 
 ### 5. レポート
 
@@ -159,6 +169,10 @@ CI: ✅ / ❌ / ⏳  コンフリクト: なし / あり
 
 ### flake.lock
 | input | 変化 |
+|---|---|
+
+### apm.lock.yaml
+| 依存 | 変化 |
 |---|---|
 
 ### その他のファイル

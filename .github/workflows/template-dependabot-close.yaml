@@ -22,7 +22,9 @@ jobs:
           PR: ${{ github.event.pull_request.html_url }}
         run: |
           raw() { gh api -H 'Accept: application/vnd.github.raw' "repos/$1/contents/$2?ref=$3"; }
-          for f in $(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" -q '.[].filename'); do
+          # for の中で gh を呼ぶと、API の失敗が空の一覧になって PR を閉じる
+          files=$(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" -q '.[].filename')
+          for f in $files; do
             if [ "$f" = flake.lock ]; then
               raw "$REPO" flake.lock "$BASE" > base.json
               raw "$REPO" flake.lock "$HEAD" > head.json
@@ -39,13 +41,27 @@ jobs:
                 echo "派生側の input を含むため残す: $project"
                 exit 0
               fi
+            elif [ "$f" = apm.lock.yaml ]; then
+              # ubuntu-latest には yq（mikefarah 版）が入っている
+              raw "$REPO" apm.lock.yaml "$BASE" | yq -o json > base.json
+              raw "$REPO" apm.lock.yaml "$HEAD" | yq -o json > head.json
+              raw Hol1kgmg/claude-temp apm.lock.yaml main | yq -o json > upstream.json
+              project=$(jq -rn --slurpfile b base.json --slurpfile h head.json --slurpfile u upstream.json '
+                def key: "\(.repo_url)#\(.virtual_path // "")";
+                ($b[0].dependencies | map({key: key, value: .resolved_commit}) | from_entries) as $bc
+                | [$u[0].dependencies[] | key] as $uk
+                | $h[0].dependencies[] | select(.resolved_commit != $bc[key]) | key | select(. as $k | $uk | index($k) | not)')
+              if [ -n "$project" ]; then
+                echo "派生側の依存を含むため残す: $project"
+                exit 0
+              fi
             elif ! tpl=$(raw Hol1kgmg/claude-temp "$f" main 2>/dev/null); then
               echo "テンプレートに無いファイルを含むため残す: $f"
               exit 0
             else
               # 同じ workflow ファイルでも派生側が足した action はテンプレートからは更新されない
-              for a in $(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" -q ".[] | select(.filename == \"$f\") | .patch" \
-                  | grep -oE '^\+.*uses: *[^@ ]+@' | sed -E 's/.*uses: *//'); do
+              patch=$(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" -q ".[] | select(.filename == \"$f\") | .patch")
+              for a in $(grep -oE '^\+.*uses: *[^@ ]+@' <<<"$patch" | sed -E 's/.*uses: *//'); do
                 if ! grep -qF "$a" <<<"$tpl"; then
                   echo "テンプレートが使っていない action を含むため残す: $f $a"
                   exit 0
