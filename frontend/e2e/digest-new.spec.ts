@@ -66,6 +66,7 @@ test("トップを開くと閲覧の記録が送られ、URL を貼って集め�
 
   const panel = page.getByRole("region", { name: "最新の Digest" });
   const dateLabel = new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "short",
