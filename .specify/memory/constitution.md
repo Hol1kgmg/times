@@ -108,7 +108,7 @@ backend を直接呼んではならず (MUST NOT)、CORS や API バージョニ
   規約なので FSD の外に置く。
 - **UI**: 色・影・角丸・余白・タイポグラフィは `frontend/src/app/styles/global.css` の
   トークンで指定し、CSS Modules に生の値を書いてはならない (MUST NOT)。ルールの詳細は
-  `.agents/rules/frontend-ui-design.md`。
+  `.claude/rules/frontend-ui-design.md`。
 - **開発環境**: Nix devShell (direnv) と Docker Compose。操作はルートの `justfile` 経由で
   行う。レシピ名は `fe-*` / `be-*` / `db-*` / prefix なし (全体) の命名に従う (MUST)。
 

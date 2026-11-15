@@ -1,0 +1,49 @@
+name: project
+version: 0.0.0
+targets: [agent-skills, claude]
+dependencies:
+  apm:
+    # テンプレート管理（派生先は末尾の区画を編集）。Dependabot は ref 付きの直接の依存しか更新しない（adr/from-template/0009）
+    - anthropics/skills/skills/frontend-design#main
+    - anthropics/skills/skills/skill-creator#main
+    - anthropics/skills/skills/webapp-testing#main
+
+    - vercel/ai/skills/adr-skill#main
+
+    - addyosmani/web-quality-skills/skills/web-quality-audit#main
+    - addyosmani/web-quality-skills/skills/performance#main
+    - addyosmani/web-quality-skills/skills/core-web-vitals#main
+    - addyosmani/web-quality-skills/skills/accessibility#main
+    - addyosmani/web-quality-skills/skills/seo#main
+    - addyosmani/web-quality-skills/skills/best-practices#main
+
+    - cloudflare/security-audit-skill/skills/security-audit#main
+
+    - nanaism/yomiyasu/skills/yomiyasu#main
+
+    - Hol1kgmg/skills/skills/dependabot-review#main
+    # gist は alias を付けられないため Hol1kgmg/skills に取り込んだものを使う（Hol1kgmg/skills#1）
+    - Hol1kgmg/skills/skills/cognitive-rhythm-writing#main
+    - Hol1kgmg/skills/skills/japanese-tech-writing#main
+    # 必要なリポジトリで末尾に足す: Hol1kgmg/skills/skills/speckit-explain#main
+
+    - Hol1kgmg/rules/rules/orca-worktree.instructions.md#main
+    # 必要なリポジトリで末尾に足す: Hol1kgmg/rules/rules/code-comment.instructions.md#main など
+
+    - ./packages/template
+    - ./packages/project
+
+    # --- 派生先が管理。外部の取得元だけを書く。独自の skill / rule は packages/project/.apm/ に置く。adr/from-template/0009 ---
+    - Hol1kgmg/skills/skills/speckit-explain#main
+    - Hol1kgmg/rules/rules/code-comment.instructions.md#main
+
+    - feature-sliced/skills/feature-sliced-design#master
+
+    # Cloud Run + Cloud SQL へのデプロイ用
+    - google/skills/skills/cloud/gcloud#main
+    - google/skills/skills/cloud/cloud-run-basics#main
+    - google/skills/skills/cloud/cloud-sql-basics#main
+    - google/skills/skills/cloud/google-cloud-recipe-auth#main
+
+    # adr/frontend/0014 の次の段階のツール設計用
+    - GoogleChromeLabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools#main

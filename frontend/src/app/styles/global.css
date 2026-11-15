@@ -140,7 +140,7 @@ button {
   outline: none;
 }
 
-/* タイポグラフィ: 用途別クラス。.agents/rules/frontend-ui-design.md 参照 */
+/* タイポグラフィ: 用途別クラス。.claude/rules/frontend-ui-design.md 参照 */
 .t-date {
   font-size: 18px;
   font-weight: 600;

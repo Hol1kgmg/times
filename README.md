@@ -61,10 +61,9 @@ just be-dev    # backend:  http://localhost:8080
 | claude / codex | コーディングエージェント（`AGENTS.md` と `.agents/` を共有して参照する） |
 | go / gopls / sqlc / oapi-codegen | backend 開発（[docs/tech-stack.md](docs/tech-stack.md)）。Postgres と golang-migrate は Docker Compose で動かす |
 
-エージェント用スキルは `skills.nix` の宣言から devShell 起動時に `.agents/skills` へ同期されます
-（`just skills` / `just skills-list`）。取得元は `flake.nix` の `flake = false` な input で、独自スキルは [skills/](skills/) に置きます。
-エージェント用のルール（`.claude/rules/*.md`）も同じ流儀で、`rules.nix` の宣言から `.agents/rules` へ同期されます
-（`just rules` / `just rules-list`）。独自ルールは [rules/](rules/) に置きます。
+エージェント用のスキルとルールは [APM](https://github.com/microsoft/apm) で管理し、`apm.yml` の宣言から devShell 起動時に
+スキルは `.agents/skills`、ルールは `.claude/rules` へ同期されます（`just apm` / `just apm-list`）。
+取得元の版は `apm.lock.yaml` に固定し、独自スキルは `packages/project/.apm/skills/<id>/`、独自ルールは `packages/project/.apm/instructions/<id>.instructions.md` に置きます。
 
 ### テンプレート管理と派生先管理の分離
 
@@ -72,14 +71,19 @@ just be-dev    # backend:  http://localhost:8080
 
 | 派生先が編集する | テンプレートが管理する（編集しない） |
 |---|---|
-| `skills.nix` / `rules.nix`（`enable` で追加、`disable` で除外） | `skills.template.nix` / `rules.template.nix` |
-| `sources.nix`（skill / rules の取得元） | `sources.template.nix` |
+| `apm.yml` の `dependencies.apm` 末尾の「派生先が管理」区画（外部の skill / rule の追加）、`packages/project/.apm/`（独自の skill / rule） | `apm.yml` のそれ以外、`packages/template/`、`packages/project/apm.yml` |
 | `flake.nix` の `inputs` 末尾の「project inputs」区画 | `flake.nix` の `inputs` のそれ以外 |
 | `flake.nix` 末尾の `devShells.default` | `flake.nix` の `devShells.template` |
 
-`flake.lock` は両側が更新します。`just sync` が衝突を input 単位で自動解消します（下の「テンプレート同期」）。
+`flake.lock` と `apm.lock.yaml` は両側が更新します。`just sync` が衝突を自動解消し、派生先だけの取得元の版は派生先の lock から書き戻します（下の「テンプレート同期」）。
 
-取得元の更新は Dependabot（`nix` ecosystem）が input ごとに PR を出します。マージ前に `dependabot-review` スキルで差分をレビューしてください。
+skill / rule の取得元の更新は Dependabot（`apm` ecosystem）が取得元ごとに PR を出します。Dependabot が更新するのは `apm.yml` に `#main` などの ref 付きで直接書いた依存だけなので、取得元は `packages/template/apm.yml` や別の `apm.yml` を経由させず、`apm.yml` に直接書いてください（[adr/from-template/0009](adr/from-template/0009-declare-all-skill-sources-in-root-apm-yml.md)）。マージ前に `dependabot-review` スキルで差分をレビューし、`just apm-fix-lock <PR 番号>` で lock を直してください（下の「Dependabot の apm PR」）。
+
+### Dependabot の apm PR
+
+Dependabot が使う apm（0.34.0）は手元と CI の apm（0.35.0）より古く、lock の書き方がずれます。PR の lock からローカルパッケージ（`./packages/template`、`./packages/project`）の `content_hash` が消え、CI の `apm install --frozen` が失敗します。マージ前に `just apm-fix-lock <PR 番号>` を実行すると、PR のブランチで `apm install` をやり直した lock を push します。[dependabot-core#16792](https://github.com/dependabot/dependabot-core/pull/16792) がマージされれば、この手順は不要になります。
+
+`just apm-fix-lock` で commit を足した PR は、Dependabot が rebase しなくなります。apm の PR が複数あるときは 1 件ずつマージし、そのたびに残りの PR に `@dependabot recreate` とコメントしてから、作り直された PR で `just apm-fix-lock` をやり直してください。
 
 ## 環境変数
 
@@ -139,7 +143,9 @@ just update    # flake.lock を更新して検証する
 
 - PR は **Create a merge commit** でマージしてください（squash / rebase は共通祖先を壊します）
 - テンプレート元に open の Dependabot PR が残っていると、`just sync` / `just sync-pr` は止まります。処理が終わってから実行するか、`SYNC_IGNORE_OPEN_PRS=1` を付けて実行してください
-- `flake.lock` の衝突は、テンプレートの input をテンプレート側、`flake = false` の project inputs を派生先側の値で解消します。それ以外の衝突では止まるので、手で解消してください
+- `flake.lock` の衝突は、テンプレートの input をテンプレート側、`flake = false` の project inputs を派生先側の値で解消します
+- `apm.lock.yaml` の衝突は、テンプレート側の lock に派生先だけの依存を派生先側の版で書き戻し、`apm install` で解消します
+- それ以外の衝突では止まるので、手で解消してください
 - テンプレートの input や workflow だけを更新する Dependabot PR は、取り込み PR と重複するため `template-dependabot-close` workflow が閉じます
 - draft PR の作成には、リポジトリ設定の **Allow GitHub Actions to create and approve pull requests** が必要です（`init-from-template` スキルが有効にします）
 

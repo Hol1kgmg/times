@@ -1,0 +1,3 @@
+# 推移的な依存は Dependabot が更新しないため、外部の依存はルートの apm.yml に書く（adr/from-template/0009）
+name: template
+version: 0.0.0

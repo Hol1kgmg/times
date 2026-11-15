@@ -1,7 +1,7 @@
 ---
 name: init-from-template
 description: Hol1kgmg/claude-temp をテンプレートにして生成した直後のリポジトリで、README.md / AGENTS.md / adr/README.md に残るテンプレートのプレースホルダ（{app name} など）を埋め、不要なセクションを削る。「テンプレートの初期化」「プレースホルダを埋めて」「テンプレート固有のものを消して」と言われたとき、または生成直後のリポジトリで README に {app name} が残っているときに使う。
-allowed-tools: Bash(git remote:*), Bash(git status:*), Bash(just sync:*), Bash(nix flake check:*), Bash(gh api -X PUT repos/*/actions/permissions/workflow:*), Read, Edit, Grep, Glob, AskUserQuestion
+allowed-tools: Bash(git remote:*), Bash(git status:*), Bash(just sync:*), Bash(apm install --frozen:*), Bash(gh api -X PUT repos/*/actions/permissions/workflow:*), Read, Edit, Grep, Glob, AskUserQuestion
 ---
 
 # init-from-template — テンプレート生成直後の初期化
@@ -10,9 +10,9 @@ allowed-tools: Bash(git remote:*), Bash(git status:*), Bash(just sync:*), Bash(n
 
 ## 消してはいけないもの
 
-`just sync` はテンプレート元を **マージコミット** で取り込み続ける（[adr/from-template/0001](../../adr/from-template/0001-sync-template-via-merge-commit.md)）。同期対象のファイルを派生側で削除すると、テンプレート元がそのファイルを後で変更した時点で modify/delete 衝突が毎回起きる。したがって次は削除しない:
+`just sync` はテンプレート元を **マージコミット** で取り込み続ける（[adr/from-template/0001](../../../adr/from-template/0001-sync-template-via-merge-commit.md)）。同期対象のファイルを派生側で削除すると、テンプレート元がそのファイルを後で変更した時点で modify/delete 衝突が毎回起きる。したがって次は削除しない:
 
-- `adr/from-template/`、`docs/`、`justfile` の `sync` レシピ、`.github/`、`skills/init-from-template/`（このスキル自身）
+- `adr/from-template/`、`docs/`、`justfile` の `sync` レシピ、`.github/`、`packages/template/`（このスキル自身を含む）、`packages/project/apm.yml`
 - README.md の「テンプレート同期」節
 
 やることはプレースホルダの **置換** と、AGENTS.md の任意セクションの削除だけ。置換より **先に初回の `just sync` を済ませる**（理由は手順 2）。
@@ -59,7 +59,7 @@ AskUserQuestion で一度にまとめて聞く。引数で渡されていれば�
 | Troubleshooting ドキュメントの要否（要るならファイル名） | AGENTS.md |
 | Dependabot の更新 PR を派生側でも受け取るか | .github/dependabot.yml |
 
-Dependabot は、触らない派生や flake.lock の更新を `just sync` 経由で受け取る派生では不要。選択肢の説明にそう添える。
+Dependabot は、触らない派生や flake.lock / apm.lock.yaml の更新を `just sync` 経由で受け取る派生では不要。選択肢の説明にそう添える。
 
 ### 4. 置換する
 
@@ -85,12 +85,12 @@ Edit で行う。sed は使わない。
 
 **.github/dependabot.yml**（受け取らない場合のみ）
 
-- `nix` と `github-actions` の両 `updates` エントリに `open-pull-requests-limit: 0` を追加する。`0` は version updates を無効化する公式の値
+- `github-actions`、`nix`、`apm` のすべての `updates` エントリに `open-pull-requests-limit: 0` を追加する。`0` は version updates を無効化する公式の値
 - ファイルは削除しない（同期対象）。以後の `just sync` でこのファイルが衝突したら `0` を残して解決する
 
 **GitHub Actions による PR 作成の許可**
 
-`template-sync` workflow が draft PR を作るために要る（[adr/from-template/0006](../../adr/from-template/0006-automate-template-sync-pr.md)）。新しいリポジトリでは既定で無効。
+`template-sync` workflow が draft PR を作るために要る（[adr/from-template/0006](../../../adr/from-template/0006-automate-template-sync-pr.md)）。新しいリポジトリでは既定で無効。
 
 ```bash
 gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow -F can_approve_pull_request_reviews=true
@@ -104,11 +104,10 @@ gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow -F can_approve_p
 
 - 手順 1 の Grep を再実行し、ヒットが 0 であること
 - 参照先ファイルを指定した場合、そのファイルが存在するか Glob で確認し、無ければ「作成が必要」と報告する（勝手に作らない）
-- `nix flake check` を実行（skills.nix / rules.nix の解決が壊れていないことの確認）
+- `apm install --frozen` を実行（apm.yml と apm.lock.yaml がずれていないことの確認）
 
 ### 6. 後片付けの提案
 
 変更は自動でコミットしない。差分を要約し、次を提案する:
 
 - コミット（例: `chore: テンプレートのプレースホルダを埋める`）
-- 不要なスキルを `skills.nix` の `disable` に足す（派生ごとに判断が異なるため、このスキルでは触らない。`skills.template.nix` は同期対象なので編集しない）

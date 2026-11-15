@@ -1,5 +1,5 @@
 ---
-status: 'accepted'
+status: 'superseded by 0009'
 date: 2026-11-07
 decision-makers: 'Hol1kgmg'
 ---
@@ -57,6 +57,7 @@ ref を書けば更新されるかを、ブランチ指定（`#main`）で確か
 
 ## More Information
 
+- 置き換えられた: [skill / rules の取得元をすべてルートの apm.yml に直接書き、区画で分ける](0009-declare-all-skill-sources-in-root-apm-yml.md)
 - 置き換え: [skill / rules を Nix から APM に移す](0007-manage-skills-and-rules-with-apm.md)
 - 前提: [skill / rules の取得元を flake input にして Dependabot で更新する](0003-update-skill-sources-via-dependabot.md)
 - 前提: [テンプレート管理と派生先管理の宣言を別ファイル・別区画に分ける](0005-separate-template-and-project-files.md)
