@@ -1,0 +1,50 @@
+.root {
+  composes: root from "../ask-ai.module.css";
+}
+
+.button {
+  composes: button from "../ask-ai.module.css";
+}
+
+.card {
+  composes: card from "../ask-ai.module.css";
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  opacity: 1;
+  transition: opacity 0.2s ease-out;
+}
+
+.card[data-starting-style],
+.card[data-ending-style] {
+  opacity: 0;
+}
+
+.heading {
+  composes: heading from "../ask-ai.module.css";
+}
+
+.services {
+  composes: services from "../ask-ai.module.css";
+}
+
+.service {
+  composes: service from "../ask-ai.module.css";
+}
+
+/* UI SDK の部品は data-focus-visible を出さないので、ブラウザの判定を使う */
+.service:focus-visible {
+  outline: 2px solid var(--color-accent);
+  background-color: var(--color-selected);
+  color: var(--color-accent);
+}
+
+.copy {
+  composes: copy from "../ask-ai.module.css";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}
