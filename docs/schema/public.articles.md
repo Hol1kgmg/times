@@ -4,14 +4,11 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | uuid | gen_random_uuid() | false | [public.article_links](public.article_links.md) |  |  |
-| digest_id | uuid |  | false |  | [public.digests](public.digests.md) |  |
-| position | integer |  | false |  |  |  |
+| id | uuid | gen_random_uuid() | false | [public.digest_articles](public.digest_articles.md) |  |  |
 | category | text |  | false |  |  |  |
 | title | text |  | false |  |  |  |
 | url | text |  | false |  |  |  |
 | description | text |  | true |  |  |  |
-| is_hot | boolean | false | false |  |  |  |
 | created_by | bigint |  | false |  | [public.users](public.users.md) |  |
 | created_at | timestamp with time zone | now() | false |  |  |  |
 
@@ -23,20 +20,15 @@
 | articles_category_not_null | n | NOT NULL category |
 | articles_created_at_not_null | n | NOT NULL created_at |
 | articles_created_by_not_null | n | NOT NULL created_by |
-| articles_digest_id_not_null | n | NOT NULL digest_id |
 | articles_id_not_null | n | NOT NULL id |
-| articles_is_hot_not_null | n | NOT NULL is_hot |
-| articles_position_not_null | n | NOT NULL "position" |
 | articles_title_check | CHECK | CHECK ((title <> ''::text)) |
 | articles_title_not_null | n | NOT NULL title |
 | articles_url_check | CHECK | CHECK ((url <> ''::text)) |
 | articles_url_not_null | n | NOT NULL url |
 | articles_url_scheme_check | CHECK | CHECK ((url ~ '^https?://'::text)) |
-| articles_digest_id_fkey | FOREIGN KEY | FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE |
 | articles_pkey | PRIMARY KEY | PRIMARY KEY (id) |
 | articles_created_by_fkey | FOREIGN KEY | FOREIGN KEY (created_by) REFERENCES users(id) |
 | articles_created_by_url_key | UNIQUE | UNIQUE (created_by, url) |
-| articles_digest_id_position_key | UNIQUE | UNIQUE (digest_id, "position") DEFERRABLE INITIALLY DEFERRED |
 
 ## Indexes
 
@@ -44,7 +36,6 @@
 | ---- | ---------- |
 | articles_pkey | CREATE UNIQUE INDEX articles_pkey ON public.articles USING btree (id) |
 | articles_created_by_url_key | CREATE UNIQUE INDEX articles_created_by_url_key ON public.articles USING btree (created_by, url) |
-| articles_digest_id_position_key | CREATE UNIQUE INDEX articles_digest_id_position_key ON public.articles USING btree (digest_id, "position") |
 
 ## Relations
 

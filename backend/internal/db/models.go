@@ -12,21 +12,12 @@ import (
 
 type Article struct {
 	ID          uuid.UUID
-	DigestID    uuid.UUID
-	Position    int32
 	Category    string
 	Title       string
 	Url         string
 	Description *string
-	IsHot       bool
 	CreatedBy   int64
 	CreatedAt   time.Time
-}
-
-type ArticleLink struct {
-	ParentID uuid.UUID
-	ChildID  uuid.UUID
-	Position int32
 }
 
 type Digest struct {
@@ -36,6 +27,14 @@ type Digest struct {
 	CreatedBy   int64
 	Status      string
 	PublishedAt *time.Time
+}
+
+type DigestArticle struct {
+	DigestID  uuid.UUID
+	ArticleID uuid.UUID
+	ParentID  *uuid.UUID
+	Position  int32
+	IsHot     bool
 }
 
 type Session struct {

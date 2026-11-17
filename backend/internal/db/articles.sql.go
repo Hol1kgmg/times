@@ -13,8 +13,12 @@ const listArticleDomains = `-- name: ListArticleDomains :many
 SELECT host, count(*)::int AS count
 FROM (
     SELECT substring(a.url from '^https?://([^/:?#]+)')::text AS host
-    FROM articles a JOIN digests d ON d.id = a.digest_id
-    WHERE NOT $1::bool OR d.status = 'published'
+    FROM articles a
+    -- 再掲載で同じ記事を 2 回数えないよう、掲載ではなく記事で数える (specs/018 R8)
+    WHERE NOT $1::bool OR EXISTS (
+        SELECT 1 FROM digest_articles da JOIN digests d ON d.id = da.digest_id
+        WHERE da.article_id = a.id AND d.status = 'published'
+    )
 ) x
 WHERE $2::text IS NULL OR strpos(lower(host), lower($2)) > 0
 GROUP BY host ORDER BY count DESC, host LIMIT $3

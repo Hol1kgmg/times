@@ -12,21 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const createArticleLink = `-- name: CreateArticleLink :exec
-INSERT INTO article_links (parent_id, child_id, position) VALUES ($1, $2, $3)
-`
-
-type CreateArticleLinkParams struct {
-	ParentID uuid.UUID
-	ChildID  uuid.UUID
-	Position int32
-}
-
-func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkParams) error {
-	_, err := q.db.Exec(ctx, createArticleLink, arg.ParentID, arg.ChildID, arg.Position)
-	return err
-}
-
 const createDigest = `-- name: CreateDigest :one
 INSERT INTO digests (entry_date, created_by, status, published_at) VALUES ($1, $2, $3,
   CASE WHEN $3 = 'published' AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > $1) THEN now() END) RETURNING id, entry_date, created_at, created_by, status, published_at
@@ -53,27 +38,47 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 	return i, err
 }
 
-const deleteArticleLinksByDigest = `-- name: DeleteArticleLinksByDigest :exec
-DELETE FROM article_links l USING articles a WHERE a.id = l.child_id AND a.digest_id = $1
+const createDigestArticle = `-- name: CreateDigestArticle :exec
+INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot) VALUES ($1, $2, $3, $4, $5)
 `
 
-func (q *Queries) DeleteArticleLinksByDigest(ctx context.Context, digestID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteArticleLinksByDigest, digestID)
+type CreateDigestArticleParams struct {
+	DigestID  uuid.UUID
+	ArticleID uuid.UUID
+	ParentID  *uuid.UUID
+	Position  int32
+	IsHot     bool
+}
+
+func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArticleParams) error {
+	_, err := q.db.Exec(ctx, createDigestArticle,
+		arg.DigestID,
+		arg.ArticleID,
+		arg.ParentID,
+		arg.Position,
+		arg.IsHot,
+	)
 	return err
 }
 
-const deleteArticlesNotIn = `-- name: DeleteArticlesNotIn :exec
-DELETE FROM articles WHERE digest_id = $1 AND url <> ALL($2::text[])
+const deleteDigestArticles = `-- name: DeleteDigestArticles :exec
+DELETE FROM digest_articles WHERE digest_id = $1
 `
 
-type DeleteArticlesNotInParams struct {
-	DigestID uuid.UUID
-	Urls     []string
+// 掲載は id を持たず外から参照されないので、保存のたびに入れ直してよい
+func (q *Queries) DeleteDigestArticles(ctx context.Context, digestID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteDigestArticles, digestID)
+	return err
 }
 
-// 残る記事は消さずに upsert で更新し、id とサーバーだけが持つ列を保つ (issue #114)
-func (q *Queries) DeleteArticlesNotIn(ctx context.Context, arg DeleteArticlesNotInParams) error {
-	_, err := q.db.Exec(ctx, deleteArticlesNotIn, arg.DigestID, arg.Urls)
+const deleteOrphanArticles = `-- name: DeleteOrphanArticles :exec
+DELETE FROM articles WHERE created_by = $1
+  AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = articles.id)
+`
+
+// どの Digest にも載らなくなった記事は消す (specs/018 FR-013)
+func (q *Queries) DeleteOrphanArticles(ctx context.Context, createdBy int64) error {
+	_, err := q.db.Exec(ctx, deleteOrphanArticles, createdBy)
 	return err
 }
 
@@ -136,57 +141,49 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 	return i, err
 }
 
-const listArticleLinksByDigest = `-- name: ListArticleLinksByDigest :many
-SELECT l.parent_id, l.child_id, l.position FROM article_links l
-JOIN articles a ON a.id = l.child_id
-WHERE a.digest_id = $1 ORDER BY l.parent_id, l.position
+const listArticlesByDigest = `-- name: ListArticlesByDigest :many
+SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, f.entry_date AS first_published_on
+FROM digest_articles da JOIN articles a ON a.id = da.article_id JOIN digests cur ON cur.id = da.digest_id
+LEFT JOIN digests f ON f.id = (
+  SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+  WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
+  ORDER BY d.entry_date LIMIT 1
+)
+WHERE da.digest_id = $1 ORDER BY da.position
 `
 
-func (q *Queries) ListArticleLinksByDigest(ctx context.Context, digestID uuid.UUID) ([]ArticleLink, error) {
-	rows, err := q.db.Query(ctx, listArticleLinksByDigest, digestID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ArticleLink
-	for rows.Next() {
-		var i ArticleLink
-		if err := rows.Scan(&i.ParentID, &i.ChildID, &i.Position); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+type ListArticlesByDigestRow struct {
+	ID               uuid.UUID
+	Category         string
+	Title            string
+	Url              string
+	Description      *string
+	ParentID         *uuid.UUID
+	IsHot            bool
+	FirstPublishedOn *time.Time
 }
 
-const listArticlesByDigest = `-- name: ListArticlesByDigest :many
-SELECT id, digest_id, position, category, title, url, description, is_hot, created_by, created_at FROM articles WHERE digest_id = $1 ORDER BY position
-`
-
-// position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
-func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) ([]Article, error) {
+// position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)。子は親の直後に入るので、親の中の順も position の順
+// 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付くため (specs/018 FR-010)
+// sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
+func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) ([]ListArticlesByDigestRow, error) {
 	rows, err := q.db.Query(ctx, listArticlesByDigest, digestID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Article
+	var items []ListArticlesByDigestRow
 	for rows.Next() {
-		var i Article
+		var i ListArticlesByDigestRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.DigestID,
-			&i.Position,
 			&i.Category,
 			&i.Title,
 			&i.Url,
 			&i.Description,
+			&i.ParentID,
 			&i.IsHot,
-			&i.CreatedBy,
-			&i.CreatedAt,
+			&i.FirstPublishedOn,
 		); err != nil {
 			return nil, err
 		}
@@ -305,29 +302,40 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 }
 
 const listRegisteredURLs = `-- name: ListRegisteredURLs :many
-SELECT url FROM articles WHERE created_by = $1 AND digest_id <> $2 AND url = ANY($3::text[])
+SELECT a.url, EXISTS (
+    SELECT 1 FROM digest_articles da JOIN digests d ON d.id = da.digest_id
+    WHERE da.article_id = a.id AND d.status = 'published'
+) AS published_elsewhere
+FROM articles a
+WHERE a.created_by = $1 AND a.url = ANY($2::text[])
+  AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $3)
 `
 
 type ListRegisteredURLsParams struct {
 	CreatedBy int64
-	DigestID  uuid.UUID
 	Urls      []string
+	DigestID  uuid.UUID
 }
 
-// unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
-func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLsParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, listRegisteredURLs, arg.CreatedBy, arg.DigestID, arg.Urls)
+type ListRegisteredURLsRow struct {
+	Url                string
+	PublishedElsewhere bool
+}
+
+// unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く。この Digest に載っている記事は確かめ直さない (specs/018 FR-009)
+func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLsParams) ([]ListRegisteredURLsRow, error) {
+	rows, err := q.db.Query(ctx, listRegisteredURLs, arg.CreatedBy, arg.Urls, arg.DigestID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []ListRegisteredURLsRow
 	for rows.Next() {
-		var url string
-		if err := rows.Scan(&url); err != nil {
+		var i ListRegisteredURLsRow
+		if err := rows.Scan(&i.Url, &i.PublishedElsewhere); err != nil {
 			return nil, err
 		}
-		items = append(items, url)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -383,44 +391,33 @@ func (q *Queries) UpdateDigest(ctx context.Context, arg UpdateDigestParams) (Dig
 }
 
 const upsertArticle = `-- name: UpsertArticle :one
-INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (created_by, url) DO UPDATE SET
-  position = EXCLUDED.position, category = EXCLUDED.category, title = EXCLUDED.title, is_hot = EXCLUDED.is_hot
-WHERE articles.digest_id = EXCLUDED.digest_id
-RETURNING id, digest_id, position, category, title, url, description, is_hot, created_by, created_at
+INSERT INTO articles (category, title, url, created_by) VALUES ($1, $2, $3, $4)
+ON CONFLICT (created_by, url) DO UPDATE SET category = EXCLUDED.category, title = EXCLUDED.title
+RETURNING id, category, title, url, description, created_by, created_at
 `
 
 type UpsertArticleParams struct {
-	DigestID  uuid.UUID
-	Position  int32
 	Category  string
 	Title     string
 	Url       string
-	IsHot     bool
 	CreatedBy int64
 }
 
-// 画面が送る列だけを更新する。他の Digest の URL には当たっても更新せず、行を返さない
+// 記事の行は残して更新し、id とサーバーだけが持つ列を保つ (issue #114)
 func (q *Queries) UpsertArticle(ctx context.Context, arg UpsertArticleParams) (Article, error) {
 	row := q.db.QueryRow(ctx, upsertArticle,
-		arg.DigestID,
-		arg.Position,
 		arg.Category,
 		arg.Title,
 		arg.Url,
-		arg.IsHot,
 		arg.CreatedBy,
 	)
 	var i Article
 	err := row.Scan(
 		&i.ID,
-		&i.DigestID,
-		&i.Position,
 		&i.Category,
 		&i.Title,
 		&i.Url,
 		&i.Description,
-		&i.IsHot,
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)

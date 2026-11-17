@@ -50,9 +50,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Digest"
+                $ref: "#/components/schemas/SavedDigest"
         "400":
-          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)、今日 (JST) より後の日付で公開しようとした (future-publish)。日付と URL が両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き。ほかの公開済み Digest に載っている記事を、新しい子を付けた親として入れた再掲載は除く)、公開済み Digest に載っている記事を新しい子を付けずに親として入れた (repost-needs-child、duplicateUrls 付き)、今日 (JST) より後の日付で公開しようとした (future-publish)。日付と URL が両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -154,9 +154,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Digest"
+                $ref: "#/components/schemas/SavedDigest"
         "400":
-          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)。両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き。再掲載は除き、この Digest に載っている記事は確かめ直さない)、公開済み Digest に載っている記事を新しい子を付けずに親として入れた (repost-needs-child、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)。両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -406,6 +406,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Article"
+    SavedDigest:
+      allOf:
+        - $ref: "#/components/schemas/Digest"
+        - type: object
+          required: [repostedUrls]
+          properties:
+            repostedUrls:
+              type: array
+              items:
+                type: string
+              description: この保存で新しく再掲載になった記事の URL。保存前から載っていた再掲載は含めない
     DigestPage:
       type: object
       required: [digests]
@@ -476,6 +487,10 @@ components:
         description:
           type: string
           description: ページの説明文。取得できた記事だけ持つ
+        firstPublishedOn:
+          type: string
+          format: date
+          description: 再掲載のときだけ入る。この記事が載っている公開済み Digest のうち、この Digest より前でいちばん古い日付
         children:
           type: array
           items:
@@ -597,6 +612,7 @@ components:
             - /problems/url-already-registered
             - /problems/digest-already-exists
             - /problems/future-publish
+            - /problems/repost-needs-child
         title:
           type: string
         status:
@@ -607,4 +623,4 @@ components:
           type: array
           items:
             type: string
-          description: url-already-registered のときだけ入る。同じ管理者が前の Digest で登録済みの URL (送った articles と children のうち該当するものすべて)
+          description: url-already-registered と repost-needs-child のときだけ入る。url-already-registered は同じ管理者が前の Digest で登録済みの URL、repost-needs-child は新しい子を付けずに入れた再掲載の親の URL (送った articles と children のうち該当するものすべて)

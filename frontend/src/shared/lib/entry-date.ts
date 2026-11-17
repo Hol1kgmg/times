@@ -20,6 +20,8 @@ export const formatEntryDate = (entryDate: string) =>
     new Date(entryDate),
   );
 
+export const formatFirstPublished = (date: string) => `再掲載 · ${formatEntryDate(date)}に初掲載`;
+
 // フィードの題名と OG 画像 (backend の feed.go) は画像を長くキャッシュするので、今年かどうかで形を変えない
 export const formatEntryDateWithoutYear = (entryDate: string) =>
   dateFormat.format(new Date(entryDate));

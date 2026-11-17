@@ -48,20 +48,21 @@ func TestURLsOfIncludesChildren(t *testing.T) {
 	}
 }
 
-// DB 行 → API 応答の変換: 日付は date 形式、description は NULL なら省略、順序は行順のまま。
-// link の child 側は articles から外れて親の children に入り、子のない親も children は [] になる。hot は親にだけ出る
+// DB 行 → API 応答の変換: 日付は date 形式、description は NULL なら省略、順序は行 (position) 順のまま。
+// parent_id を持つ行は親の children に行順で入り、子のない親も children は [] になる。hot は親にだけ出る
 func TestToDigest(t *testing.T) {
 	desc := "summary"
 	d := db.Digest{ID: uuid.New(), EntryDate: time.Date(2026, 9, 22, 0, 0, 0, 0, time.UTC)}
-	rows := []db.Article{
-		{ID: uuid.New(), Category: "セキュリティ", Title: "a", Url: "https://a.example", Description: &desc},
-		{ID: uuid.New(), Category: "セキュリティ", Title: "a-child", Url: "https://a.example/child"},
+	a, c := uuid.New(), uuid.New()
+	rows := []db.ListArticlesByDigestRow{
+		{ID: a, Category: "セキュリティ", Title: "a", Url: "https://a.example", Description: &desc},
+		{ID: uuid.New(), Category: "セキュリティ", Title: "a-child-1", Url: "https://a.example/1", ParentID: &a},
+		{ID: uuid.New(), Category: "セキュリティ", Title: "a-child-2", Url: "https://a.example/2", ParentID: &a},
 		{ID: uuid.New(), Category: "その他", Title: "b", Url: "https://b.example"},
-		{ID: uuid.New(), Category: "IT系", Title: "c", Url: "https://c.example", IsHot: true},
-		{ID: uuid.New(), Category: "IT系", Title: "c-child", Url: "https://c.example/child", IsHot: true},
+		{ID: c, Category: "IT系", Title: "c", Url: "https://c.example", IsHot: true},
+		{ID: uuid.New(), Category: "IT系", Title: "c-child", Url: "https://c.example/child", ParentID: &c, IsHot: true},
 	}
-	links := []db.ArticleLink{{ParentID: rows[0].ID, ChildID: rows[1].ID}, {ParentID: rows[3].ID, ChildID: rows[4].ID}}
-	body, err := json.Marshal(toDigest(d, rows, links))
+	body, err := json.Marshal(toDigest(d, rows))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +87,7 @@ func TestToDigest(t *testing.T) {
 	if got.Articles[0].Description != "summary" {
 		t.Errorf("description: got %v", got.Articles[0].Description)
 	}
-	if len(got.Articles[0].Children) != 1 || got.Articles[0].Children[0]["title"] != "a-child" {
+	if len(got.Articles[0].Children) != 2 || got.Articles[0].Children[0]["title"] != "a-child-1" || got.Articles[0].Children[1]["title"] != "a-child-2" {
 		t.Errorf("children: got %v", got.Articles[0].Children)
 	}
 	if got.Articles[0].Hot || !got.Articles[2].Hot {
@@ -100,6 +101,59 @@ func TestToDigest(t *testing.T) {
 	}
 	if got.Articles[1].Description != nil {
 		t.Errorf("nil description must be omitted: %v", got.Articles[1])
+	}
+}
+
+// 再掲載の初掲載日は親にだけ出し、子には出さない (子は新しい記事だけ)
+func TestToDigestFirstPublishedOnParentOnly(t *testing.T) {
+	first := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
+	p := uuid.New()
+	rows := []db.ListArticlesByDigestRow{
+		{ID: p, Category: "IT系", Title: "p", Url: "https://p.example", FirstPublishedOn: &first},
+		{ID: uuid.New(), Category: "IT系", Title: "c", Url: "https://p.example/c", ParentID: &p, FirstPublishedOn: &first},
+	}
+	body, err := json.Marshal(toDigest(db.Digest{ID: uuid.New()}, rows))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Articles []struct {
+			FirstPublishedOn string
+			Children         []map[string]any
+		}
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Articles[0].FirstPublishedOn != "2026-10-03" {
+		t.Errorf("parent firstPublishedOn: got %s", body)
+	}
+	if _, ok := got.Articles[0].Children[0]["firstPublishedOn"]; ok {
+		t.Errorf("child should not carry firstPublishedOn: got %s", body)
+	}
+}
+
+// 登録済みの URL は、ほかの公開済み Digest に載っていて、新しい子を付けた親のときだけ再掲載として通す (specs/018 FR-005・FR-007)
+func TestClassifyReposts(t *testing.T) {
+	fresh := []api.NewChildArticle{{Title: "new", Url: "https://new.example"}}
+	withRegisteredChild := []api.NewChildArticle{{Title: "c", Url: "https://c.example"}, {Title: "new", Url: "https://new.example"}}
+	registered := map[string]bool{"https://a.example": true, "https://c.example": true, "https://draft.example": false}
+	tests := []struct {
+		name                               string
+		articles                           []api.NewArticle
+		wantReposted, rejected, needsChild []string
+	}{
+		{"published parent with a new child", []api.NewArticle{{Url: "https://a.example", Children: &fresh}}, []string{"https://a.example"}, nil, nil},
+		{"published parent without a new child", []api.NewArticle{{Url: "https://a.example"}}, nil, nil, []string{"https://a.example"}},
+		{"registered url as a child", []api.NewArticle{{Url: "https://b.example", Children: &[]api.NewChildArticle{{Url: "https://a.example"}}}}, nil, []string{"https://a.example"}, nil},
+		{"parent only on a draft digest", []api.NewArticle{{Url: "https://draft.example", Children: &fresh}}, nil, []string{"https://draft.example"}, nil},
+		{"registered url among the children", []api.NewArticle{{Url: "https://a.example", Children: &withRegisteredChild}}, []string{"https://a.example"}, []string{"https://c.example"}, nil},
+	}
+	for _, tt := range tests {
+		reposted, rejected, needsChild := classifyReposts(tt.articles, registered)
+		if !slices.Equal(reposted, tt.wantReposted) || !slices.Equal(rejected, tt.rejected) || !slices.Equal(needsChild, tt.needsChild) {
+			t.Errorf("%s: got %v %v %v, want %v %v %v", tt.name, reposted, rejected, needsChild, tt.wantReposted, tt.rejected, tt.needsChild)
+		}
 	}
 }
 

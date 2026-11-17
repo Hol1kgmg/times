@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { backendFetch, unwrapBackend } from "#/shared/api/index.server";
-import { newDigest } from "#/shared/api";
+import { newDigest, savedDigest } from "#/shared/api";
 import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
 
@@ -23,7 +23,15 @@ export const createDigest = createServerFn({ method: "POST" })
     if (rejection !== undefined) {
       return rejection;
     }
-    unwrapBackend(result);
+    const saved = savedDigest.parse(await unwrapBackend(result).json());
+    // 再掲載は記事行で知らせるので、行のある編集画面へ戻す (specs/018 R6)
+    if (saved.repostedUrls.length > 0) {
+      throw redirect({
+        to: "/admin/digests/$date/edit",
+        params: { date: saved.entryDate },
+        search: { reposted: saved.repostedUrls },
+      });
+    }
     // 下書きはトップに出ないので、登録できたことを一覧で見せる
     throw redirect({ to: data.status === "published" ? "/" : "/admin/digests" });
   });

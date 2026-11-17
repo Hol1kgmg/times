@@ -4,7 +4,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | uuid | gen_random_uuid() | false | [public.articles](public.articles.md) |  |  |
+| id | uuid | gen_random_uuid() | false | [public.digest_articles](public.digest_articles.md) |  |  |
 | entry_date | date |  | false |  |  |  |
 | created_at | timestamp with time zone | now() | false |  |  |  |
 | created_by | bigint |  | false |  | [public.users](public.users.md) |  |

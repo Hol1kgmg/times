@@ -32,6 +32,14 @@ const previewLinks = async (page: Page) => {
   return page.getByRole("dialog").getByRole("link");
 };
 
+// HOT の吹き出しはリンクの外に置く (specs/015) ので、吹き出しのある行のリンクで見る
+const hotLinks = (page: Page) =>
+  page
+    .getByRole("dialog")
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("img", { name: "HOT" }) })
+    .getByRole("link");
+
 test("下書きで登録した Digest を一覧から開き、タイトル・記事・日付を直して公開で保存すると、開き直したときに直した内容で並び公開になっていて、残した記事の id は変わらない", async ({
   browser,
 }) => {
@@ -71,7 +79,8 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("group", { name: "日付" })).toHaveText(date.replaceAll("-", "/"));
-  await expect(await previewLinks(page)).toHaveText([security, related, `${other}HOT`]);
+  await expect(await previewLinks(page)).toHaveText([security, related, other]);
+  await expect(hotLinks(page)).toHaveText([other]);
   await page.getByRole("dialog").getByRole("button", { name: "閉じる" }).click();
 
   await menuOf(security, "編集");
@@ -99,6 +108,7 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
     "非公開にして保存",
   ]);
   await page.keyboard.press("Escape");
-  await expect(await previewLinks(page)).toHaveText([fixed, `${other}HOT`]);
+  await expect(await previewLinks(page)).toHaveText([fixed, other]);
+  await expect(hotLinks(page)).toHaveText([other]);
   await context.close();
 });

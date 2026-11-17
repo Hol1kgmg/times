@@ -13,7 +13,7 @@ type Error struct {
 	Status int
 	Type   string
 	Detail string
-	// url-already-registered のときだけ。Problem の拡張メンバー duplicateUrls になる
+	// url-already-registered と repost-needs-child のときだけ。Problem の拡張メンバー duplicateUrls になる
 	DuplicateURLs []string
 }
 
@@ -30,6 +30,7 @@ var Types = map[string]int{
 	"/problems/url-already-registered": http.StatusBadRequest,
 	"/problems/digest-already-exists":  http.StatusBadRequest,
 	"/problems/future-publish":         http.StatusBadRequest,
+	"/problems/repost-needs-child":     http.StatusBadRequest,
 }
 
 func newError(typ, detail string) error {
@@ -49,4 +50,9 @@ func FuturePublish(detail string) error { return newError("/problems/future-publ
 func URLAlreadyRegistered(urls []string) error {
 	typ := "/problems/url-already-registered"
 	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d urls already registered", len(urls)), DuplicateURLs: urls}
+}
+
+func RepostNeedsChild(urls []string) error {
+	typ := "/problems/repost-needs-child"
+	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d reposts have no new child", len(urls)), DuplicateURLs: urls}
 }

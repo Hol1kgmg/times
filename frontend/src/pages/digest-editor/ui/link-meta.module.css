@@ -12,6 +12,7 @@
   text-overflow: ellipsis;
 }
 
+.firstPublished,
 .warn,
 .suggested,
 .error {

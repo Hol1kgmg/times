@@ -22,6 +22,14 @@ describe(rejectionOf, () => {
     });
   });
 
+  it("returns the reposted urls without a new child so the page can mark those cards", () => {
+    const err = failed("/problems/repost-needs-child", { duplicateUrls: ["https://a.example"] });
+    expect(rejectionOf(err)).toStrictEqual({
+      reason: "repost-needs-child",
+      duplicateUrls: ["https://a.example"],
+    });
+  });
+
   it("tells the page that the entry date is already taken", () => {
     expect(rejectionOf(failed("/problems/digest-already-exists"))).toStrictEqual({
       reason: "digest-already-exists",

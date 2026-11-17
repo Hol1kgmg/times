@@ -119,6 +119,14 @@
   color: var(--color-text-muted);
 }
 
+/* タイトルの後ろは AI のアイコンと炎の幅の決まりがあるので、印は下の行に置く (specs/018 R7) */
+.firstPublished {
+  composes: t-meta from global;
+  display: block;
+  color: var(--color-text-faint);
+  font-family: var(--font-dynamic);
+}
+
 .title:focus-visible {
   color: var(--color-accent);
 }

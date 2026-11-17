@@ -3,7 +3,7 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { backendFetch, unwrapBackend } from "#/shared/api/index.server";
-import { digestUpdate } from "#/shared/api";
+import { digestUpdate, savedDigest } from "#/shared/api";
 import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
 
@@ -24,6 +24,14 @@ export const updateDigest = createServerFn({ method: "POST" })
     if (rejection !== undefined) {
       return rejection;
     }
-    unwrapBackend(result);
+    const saved = savedDigest.parse(await unwrapBackend(result).json());
+    // 再掲載を記事行で知らせる理由は create-digest.ts と同じ
+    if (saved.repostedUrls.length > 0) {
+      throw redirect({
+        to: "/admin/digests/$date/edit",
+        params: { date: saved.entryDate },
+        search: { reposted: saved.repostedUrls },
+      });
+    }
     throw redirect({ to: "/admin/digests" });
   });

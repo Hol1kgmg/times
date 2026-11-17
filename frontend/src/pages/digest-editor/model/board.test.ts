@@ -19,6 +19,7 @@ import {
   toggleHot,
   toIds,
   toNewDigest,
+  toPreview,
   unmakeChild,
   UNSORTED,
   updateDraft,
@@ -253,6 +254,20 @@ describe("保存済みの Digest を開く", () => {
       title: "title 2",
       hot: true,
     });
+  });
+
+  it("keeps the repost mark in the preview only while the article URL is unchanged", () => {
+    const b = board({
+      その他: [
+        draft("a", { firstPublishedOn: "2026-10-03" }),
+        draft("b", { firstPublishedOn: "2026-10-03" }),
+      ],
+    });
+    const edited = ok(editLink(b, "b", { url: "https://example.com/z", title: "t" }));
+    expect(toPreview(edited, "2026-10-20").articles.map((a) => a.firstPublishedOn)).toStrictEqual([
+      "2026-10-03",
+      undefined,
+    ]);
   });
 });
 

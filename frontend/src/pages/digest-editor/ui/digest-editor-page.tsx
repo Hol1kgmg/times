@@ -22,6 +22,7 @@ import {
   revert,
   toggleHot,
   toNewDigest,
+  toPreview,
   unmakeChild,
   UNSORTED,
 } from "../model/board";
@@ -70,6 +71,27 @@ const dateErrorText = {
   "future-publish": "未来の日付は公開できないです。日付を直すか、下書きで保存してください",
 } as const;
 
+const RowRejections = ({
+  registeredLeft,
+  needsChildLeft,
+}: {
+  registeredLeft: number;
+  needsChildLeft: number;
+}) => (
+  <>
+    {registeredLeft > 0 && (
+      <p className={styles.error} role="alert">
+        過去に登録したリンクが含まれてます。重複して登録はできないので削除してください
+      </p>
+    )}
+    {needsChildLeft > 0 && (
+      <p className={styles.error} role="alert">
+        再掲載の記事には、新しい記事を子に付けてください
+      </p>
+    )}
+  </>
+);
+
 interface FormProps<S extends DigestStatus> {
   heading: string;
   initialDate?: string;
@@ -81,6 +103,7 @@ interface FormProps<S extends DigestStatus> {
   save: (entry: DigestContent, status: S) => Promise<Rejection>;
   isDirty: (entry: DigestContent, board: Board) => boolean;
   taken: ReadonlySet<string>;
+  reposted: ReadonlySet<string>;
 }
 
 const DigestForm = <S extends DigestStatus>({
@@ -93,6 +116,7 @@ const DigestForm = <S extends DigestStatus>({
   save,
   isDirty,
   taken,
+  reposted,
 }: FormProps<S>) => {
   // SSR のサーバー TZ とブラウザの日付がずれると hydration 不一致になるので、既定値はクライアントでだけ決める
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
@@ -108,6 +132,8 @@ const DigestForm = <S extends DigestStatus>({
   const [submitError, setSubmitError] = useState<string>();
   // 前の Digest で登録済みと backend に断られた URL。外すか直せば印も消える
   const [registered, setRegistered] = useState<ReadonlySet<string>>(new Set());
+  // 子のない再掲載と断られた親の URL。子を付けるか外せば印も消える
+  const [needsChild, setNeedsChild] = useState<ReadonlySet<string>>(new Set());
   // 日付で断られた理由。日付を変えれば印も消える
   const [dateRejection, setDateRejection] = useState<{
     entryDate: string;
@@ -137,6 +163,9 @@ const DigestForm = <S extends DigestStatus>({
   const registeredLeft = entry.articles
     .flatMap((a) => [a.url, ...a.children.map((c) => c.url)])
     .filter((u) => registered.has(u)).length;
+  const needsChildLeft = entry.articles.filter(
+    (a) => a.children.length === 0 && needsChild.has(a.url),
+  ).length;
   const dateError =
     entryDate !== "" && entryDate === dateRejection?.entryDate ? dateRejection.reason : undefined;
   useBlocker({
@@ -157,6 +186,8 @@ const DigestForm = <S extends DigestStatus>({
   const actions: CardActions = {
     atLimit: draftCount(board) >= MAX_DRAFTS,
     registered,
+    reposted,
+    needsChild,
     edit: (id, next) => apply(editLink(board, id, next)),
     revert: (id) => {
       setBoard(revert(board, id));
@@ -191,6 +222,8 @@ const DigestForm = <S extends DigestStatus>({
       const rejected = await save(entry, status);
       if (rejected.reason === "url-already-registered") {
         setRegistered(new Set(rejected.duplicateUrls));
+      } else if (rejected.reason === "repost-needs-child") {
+        setNeedsChild(new Set(rejected.duplicateUrls));
       } else {
         setDateRejection({ entryDate: entry.entryDate, reason: rejected.reason });
       }
@@ -240,11 +273,7 @@ const DigestForm = <S extends DigestStatus>({
               {dateErrorText[dateError]}
             </p>
           )}
-          {registeredLeft > 0 && (
-            <p className={styles.error} role="alert">
-              過去に登録したリンクが含まれてます。重複して登録はできないので削除してください
-            </p>
-          )}
+          <RowRejections needsChildLeft={needsChildLeft} registeredLeft={registeredLeft} />
           <Button
             className={styles.button}
             isDisabled={entry.articles.length === 0 || entryDate === ""}
@@ -275,7 +304,7 @@ const DigestForm = <S extends DigestStatus>({
       )}
       {previewing && (
         <PreviewDialog
-          digest={entry}
+          digest={toPreview(board, entryDate)}
           onClose={() => {
             setPreviewing(false);
           }}
@@ -318,6 +347,8 @@ const editActions = {
   readonly [SaveAction<DigestStatus>, ...SaveAction<DigestStatus>[]]
 >;
 
+const noReposts: ReadonlySet<string> = new Set();
+
 const newRoute = getRouteApi("/_shell/admin/digests/new");
 
 export const DigestNewPage = () => {
@@ -329,6 +360,7 @@ export const DigestNewPage = () => {
       initialBoard={emptyBoard()}
       isDirty={(_, board) => hasDrafts(board)}
       leaveMessage="登録してない記事があります。このページを離れますか？"
+      reposted={noReposts}
       save={async (entry, status) => await create({ data: { ...entry, status } })}
       saveActions={[
         { label: "下書きで登録", status: "draft" },
@@ -344,19 +376,21 @@ const editRoute = getRouteApi("/_shell/admin/digests/$date/edit");
 
 export const DigestEditPage = () => {
   const { digest, list } = editRoute.useLoaderData();
+  const { reposted } = editRoute.useSearch();
   const update = useServerFn(updateDigest);
   // 編集中の Digest 自身の日付は、そのまま保存できるので選べるようにする
   const taken = new Set(list.digests.map((d) => d.entryDate).filter((d) => d !== digest.entryDate));
   const saved = JSON.stringify(toNewDigest(fromDigest(digest), digest.entryDate));
   return (
-    // 別の日付の編集画面へ移っても同じ component が使い回されるので、state を Digest ごとに作り直す
+    // 別の日付の編集画面や保存後の同じ画面へ移っても component が使い回されるので、state を作り直す
     <DigestForm
-      key={digest.id}
+      key={`${digest.id} ${reposted.join(" ")}`}
       heading="記事を編集"
       initialBoard={fromDigest(digest)}
       initialDate={digest.entryDate}
       isDirty={(entry) => JSON.stringify(entry) !== saved}
       leaveMessage="保存してない変更があります。このページを離れますか？"
+      reposted={new Set(reposted)}
       save={async (entry, status) =>
         await update({
           data: {

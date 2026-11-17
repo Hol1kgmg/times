@@ -2,7 +2,14 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useFocusVisible, useHover } from "react-aria";
 import { Link } from "react-aria-components";
-import type { ArticleId, Digest, DigestContent, NewArticle, NewChildArticle } from "#/shared/api";
+import type {
+  Article,
+  ArticleId,
+  Digest,
+  DigestContent,
+  NewArticle,
+  NewChildArticle,
+} from "#/shared/api";
 import { formatEntryDate } from "#/shared/lib/entry-date";
 import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
@@ -22,16 +29,21 @@ type Open = (url: string) => void;
 interface Ai {
   shown: boolean;
 }
+// 下書きは送る形 (NewArticle) に、読み込んだ再掲載の印だけを添えて描く
+type PostArticle = NewArticle & Pick<Article, "firstPublishedOn">;
+export type DraftDigest = Omit<DigestContent, "articles"> & { articles: PostArticle[] };
 
 const ArticleLink = ({
   article,
   hot = false,
+  firstPublishedOn,
   loadPreview,
   open,
   ai,
 }: {
   article: NewChildArticle;
   hot?: boolean;
+  firstPublishedOn?: string;
   loadPreview: LoadPreview;
   open?: Open;
   ai?: Ai;
@@ -92,6 +104,7 @@ const ArticleLink = ({
             </span>
           </span>
         )}
+        {firstPublishedOn !== undefined && <span className={styles.firstPublished}>再掲載</span>}
       </span>
     </div>
   );
@@ -104,7 +117,7 @@ const Entry = ({
   open,
   ai,
 }: {
-  article: NewArticle;
+  article: PostArticle;
   loadPreview: LoadPreview;
   open?: Open;
   ai?: Ai;
@@ -113,6 +126,7 @@ const Entry = ({
     <ArticleLink
       ai={ai}
       article={article}
+      firstPublishedOn={article.firstPublishedOn}
       hot={article.hot}
       loadPreview={loadPreview}
       open={open}
@@ -141,7 +155,11 @@ type DigestPostProps = {
       ai?: Ai;
     }
   // 下書きの記事は id を持たず、数える記事として送れない (specs/013 FR-009)
-  | { digest: DigestContent; onOpen?: never; ai?: never }
+  | {
+      digest: DraftDigest;
+      onOpen?: never;
+      ai?: never;
+    }
 );
 
 // URL は UNIQUE (digest_id, url) で親子をまたいでも重ならない
@@ -184,7 +202,7 @@ export const DigestPost = (props: DigestPostProps) => {
           {action}
         </span>
       </div>
-      {groupByCategory(digest.articles).map(([name, articles]) => {
+      {groupByCategory<PostArticle>(digest.articles).map(([name, articles]) => {
         const Icon = categoryIcons[name];
         return (
           <article key={name} className={styles.post}>

@@ -176,16 +176,6 @@
           "default": "gen_random_uuid()"
         },
         {
-          "name": "digest_id",
-          "type": "uuid",
-          "nullable": false
-        },
-        {
-          "name": "position",
-          "type": "integer",
-          "nullable": false
-        },
-        {
           "name": "category",
           "type": "text",
           "nullable": false
@@ -204,12 +194,6 @@
           "name": "description",
           "type": "text",
           "nullable": true
-        },
-        {
-          "name": "is_hot",
-          "type": "boolean",
-          "nullable": false,
-          "default": "false"
         },
         {
           "name": "created_by",
@@ -239,15 +223,6 @@
           "columns": [
             "created_by",
             "url"
-          ]
-        },
-        {
-          "name": "articles_digest_id_position_key",
-          "def": "CREATE UNIQUE INDEX articles_digest_id_position_key ON public.articles USING btree (digest_id, \"position\")",
-          "table": "public.articles",
-          "columns": [
-            "digest_id",
-            "position"
           ]
         }
       ],
@@ -293,16 +268,6 @@
           ]
         },
         {
-          "name": "articles_digest_id_not_null",
-          "type": "n",
-          "def": "NOT NULL digest_id",
-          "table": "public.articles",
-          "referenced_table": "",
-          "columns": [
-            "digest_id"
-          ]
-        },
-        {
           "name": "articles_id_not_null",
           "type": "n",
           "def": "NOT NULL id",
@@ -310,26 +275,6 @@
           "referenced_table": "",
           "columns": [
             "id"
-          ]
-        },
-        {
-          "name": "articles_is_hot_not_null",
-          "type": "n",
-          "def": "NOT NULL is_hot",
-          "table": "public.articles",
-          "referenced_table": "",
-          "columns": [
-            "is_hot"
-          ]
-        },
-        {
-          "name": "articles_position_not_null",
-          "type": "n",
-          "def": "NOT NULL \"position\"",
-          "table": "public.articles",
-          "referenced_table": "",
-          "columns": [
-            "position"
           ]
         },
         {
@@ -383,19 +328,6 @@
           ]
         },
         {
-          "name": "articles_digest_id_fkey",
-          "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE",
-          "table": "public.articles",
-          "referenced_table": "public.digests",
-          "columns": [
-            "digest_id"
-          ],
-          "referenced_columns": [
-            "id"
-          ]
-        },
-        {
           "name": "articles_pkey",
           "type": "PRIMARY KEY",
           "def": "PRIMARY KEY (id)",
@@ -427,17 +359,6 @@
           "columns": [
             "created_by",
             "url"
-          ]
-        },
-        {
-          "name": "articles_digest_id_position_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (digest_id, \"position\") DEFERRABLE INITIALLY DEFERRED",
-          "table": "public.articles",
-          "referenced_table": "",
-          "columns": [
-            "digest_id",
-            "position"
           ]
         }
       ]
@@ -679,130 +600,176 @@
       ]
     },
     {
-      "name": "public.article_links",
+      "name": "public.digest_articles",
       "type": "BASE TABLE",
       "columns": [
         {
-          "name": "parent_id",
+          "name": "digest_id",
           "type": "uuid",
           "nullable": false
         },
         {
-          "name": "child_id",
+          "name": "article_id",
           "type": "uuid",
           "nullable": false
+        },
+        {
+          "name": "parent_id",
+          "type": "uuid",
+          "nullable": true
         },
         {
           "name": "position",
           "type": "integer",
           "nullable": false
+        },
+        {
+          "name": "is_hot",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
         }
       ],
       "indexes": [
         {
-          "name": "article_links_pkey",
-          "def": "CREATE UNIQUE INDEX article_links_pkey ON public.article_links USING btree (child_id)",
-          "table": "public.article_links",
+          "name": "digest_articles_pkey",
+          "def": "CREATE UNIQUE INDEX digest_articles_pkey ON public.digest_articles USING btree (digest_id, article_id)",
+          "table": "public.digest_articles",
           "columns": [
-            "child_id"
+            "digest_id",
+            "article_id"
           ]
         },
         {
-          "name": "article_links_parent_id_position_key",
-          "def": "CREATE UNIQUE INDEX article_links_parent_id_position_key ON public.article_links USING btree (parent_id, \"position\")",
-          "table": "public.article_links",
+          "name": "digest_articles_digest_id_position_key",
+          "def": "CREATE UNIQUE INDEX digest_articles_digest_id_position_key ON public.digest_articles USING btree (digest_id, \"position\")",
+          "table": "public.digest_articles",
           "columns": [
-            "parent_id",
+            "digest_id",
             "position"
+          ]
+        },
+        {
+          "name": "digest_articles_article_id_idx",
+          "def": "CREATE INDEX digest_articles_article_id_idx ON public.digest_articles USING btree (article_id)",
+          "table": "public.digest_articles",
+          "columns": [
+            "article_id"
           ]
         }
       ],
       "constraints": [
         {
-          "name": "article_links_check",
+          "name": "digest_articles_article_id_not_null",
+          "type": "n",
+          "def": "NOT NULL article_id",
+          "table": "public.digest_articles",
+          "referenced_table": "",
+          "columns": [
+            "article_id"
+          ]
+        },
+        {
+          "name": "digest_articles_check",
           "type": "CHECK",
-          "def": "CHECK ((parent_id \u003c\u003e child_id))",
-          "table": "public.article_links",
+          "def": "CHECK ((parent_id \u003c\u003e article_id))",
+          "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
             "parent_id",
-            "child_id"
+            "article_id"
           ]
         },
         {
-          "name": "article_links_child_id_not_null",
+          "name": "digest_articles_digest_id_not_null",
           "type": "n",
-          "def": "NOT NULL child_id",
-          "table": "public.article_links",
+          "def": "NOT NULL digest_id",
+          "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
-            "child_id"
+            "digest_id"
           ]
         },
         {
-          "name": "article_links_parent_id_not_null",
+          "name": "digest_articles_is_hot_not_null",
           "type": "n",
-          "def": "NOT NULL parent_id",
-          "table": "public.article_links",
+          "def": "NOT NULL is_hot",
+          "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
-            "parent_id"
+            "is_hot"
           ]
         },
         {
-          "name": "article_links_position_not_null",
+          "name": "digest_articles_position_not_null",
           "type": "n",
           "def": "NOT NULL \"position\"",
-          "table": "public.article_links",
+          "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
             "position"
           ]
         },
         {
-          "name": "article_links_child_id_fkey",
+          "name": "digest_articles_digest_id_fkey",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (child_id) REFERENCES articles(id) ON DELETE CASCADE",
-          "table": "public.article_links",
-          "referenced_table": "public.articles",
+          "def": "FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE",
+          "table": "public.digest_articles",
+          "referenced_table": "public.digests",
           "columns": [
-            "child_id"
+            "digest_id"
           ],
           "referenced_columns": [
             "id"
           ]
         },
         {
-          "name": "article_links_parent_id_fkey",
+          "name": "digest_articles_article_id_fkey",
           "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (parent_id) REFERENCES articles(id) ON DELETE CASCADE",
-          "table": "public.article_links",
+          "def": "FOREIGN KEY (article_id) REFERENCES articles(id)",
+          "table": "public.digest_articles",
           "referenced_table": "public.articles",
           "columns": [
+            "article_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "digest_articles_digest_id_parent_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles(digest_id, article_id) ON DELETE CASCADE",
+          "table": "public.digest_articles",
+          "referenced_table": "public.digest_articles",
+          "columns": [
+            "digest_id",
             "parent_id"
           ],
           "referenced_columns": [
-            "id"
+            "digest_id",
+            "article_id"
           ]
         },
         {
-          "name": "article_links_pkey",
+          "name": "digest_articles_pkey",
           "type": "PRIMARY KEY",
-          "def": "PRIMARY KEY (child_id)",
-          "table": "public.article_links",
+          "def": "PRIMARY KEY (digest_id, article_id)",
+          "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
-            "child_id"
+            "digest_id",
+            "article_id"
           ]
         },
         {
-          "name": "article_links_parent_id_position_key",
+          "name": "digest_articles_digest_id_position_key",
           "type": "UNIQUE",
-          "def": "UNIQUE (parent_id, \"position\")",
-          "table": "public.article_links",
+          "def": "UNIQUE (digest_id, \"position\")",
+          "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
-            "parent_id",
+            "digest_id",
             "position"
           ]
         }
@@ -822,19 +789,6 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (created_by) REFERENCES users(id)"
-    },
-    {
-      "table": "public.articles",
-      "columns": [
-        "digest_id"
-      ],
-      "cardinality": "zero_or_more",
-      "parent_table": "public.digests",
-      "parent_columns": [
-        "id"
-      ],
-      "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE"
     },
     {
       "table": "public.articles",
@@ -863,22 +817,22 @@
       "def": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
     },
     {
-      "table": "public.article_links",
+      "table": "public.digest_articles",
       "columns": [
-        "child_id"
+        "digest_id"
       ],
-      "cardinality": "zero_or_one",
-      "parent_table": "public.articles",
+      "cardinality": "zero_or_more",
+      "parent_table": "public.digests",
       "parent_columns": [
         "id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (child_id) REFERENCES articles(id) ON DELETE CASCADE"
+      "def": "FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE"
     },
     {
-      "table": "public.article_links",
+      "table": "public.digest_articles",
       "columns": [
-        "parent_id"
+        "article_id"
       ],
       "cardinality": "zero_or_more",
       "parent_table": "public.articles",
@@ -886,7 +840,22 @@
         "id"
       ],
       "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (parent_id) REFERENCES articles(id) ON DELETE CASCADE"
+      "def": "FOREIGN KEY (article_id) REFERENCES articles(id)"
+    },
+    {
+      "table": "public.digest_articles",
+      "columns": [
+        "digest_id",
+        "parent_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.digest_articles",
+      "parent_columns": [
+        "digest_id",
+        "article_id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles(digest_id, article_id) ON DELETE CASCADE"
     }
   ],
   "driver": {

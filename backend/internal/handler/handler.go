@@ -152,11 +152,7 @@ func (s *Server) withArticles(ctx context.Context, d db.Digest) (api.Digest, err
 	if err != nil {
 		return api.Digest{}, err
 	}
-	links, err := s.q.ListArticleLinksByDigest(ctx, d.ID)
-	if err != nil {
-		return api.Digest{}, err
-	}
-	return toDigest(d, rows, links), nil
+	return toDigest(d, rows), nil
 }
 
 func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestObject) (api.UpdateDigestResponseObject, error) {
@@ -183,21 +179,14 @@ func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestOb
 	if !publishable(d, time.Now()) {
 		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
 	}
-	if err := q.DeleteArticlesNotIn(ctx, db.DeleteArticlesNotInParams{DigestID: d.ID, Urls: urlsOf(req.Body.Articles)}); err != nil {
-		return nil, err
-	}
-	// article_links は id を持たず外から参照されないので、張り直してよい
-	if err := q.DeleteArticleLinksByDigest(ctx, d.ID); err != nil {
-		return nil, err
-	}
-	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Articles)
+	rows, reposted, err := saveArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return api.UpdateDigest200JSONResponse(toDigest(d, rows, links)), nil
+	return api.UpdateDigest200JSONResponse(toSavedDigest(d, rows, reposted)), nil
 }
 
 // digest と articles を 1 トランザクションで入れる。途中で失敗したら digest も残さない
@@ -227,63 +216,99 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	if !publishable(d, time.Now()) {
 		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
 	}
-	rows, links, err := insertArticles(ctx, q, d, p.UserID, req.Body.Articles)
+	rows, reposted, err := saveArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return api.CreateDigest201JSONResponse(toDigest(d, rows, links)), nil
+	return api.CreateDigest201JSONResponse(toSavedDigest(d, rows, reposted)), nil
 }
 
-func insertArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, articles []api.NewArticle) ([]db.Article, []db.ArticleLink, error) {
-	registered, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, DigestID: d.ID, Urls: urlsOf(articles)})
+// Digest の掲載を入れ直す。記事の行は upsert で残し、どこにも載らなくなった記事だけ消す (adr/backend/0008)
+// ponytail: 判定と書き込みの間に別の保存が同じ URL を新規に入れると、判定を通らずに掲載される。並行の保存が要るなら URL にも advisory lock をかける
+// ponytail: 載っている記事は確かめ直さない (FR-009) ので、編集で再掲載を子へ動かしても断らない。表示は子として正しく出る
+func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, articles []api.NewArticle) ([]db.ListArticlesByDigestRow, []string, error) {
+	rows, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, DigestID: d.ID, Urls: urlsOf(articles)})
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(registered) > 0 {
-		return nil, nil, apperr.URLAlreadyRegistered(registered)
+	registered := make(map[string]bool, len(rows))
+	for _, r := range rows {
+		registered[r.Url] = r.PublishedElsewhere
 	}
-	var rows []db.Article
-	var links []db.ArticleLink
-	// 親子ともに articles の行。position は digest 内の通し番号で、子は親の category と hot を引き継ぐ
-	insert := func(category, title, url string, hot bool) (db.Article, error) {
-		row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{
-			DigestID: d.ID, Position: int32(len(rows)), Category: category, Title: title, Url: url, IsHot: hot, CreatedBy: userID,
-		})
-		// 判定の後に並行する登録が同じ URL を入れた場合
-		if errors.Is(err, pgx.ErrNoRows) {
-			return row, apperr.URLAlreadyRegistered([]string{url})
-		}
+	reposted, rejected, needsChild := classifyReposts(articles, registered)
+	if len(rejected) > 0 {
+		return nil, nil, apperr.URLAlreadyRegistered(rejected)
+	}
+	if len(needsChild) > 0 {
+		return nil, nil, apperr.RepostNeedsChild(needsChild)
+	}
+	if err := q.DeleteDigestArticles(ctx, d.ID); err != nil {
+		return nil, nil, err
+	}
+	var pos int32
+	// position は digest 内の通し番号で、子は親の hot を引き継ぐ
+	place := func(category, title, url string, parent *uuid.UUID, hot bool) (uuid.UUID, error) {
+		row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{Category: category, Title: title, Url: url, CreatedBy: userID})
 		if err != nil {
-			return row, constraintViolation(err)
+			return uuid.Nil, constraintViolation(err)
 		}
-		rows = append(rows, row)
-		return row, nil
+		err = q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: d.ID, ArticleID: row.ID, ParentID: parent, Position: pos, IsHot: hot})
+		if err != nil {
+			return uuid.Nil, constraintViolation(err)
+		}
+		pos++
+		return row.ID, nil
 	}
 	for _, a := range articles {
 		hot := a.Hot != nil && *a.Hot
-		parent, err := insert(string(a.Category), a.Title, a.Url, hot)
+		parent, err := place(string(a.Category), a.Title, a.Url, nil, hot)
 		if err != nil {
 			return nil, nil, err
 		}
 		if a.Children == nil {
 			continue
 		}
-		for j, c := range *a.Children {
-			child, err := insert(string(a.Category), c.Title, c.Url, hot)
-			if err != nil {
+		for _, c := range *a.Children {
+			if _, err := place(string(a.Category), c.Title, c.Url, &parent, hot); err != nil {
 				return nil, nil, err
 			}
-			link := db.ArticleLink{ParentID: parent.ID, ChildID: child.ID, Position: int32(j)}
-			if err := q.CreateArticleLink(ctx, db.CreateArticleLinkParams(link)); err != nil {
-				return nil, nil, err
-			}
-			links = append(links, link)
 		}
 	}
-	return rows, links, nil
+	if err := q.DeleteOrphanArticles(ctx, userID); err != nil {
+		return nil, nil, err
+	}
+	saved, err := q.ListArticlesByDigest(ctx, d.ID)
+	return saved, reposted, err
+}
+
+// 再掲載は、ほかの公開済み Digest に載っている記事を、新しい子を付けた親として入れたものだけ (specs/018 FR-005・FR-007)
+func classifyReposts(articles []api.NewArticle, registered map[string]bool) (reposted, rejected, needsChild []string) {
+	for _, a := range articles {
+		fresh := 0
+		if a.Children != nil {
+			for _, c := range *a.Children {
+				if _, ok := registered[c.Url]; ok {
+					rejected = append(rejected, c.Url)
+				} else {
+					fresh++
+				}
+			}
+		}
+		published, ok := registered[a.Url]
+		switch {
+		case !ok:
+		case !published:
+			rejected = append(rejected, a.Url)
+		case fresh == 0:
+			needsChild = append(needsChild, a.Url)
+		default:
+			reposted = append(reposted, a.Url)
+		}
+	}
+	return reposted, rejected, needsChild
 }
 
 var jst = time.FixedZone("JST", 9*60*60)
@@ -319,19 +344,27 @@ func urlsOf(articles []api.NewArticle) []string {
 	return urls
 }
 
-func toDigest(d db.Digest, rows []db.Article, links []db.ArticleLink) api.Digest {
-	parentOf := make(map[uuid.UUID]uuid.UUID, len(links))
-	for _, l := range links {
-		parentOf[l.ChildID] = l.ParentID
+func toSavedDigest(d db.Digest, rows []db.ListArticlesByDigestRow, reposted []string) api.SavedDigest {
+	out := toDigest(d, rows)
+	if reposted == nil {
+		reposted = []string{}
 	}
+	return api.SavedDigest{Id: out.Id, EntryDate: out.EntryDate, Status: out.Status, Articles: out.Articles, RepostedUrls: reposted}
+}
+
+func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow) api.Digest {
 	children := make(map[uuid.UUID][]api.ChildArticle)
-	articles := make([]api.Article, 0, len(rows)-len(links))
+	articles := make([]api.Article, 0, len(rows))
 	for _, r := range rows {
-		if p, ok := parentOf[r.ID]; ok {
-			children[p] = append(children[p], api.ChildArticle{Id: r.ID, Title: r.Title, Url: r.Url, Description: r.Description})
+		if r.ParentID != nil {
+			children[*r.ParentID] = append(children[*r.ParentID], api.ChildArticle{Id: r.ID, Title: r.Title, Url: r.Url, Description: r.Description})
 			continue
 		}
-		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description})
+		var first *openapi_types.Date
+		if r.FirstPublishedOn != nil {
+			first = &openapi_types.Date{Time: *r.FirstPublishedOn}
+		}
+		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description, FirstPublishedOn: first})
 	}
 	for i := range articles {
 		articles[i].Children = children[articles[i].Id]

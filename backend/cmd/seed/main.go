@@ -19,6 +19,7 @@ import (
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/db"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -87,7 +88,7 @@ func run() error {
 	last := days[len(days)-1].n
 	for _, dy := range days {
 		date := today.AddDate(0, 0, dy.n-last-1)
-		// 同じ日付を入れ直せるように消してから入れる。articles と article_links は cascade で消える
+		// 同じ日付を入れ直せるように消してから入れる。掲載は cascade で消え、残った記事は upsert で使い回す
 		if _, err := tx.Exec(ctx, "DELETE FROM digests WHERE entry_date = $1", date); err != nil {
 			return err
 		}
@@ -96,32 +97,34 @@ func run() error {
 			return err
 		}
 		var pos int32
-		insert := func(cat string, hot bool, a article) (db.Article, error) {
-			row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{DigestID: dg.ID, Position: pos, Category: cat, Title: a.title, Url: a.url, IsHot: hot, CreatedBy: seeder.ID})
+		insert := func(cat string, hot bool, a article, parent *uuid.UUID) (uuid.UUID, error) {
+			row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{Category: cat, Title: a.title, Url: a.url, CreatedBy: seeder.ID})
+			if err == nil {
+				err = q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: dg.ID, ArticleID: row.ID, ParentID: parent, Position: pos, IsHot: hot})
+			}
 			if err != nil {
-				return row, fmt.Errorf("%d日目 %q: %w", dy.n, a.title, err)
+				return uuid.Nil, fmt.Errorf("%d日目 %q: %w", dy.n, a.title, err)
 			}
 			pos++
-			return row, nil
+			return row.ID, nil
 		}
 		for _, c := range dy.categories {
 			for _, a := range c.items {
-				parent, err := insert(c.name, a.hot, a)
+				parent, err := insert(c.name, a.hot, a, nil)
 				if err != nil {
 					return err
 				}
-				for j, ch := range a.children {
-					child, err := insert(c.name, a.hot, ch)
-					if err != nil {
-						return err
-					}
-					if err := q.CreateArticleLink(ctx, db.CreateArticleLinkParams{ParentID: parent.ID, ChildID: child.ID, Position: int32(j)}); err != nil {
+				for _, ch := range a.children {
+					if _, err := insert(c.name, a.hot, ch, &parent); err != nil {
 						return err
 					}
 				}
 			}
 		}
 		fmt.Printf("%s: %d articles\n", date.Format(time.DateOnly), pos)
+	}
+	if err := q.DeleteOrphanArticles(ctx, seeder.ID); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }

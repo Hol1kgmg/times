@@ -16,6 +16,7 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
+import { firstPublishedOf } from "../model/board";
 import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
@@ -23,6 +24,8 @@ import styles from "./draft-card.module.css";
 export interface CardActions {
   atLimit: boolean;
   registered: ReadonlySet<string>;
+  reposted: ReadonlySet<string>;
+  needsChild: ReadonlySet<string>;
   edit: (id: string, next: LinkEdit) => Rejected | null;
   revert: (id: string) => void;
   toggleHot: (id: string) => void;
@@ -206,6 +209,9 @@ const LinkRow = ({
   hot = false,
   suggested = false,
   registered,
+  reposted = false,
+  needsChild = false,
+  firstPublishedOn,
   handle,
   menu,
   onEdit,
@@ -214,6 +220,9 @@ const LinkRow = ({
   hot?: boolean;
   suggested?: boolean;
   registered: boolean;
+  reposted?: boolean;
+  needsChild?: boolean;
+  firstPublishedOn?: string;
   handle?: ReactNode;
   menu: MenuItem[];
   onEdit: (next: LinkEdit) => Rejected | null;
@@ -252,7 +261,15 @@ const LinkRow = ({
           )}
         </AriaLink>
         {card}
-        <LinkMeta host={host} registered={registered} suggested={suggested} untitled={untitled} />
+        <LinkMeta
+          firstPublishedOn={firstPublishedOn}
+          host={host}
+          needsChild={needsChild}
+          registered={registered}
+          reposted={reposted}
+          suggested={suggested}
+          untitled={untitled}
+        />
       </span>
       <Menu
         items={[
@@ -323,6 +340,7 @@ export const DraftCard = ({
   return (
     <li ref={ref} className={styles.card} data-dragging={isDragging ? "" : undefined}>
       <LinkRow
+        firstPublishedOn={firstPublishedOf(draft)}
         handle={
           <button ref={handleRef} aria-label="並べ替え" className={styles.handle} type="button">
             <Grip />
@@ -357,7 +375,9 @@ export const DraftCard = ({
             },
           },
         ]}
+        needsChild={draft.children.length === 0 && actions.needsChild.has(draft.url)}
         registered={actions.registered.has(draft.url)}
+        reposted={actions.reposted.has(draft.url)}
         suggested={draft.suggested}
         onEdit={(next) => actions.edit(draft.id, next)}
       />

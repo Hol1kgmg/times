@@ -39,6 +39,7 @@ export const article = z.object({
   title: z.string(),
   url: z.url(),
   description: z.string().optional(),
+  firstPublishedOn: z.iso.date().optional(),
   children: childArticle.array(),
 }) satisfies z.ZodType<Schemas["Article"]>;
 
@@ -48,6 +49,10 @@ export const digest = z.object({
   status: digestStatus,
   articles: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
+
+export const savedDigest = digest.extend({
+  repostedUrls: z.string().array(),
+}) satisfies z.ZodType<Schemas["SavedDigest"]>;
 
 export const digestSummary = z.object({
   id: digestId,
@@ -110,6 +115,7 @@ export const problem = z.object({
     "/problems/url-already-registered",
     "/problems/digest-already-exists",
     "/problems/future-publish",
+    "/problems/repost-needs-child",
   ]),
   title: z.string(),
   status: z.number().int(),
@@ -123,6 +129,7 @@ export type Category = z.infer<typeof category>;
 export type ChildArticle = z.infer<typeof childArticle>;
 export type Article = z.infer<typeof article>;
 export type Digest = z.infer<typeof digest>;
+export type SavedDigest = z.infer<typeof savedDigest>;
 export type DigestSummary = z.infer<typeof digestSummary>;
 export type DigestStatus = z.infer<typeof digestStatus>;
 export type NewChildArticle = z.infer<typeof newChildArticle>;

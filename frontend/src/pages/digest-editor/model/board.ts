@@ -1,6 +1,7 @@
 import { category } from "#/shared/api";
 import type { Category, Digest, DigestContent } from "#/shared/api";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
+import type { DraftDigest } from "#/shared/ui/digest-post";
 import { youTubeId } from "#/shared/lib/parse-link-preview";
 
 export const UNSORTED = "未分類";
@@ -30,7 +31,13 @@ export interface Draft extends Link {
   hot: boolean;
   suggested: boolean;
   children: Link[];
+  // 読み込んだときの再掲載の印。保存しない
+  firstPublishedOn?: string;
 }
+
+// URL を直すと別の記事になり、読み込んだときの印は当たらなくなる
+export const firstPublishedOf = (d: Draft) =>
+  d.url === d.initial.url ? d.firstPublishedOn : undefined;
 
 export type Board = Record<BoxId, Draft[]>;
 export type Rejected = "duplicate" | "limit";
@@ -426,6 +433,7 @@ export const fromDigest = (digest: Digest): Board => {
       hot: a.hot,
       suggested: false,
       children: a.children.map(savedLink),
+      firstPublishedOn: a.firstPublishedOn,
     });
   }
   return board;
@@ -443,3 +451,12 @@ export const toNewDigest = (board: Board, entryDate: string): DigestContent => (
     })),
   ),
 });
+
+export const toPreview = (board: Board, entryDate: string): DraftDigest => {
+  const firsts = new Map(drafts(board).map((d) => [d.url, firstPublishedOf(d)]));
+  const entry = toNewDigest(board, entryDate);
+  return {
+    ...entry,
+    articles: entry.articles.map((a) => ({ ...a, firstPublishedOn: firsts.get(a.url) })),
+  };
+};
