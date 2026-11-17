@@ -238,7 +238,7 @@ const DigestForm = <S extends DigestStatus>({
         unavailable: new Set(rejected.reason === "repost-unavailable" ? urls : []),
       });
       // 自動では保存し直さず、切り替えた行を見てから保存してもらう
-      setBoard(convertToReposts(board, repostable));
+      setBoard((b) => convertToReposts(b, repostable));
       if (rejected.reason === "digest-already-exists" || rejected.reason === "future-publish") {
         setDateRejection({ entryDate: entry.entryDate, reason: rejected.reason });
       }

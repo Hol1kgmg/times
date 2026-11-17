@@ -189,15 +189,15 @@ describe("関連記事", () => {
     expect(canMakeChild(b, "next")).toBeFalsy();
   });
 
-  it("drops the hot flag when nested and returns right after the parent when unnested", () => {
+  it("drops the hot flag when nested and returns right after the parent with its own flag when unnested", () => {
     const b = board({ その他: [draft("a"), draft("b", { hot: true }), draft("z")] });
     const nested = makeChild(toggleHot(b, "a"), "b");
     expect(nested.その他.map((d) => d.id)).toStrictEqual(["a", "z"]);
     expect(nested.その他[0]?.children[0]?.hot).toBeFalsy();
-    const back = ok(unmakeChild(nested, "a", "b"));
+    const back = ok(unmakeChild(toggleHot(nested, "b"), "a", "b"));
     expect(back.その他.map((d) => [d.id, d.hot])).toStrictEqual([
       ["a", true],
-      ["b", false],
+      ["b", true],
       ["z", false],
     ]);
   });
@@ -257,6 +257,42 @@ describe("保存済みの Digest を開く", () => {
       title: "title 2",
       hot: true,
     });
+  });
+
+  it("leaves the children unmarked when the hot flag is taken off their parent", () => {
+    const b = fromDigest(
+      digest.parse({
+        ...saved,
+        articles: [
+          article(1, {
+            hot: true,
+            children: [
+              { id: uuid(11), hot: true, title: "title 11", url: "https://example.com/11" },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(toggleHot(b, uuid(1)).その他[0]?.children[0]?.hot).toBeFalsy();
+  });
+
+  it("moves a saved repost back to the article category once its children are removed", () => {
+    const b = fromDigest(
+      digest.parse({
+        ...saved,
+        articles: [
+          article(1, {
+            category: "IT系",
+            repost: true,
+            originalCategory: "AI系",
+            children: [
+              { id: uuid(11), hot: false, title: "title 11", url: "https://example.com/11" },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(pinReposts(remove(b, uuid(11))).AI系.map((d) => d.id)).toStrictEqual([uuid(1)]);
   });
 
   it("sends a repost as a reference to the article, keeping the hot flags of its children", () => {

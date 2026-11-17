@@ -29,9 +29,10 @@ WHERE digests.created_by = sqlc.arg(created_by) AND digests.entry_date = sqlc.ar
 
 -- name: ListRegisteredArticles :many
 -- unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
--- 前の日付の公開済みの掲載があれば再掲載にできる (specs/018 FR-005)。sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
 SELECT a.id, a.url, a.title, a.category,
-  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = sqlc.arg(digest_id)) AS in_digest,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = sqlc.arg(digest_id) AND NOT da.is_repost) AS placed_original,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = sqlc.arg(digest_id) AND da.is_repost) AS placed_repost,
+  -- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
   f.entry_date AS first_published_on
 FROM articles a
 LEFT JOIN digests f ON f.id = (
@@ -57,26 +58,26 @@ INSERT INTO articles (category, title, url, created_by) VALUES ($1, $2, $3, $4)
 ON CONFLICT (created_by, url) DO UPDATE SET category = EXCLUDED.category, title = EXCLUDED.title
 RETURNING *;
 
--- name: DeleteDigestArticles :exec
+-- name: DeleteDigestArticles :many
 -- 掲載は id を持たず外から参照されないので、保存のたびに入れ直してよい
-DELETE FROM digest_articles WHERE digest_id = $1;
+DELETE FROM digest_articles WHERE digest_id = $1 RETURNING article_id;
 
 -- name: CreateDigestArticle :exec
 INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot, is_repost) VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: DeleteOrphanArticles :exec
 -- どの Digest にも載らなくなった記事は消す (specs/018 FR-013)
-DELETE FROM articles WHERE created_by = $1
+DELETE FROM articles WHERE id = ANY(sqlc.arg(ids)::uuid[])
   AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = articles.id);
 
 -- name: ListArticlesByDigest :many
 -- position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)。子は親の直後に入るので、親の中の順も position の順
--- 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付くため (specs/018 FR-010)
--- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
 SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, da.is_repost, f.entry_date AS first_published_on
 FROM digest_articles da JOIN articles a ON a.id = da.article_id JOIN digests cur ON cur.id = da.digest_id
+-- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
 LEFT JOIN digests f ON da.is_repost AND f.id = (
   SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+  -- 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付く (specs/018 FR-010)
   WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
   ORDER BY d.entry_date LIMIT 1
 )

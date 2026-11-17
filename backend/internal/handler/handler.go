@@ -280,7 +280,8 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 		return nil, err
 	}
 	// 掲載は id を持たず外から参照されないので、消して入れ直せば並べ替えで position がぶつからない
-	if err := q.DeleteDigestArticles(ctx, d.ID); err != nil {
+	removed, err := q.DeleteDigestArticles(ctx, d.ID)
+	if err != nil {
 		return nil, err
 	}
 	var pos int32
@@ -314,30 +315,30 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 			}
 		}
 	}
-	if err := q.DeleteOrphanArticles(ctx, userID); err != nil {
+	if err := q.DeleteOrphanArticles(ctx, removed); err != nil {
 		return nil, err
 	}
 	return q.ListArticlesByDigest(ctx, d.ID)
 }
 
-// 判定するのはこの Digest にまだ載っていない記事だけ (specs/018 FR-009)。表は data-model.md の業務ルール
+// 判定しないのはこの Digest に同じ形 (再掲載か否か) で載っている記事だけ (specs/018 FR-009)。表は data-model.md の業務ルール
 func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticlesRow) error {
 	var duplicates, unavailable []string
 	var repostable []apperr.Repostable
 	mismatch := false
 	for _, e := range entries {
 		for _, c := range e.children {
-			if r, ok := registered[c.Url]; ok && !r.InDigest {
+			if r, ok := registered[c.Url]; ok && !r.PlacedOriginal {
 				duplicates = append(duplicates, c.Url)
 			}
 		}
 		r, ok := registered[e.url]
 		switch {
-		case e.repost && (!ok || !r.InDigest && r.FirstPublishedOn == nil):
+		case e.repost && !r.PlacedRepost && r.FirstPublishedOn == nil:
 			unavailable = append(unavailable, e.url)
 		case e.repost:
 			mismatch = mismatch || len(e.children) == 0 && string(e.category) != r.Category
-		case ok && !r.InDigest:
+		case ok && !r.PlacedOriginal:
 			duplicates = append(duplicates, e.url)
 			if r.FirstPublishedOn != nil {
 				repostable = append(repostable, apperr.Repostable{URL: r.Url, Title: r.Title, Category: r.Category, FirstPublishedOn: *r.FirstPublishedOn})
@@ -412,7 +413,12 @@ func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow) api.Digest {
 			a.Children = []api.ChildArticle{}
 		}
 		// 記事のカテゴリは元の日のもので、再掲載の日は子の都合のカテゴリで出す (specs/018 FR-014)
-		if c, ok := childCategory[a.Id]; ok && a.Repost {
+		if !a.Repost {
+			continue
+		}
+		original := a.Category
+		a.OriginalCategory = &original
+		if c, ok := childCategory[a.Id]; ok {
 			a.Category = api.Category(c)
 		}
 	}

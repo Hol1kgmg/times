@@ -484,6 +484,9 @@ components:
           type: string
           format: date
           description: 再掲載のときだけ入る。この記事が載っている公開済み Digest のうち、この Digest より前でいちばん古い日付
+        originalCategory:
+          $ref: "#/components/schemas/Category"
+          description: 再掲載のときだけ入る。記事のカテゴリ。子があると category は子のカテゴリになるので、子を外したときの戻り先に使う
         children:
           type: array
           items:

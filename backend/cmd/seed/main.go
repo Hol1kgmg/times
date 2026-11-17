@@ -20,6 +20,7 @@ import (
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -86,9 +87,16 @@ func run() error {
 	y, m, d := time.Now().Date()
 	today := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 	last := days[len(days)-1].n
+	var removed []uuid.UUID
 	for _, dy := range days {
 		date := today.AddDate(0, 0, dy.n-last-1)
-		// 同じ日付を入れ直せるように消してから入れる。掲載は cascade で消え、残った記事は upsert で使い回す
+		// 同じ日付を入れ直せるように消してから入れる。残った記事は upsert で使い回す
+		rows, _ := tx.Query(ctx, "DELETE FROM digest_articles WHERE digest_id IN (SELECT id FROM digests WHERE entry_date = $1) RETURNING article_id", date)
+		ids, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+		if err != nil {
+			return err
+		}
+		removed = append(removed, ids...)
 		if _, err := tx.Exec(ctx, "DELETE FROM digests WHERE entry_date = $1", date); err != nil {
 			return err
 		}
@@ -123,7 +131,7 @@ func run() error {
 		}
 		fmt.Printf("%s: %d articles\n", date.Format(time.DateOnly), pos)
 	}
-	if err := q.DeleteOrphanArticles(ctx, seeder.ID); err != nil {
+	if err := q.DeleteOrphanArticles(ctx, removed); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

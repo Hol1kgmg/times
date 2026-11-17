@@ -311,7 +311,7 @@ export const unmakeChild = (board: Board, parentId: string, childId: string): Bo
     at.index,
     1,
     { ...parent, children: parent.children.filter((c) => c.id !== childId) },
-    { ...child, hot: false, suggested: false, children: [] },
+    { ...child, suggested: false, children: [] },
   );
   return replaceBox(board, at.box, items);
 };
@@ -429,10 +429,11 @@ export const fromDigest = (digest: Digest): Board => {
     board[a.category].push({
       ...savedLink(a),
       suggested: false,
-      children: a.children.map(savedLink),
+      // 親が HOT の子は保存時に HOT にそろうので、子自身の HOT ではない
+      children: a.children.map((c) => savedLink({ ...c, hot: c.hot && !a.hot })),
       ...(a.repost && {
         repost: {
-          ...(a.children.length === 0 && { category: a.category }),
+          ...(a.originalCategory !== undefined && { category: a.originalCategory }),
           ...(a.firstPublishedOn !== undefined && { firstPublishedOn: a.firstPublishedOn }),
         },
       }),

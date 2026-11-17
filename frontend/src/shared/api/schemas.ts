@@ -42,6 +42,7 @@ export const article = z.object({
   url: z.url(),
   description: z.string().optional(),
   firstPublishedOn: z.iso.date().optional(),
+  originalCategory: category.optional(),
   children: childArticle.array(),
 }) satisfies z.ZodType<Schemas["Article"]>;
 

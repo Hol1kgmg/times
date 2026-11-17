@@ -135,6 +135,7 @@ func TestToDigestRepost(t *testing.T) {
 	var got struct {
 		Articles []struct {
 			Category         string
+			OriginalCategory string
 			Repost           bool
 			FirstPublishedOn string
 			Children         []map[string]any
@@ -143,7 +144,7 @@ func TestToDigestRepost(t *testing.T) {
 	if err := json.Unmarshal(body, &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Articles[0].Category != "IT系" || !got.Articles[0].Repost || got.Articles[0].FirstPublishedOn != "2026-10-03" {
+	if got.Articles[0].Category != "IT系" || !got.Articles[0].Repost || got.Articles[0].FirstPublishedOn != "2026-10-03" || got.Articles[0].OriginalCategory != "セキュリティ" {
 		t.Errorf("repost with a child: got %s", body)
 	}
 	if got.Articles[1].Category != "セキュリティ" {
@@ -160,7 +161,8 @@ func TestCheckEntries(t *testing.T) {
 	registered := map[string]db.ListRegisteredArticlesRow{
 		"https://old.example":   {Url: "https://old.example", Title: "old", Category: "セキュリティ", FirstPublishedOn: &first},
 		"https://draft.example": {Url: "https://draft.example", Category: "その他"},
-		"https://here.example":  {Url: "https://here.example", Category: "その他", InDigest: true},
+		"https://here.example":  {Url: "https://here.example", Category: "その他", PlacedOriginal: true},
+		"https://kept.example":  {Url: "https://kept.example", Category: "その他", PlacedRepost: true},
 	}
 	child := []api.NewChildArticle{{Title: "new", Url: "https://new.example"}}
 	tests := []struct {
@@ -176,6 +178,10 @@ func TestCheckEntries(t *testing.T) {
 		{"repost with a child in another category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT, children: child}}, ""},
 		{"repost without children", []entry{{url: "https://old.example", repost: true, category: api.CategorySecurity}}, ""},
 		{"article already in this digest", []entry{{url: "https://here.example", title: "edited"}}, ""},
+		{"repost already in this digest whose original went back to draft", []entry{{url: "https://kept.example", repost: true, category: api.CategoryOther}}, ""},
+		{"original in this digest turned into a repost without an earlier placement", []entry{{url: "https://here.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
+		{"repost in this digest sent as an ordinary parent", []entry{{url: "https://kept.example", title: "again"}}, "/problems/url-already-registered"},
+		{"repost in this digest sent as a child", []entry{{url: "https://new.example", children: []api.NewChildArticle{{Url: "https://kept.example"}}}}, "/problems/url-already-registered"},
 	}
 	for _, tt := range tests {
 		err := checkEntries(tt.entries, registered)

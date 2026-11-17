@@ -63,24 +63,39 @@ func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArtic
 	return err
 }
 
-const deleteDigestArticles = `-- name: DeleteDigestArticles :exec
-DELETE FROM digest_articles WHERE digest_id = $1
+const deleteDigestArticles = `-- name: DeleteDigestArticles :many
+DELETE FROM digest_articles WHERE digest_id = $1 RETURNING article_id
 `
 
 // 掲載は id を持たず外から参照されないので、保存のたびに入れ直してよい
-func (q *Queries) DeleteDigestArticles(ctx context.Context, digestID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteDigestArticles, digestID)
-	return err
+func (q *Queries) DeleteDigestArticles(ctx context.Context, digestID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, deleteDigestArticles, digestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var article_id uuid.UUID
+		if err := rows.Scan(&article_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const deleteOrphanArticles = `-- name: DeleteOrphanArticles :exec
-DELETE FROM articles WHERE created_by = $1
+DELETE FROM articles WHERE id = ANY($1::uuid[])
   AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = articles.id)
 `
 
 // どの Digest にも載らなくなった記事は消す (specs/018 FR-013)
-func (q *Queries) DeleteOrphanArticles(ctx context.Context, createdBy int64) error {
-	_, err := q.db.Exec(ctx, deleteOrphanArticles, createdBy)
+func (q *Queries) DeleteOrphanArticles(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrphanArticles, ids)
 	return err
 }
 
@@ -148,6 +163,7 @@ SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot,
 FROM digest_articles da JOIN articles a ON a.id = da.article_id JOIN digests cur ON cur.id = da.digest_id
 LEFT JOIN digests f ON da.is_repost AND f.id = (
   SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+  -- 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付く (specs/018 FR-010)
   WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
   ORDER BY d.entry_date LIMIT 1
 )
@@ -167,7 +183,6 @@ type ListArticlesByDigestRow struct {
 }
 
 // position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)。子は親の直後に入るので、親の中の順も position の順
-// 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付くため (specs/018 FR-010)
 // sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
 func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) ([]ListArticlesByDigestRow, error) {
 	rows, err := q.db.Query(ctx, listArticlesByDigest, digestID)
@@ -307,7 +322,9 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 
 const listRegisteredArticles = `-- name: ListRegisteredArticles :many
 SELECT a.id, a.url, a.title, a.category,
-  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $1) AS in_digest,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $1 AND NOT da.is_repost) AS placed_original,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $1 AND da.is_repost) AS placed_repost,
+  -- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
   f.entry_date AS first_published_on
 FROM articles a
 LEFT JOIN digests f ON f.id = (
@@ -330,12 +347,12 @@ type ListRegisteredArticlesRow struct {
 	Url              string
 	Title            string
 	Category         string
-	InDigest         bool
+	PlacedOriginal   bool
+	PlacedRepost     bool
 	FirstPublishedOn *time.Time
 }
 
 // unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
-// 前の日付の公開済みの掲載があれば再掲載にできる (specs/018 FR-005)。sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
 func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegisteredArticlesParams) ([]ListRegisteredArticlesRow, error) {
 	rows, err := q.db.Query(ctx, listRegisteredArticles, arg.DigestID, arg.CreatedBy, arg.Urls)
 	if err != nil {
@@ -350,7 +367,8 @@ func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegistered
 			&i.Url,
 			&i.Title,
 			&i.Category,
-			&i.InDigest,
+			&i.PlacedOriginal,
+			&i.PlacedRepost,
 			&i.FirstPublishedOn,
 		); err != nil {
 			return nil, err
