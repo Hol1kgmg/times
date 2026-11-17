@@ -3,7 +3,15 @@ import { article } from "#/shared/api";
 import { groupByCategory } from "./group-by-category";
 
 const make = (id: string, category: string, title: string, hot = false) =>
-  article.parse({ id, category, hot, title, url: `https://x.example/${title}`, children: [] });
+  article.parse({
+    id,
+    category,
+    hot,
+    repost: false,
+    title,
+    url: `https://x.example/${title}`,
+    children: [],
+  });
 
 describe(groupByCategory, () => {
   it("orders categories by the fixed order and drops empty ones", () => {

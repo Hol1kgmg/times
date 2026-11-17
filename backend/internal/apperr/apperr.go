@@ -6,6 +6,7 @@ package apperr
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // title は持たない。status の reason phrase を writeProblem が導出する。
@@ -13,8 +14,16 @@ type Error struct {
 	Status int
 	Type   string
 	Detail string
-	// url-already-registered と repost-needs-child のときだけ。Problem の拡張メンバー duplicateUrls になる
+	// url-already-registered と repost-unavailable のときだけ。Problem の拡張メンバー duplicateUrls になる
 	DuplicateURLs []string
+	// url-already-registered のときだけ。Problem の拡張メンバー repostable になる
+	Repostable []Repostable
+}
+
+// 画面が断られた行を再掲載に切り替えるのに使う元の記事 (specs/018 FR-007)
+type Repostable struct {
+	URL, Title, Category string
+	FirstPublishedOn     time.Time
 }
 
 func (e *Error) Error() string { return e.Type + ": " + e.Detail }
@@ -30,7 +39,7 @@ var Types = map[string]int{
 	"/problems/url-already-registered": http.StatusBadRequest,
 	"/problems/digest-already-exists":  http.StatusBadRequest,
 	"/problems/future-publish":         http.StatusBadRequest,
-	"/problems/repost-needs-child":     http.StatusBadRequest,
+	"/problems/repost-unavailable":     http.StatusBadRequest,
 }
 
 func newError(typ, detail string) error {
@@ -47,12 +56,16 @@ func DigestAlreadyExists(detail string) error {
 }
 func FuturePublish(detail string) error { return newError("/problems/future-publish", detail) }
 
-func URLAlreadyRegistered(urls []string) error {
+func URLAlreadyRegistered(urls []string, repostable []Repostable) error {
 	typ := "/problems/url-already-registered"
-	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d urls already registered", len(urls)), DuplicateURLs: urls}
+	// 画面が切り替える行の有無を、項目の有無ではなく空の配列で見られるようにする
+	if repostable == nil {
+		repostable = []Repostable{}
+	}
+	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d urls already registered", len(urls)), DuplicateURLs: urls, Repostable: repostable}
 }
 
-func RepostNeedsChild(urls []string) error {
-	typ := "/problems/repost-needs-child"
-	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d reposts have no new child", len(urls)), DuplicateURLs: urls}
+func RepostUnavailable(urls []string) error {
+	typ := "/problems/repost-unavailable"
+	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d reposts have no earlier published article", len(urls)), DuplicateURLs: urls}
 }

@@ -27,15 +27,20 @@ UPDATE digests SET
     AND NOT EXISTS (SELECT 1 FROM digests d WHERE d.entry_date > sqlc.arg(new_date)) THEN now() ELSE published_at END
 WHERE digests.created_by = sqlc.arg(created_by) AND digests.entry_date = sqlc.arg(old_date) RETURNING *;
 
--- name: ListRegisteredURLs :many
--- unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く。この Digest に載っている記事は確かめ直さない (specs/018 FR-009)
-SELECT a.url, EXISTS (
-    SELECT 1 FROM digest_articles da JOIN digests d ON d.id = da.digest_id
-    WHERE da.article_id = a.id AND d.status = 'published'
-) AS published_elsewhere
+-- name: ListRegisteredArticles :many
+-- unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
+-- 前の日付の公開済みの掲載があれば再掲載にできる (specs/018 FR-005)。sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
+SELECT a.id, a.url, a.title, a.category,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = sqlc.arg(digest_id)) AS in_digest,
+  f.entry_date AS first_published_on
 FROM articles a
-WHERE a.created_by = $1 AND a.url = ANY(sqlc.arg(urls)::text[])
-  AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = sqlc.arg(digest_id));
+LEFT JOIN digests f ON f.id = (
+  SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+  WHERE o.article_id = a.id AND d.status = 'published'
+    AND d.entry_date < (SELECT cur.entry_date FROM digests cur WHERE cur.id = sqlc.arg(digest_id))
+  ORDER BY d.entry_date LIMIT 1
+)
+WHERE a.created_by = sqlc.arg(created_by) AND a.url = ANY(sqlc.arg(urls)::text[]);
 
 -- name: CreateDigest :one
 -- 保存前の最新日付より前の日付は、公開しても通知しない (issue #112)
@@ -57,7 +62,7 @@ RETURNING *;
 DELETE FROM digest_articles WHERE digest_id = $1;
 
 -- name: CreateDigestArticle :exec
-INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot) VALUES ($1, $2, $3, $4, $5);
+INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot, is_repost) VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: DeleteOrphanArticles :exec
 -- どの Digest にも載らなくなった記事は消す (specs/018 FR-013)
@@ -68,9 +73,9 @@ DELETE FROM articles WHERE created_by = $1
 -- position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)。子は親の直後に入るので、親の中の順も position の順
 -- 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付くため (specs/018 FR-010)
 -- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
-SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, f.entry_date AS first_published_on
+SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, da.is_repost, f.entry_date AS first_published_on
 FROM digest_articles da JOIN articles a ON a.id = da.article_id JOIN digests cur ON cur.id = da.digest_id
-LEFT JOIN digests f ON f.id = (
+LEFT JOIN digests f ON da.is_repost AND f.id = (
   SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
   WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
   ORDER BY d.entry_date LIMIT 1

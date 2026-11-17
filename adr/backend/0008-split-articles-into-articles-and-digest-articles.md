@@ -22,13 +22,16 @@ specs/018 で、前に公開した記事の続報 (例: ツールの新しいバ
 - 並び・HOT・親子は掲載ごとに持つ。同じ記事でも日によって子が違ってよい
 - 親は同じ Digest の掲載に限る (`FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles (digest_id, article_id)`)。日をまたぐ関連は、同じ `article_id` の掲載どうしで表す
 - `article_links` は `digest_articles.parent_id` に吸収して消す (000005 のコメントにあった「digest をまたぐ関連」は、この形で表す)
-- カテゴリは記事に置く。再掲載でも元のカテゴリで出す
-- 再掲載か、「〜に掲載」の日付はどれかは保存せず、掲載と Digest の公開状態から導く。公開を管理するのは Digest だけにする
+- カテゴリは記事に置く。再掲載の投稿は子があれば子のカテゴリで、なければ記事のカテゴリで出す (掲載にカテゴリを持たず、子から導く)
+- 再掲載は掲載の `is_repost` で持ち、元の記事を参照するだけにする。API では `RepostArticle { repostOf, category, children }` として URL で指し、タイトル・カテゴリを送らせない。保存しても記事の行は書き換えない。元の日の表示を後の日の保存で変えないため
+- 再掲載でない掲載は記事ごとに 1 つ (`UNIQUE (article_id) WHERE NOT is_repost`)。再掲載は親だけで HOT を持たない (`CHECK (NOT is_repost OR (parent_id IS NULL AND NOT is_hot))`)
+- 「〜に初掲載」の日付は保存せず、掲載と Digest の公開状態から導く。公開を管理するのは Digest だけにする
 - どの掲載もなくなった記事は保存処理で消す
 
 **採らないもの**
 
 - 再掲載の行を `articles` に複製し、`reposted_from` で元を指す: 一意性を部分 index に弱める必要があり、タイトルが日ごとにずれる
+- 登録済みの URL を普通の親として送ったら、URL から再掲載と見なす (初版): 同じ upsert で送った title・category に記事が書き換わり、過去の日の表示が再掲載のたびに変わる。断って `repostable` を返し、画面で再掲載に切り替えてから送り直させる (specs/018 research R10・R11)
 - `article_links` の親を過去の Digest の記事にする: migration は要らないが、再掲載がその日の並びと HOT を持てず、子が記事に固定される
 - 孫の禁止を DB で縛る (トリガー、生成列 + 複合 FK): 書き込み口は 1 か所で、API の形 (`ChildArticle` が children を持たない) が塞いでいる
 
@@ -39,6 +42,7 @@ specs/018 で、前に公開した記事の続報 (例: ツールの新しいバ
 - Good, because 掲載に id がなく外から参照されないので、保存のたびに Digest の掲載を入れ直せる。並べ替えの途中で position がぶつかる問題 (000012 の DEFERRABLE) が要らなくなる
 - Bad, because 記事を読むクエリがすべて `digest_articles` との join になる
 - Bad, because 記事のタイトル・カテゴリの編集は、その記事が載っているすべての日に反映される (日ごとに変えられない)
+- Bad, because 子付きの再掲載を読み直しても、元の記事のカテゴリは API に出ない。編集画面で子を全部外すと、元のカテゴリに戻せず保存で断られる
 - Bad, because down migration は再掲載を捨てる。各記事のいちばん古い掲載だけが戻る
 
 ## More Information

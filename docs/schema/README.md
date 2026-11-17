@@ -8,7 +8,7 @@
 | [public.articles](public.articles.md) | 7 |  | BASE TABLE |
 | [public.users](public.users.md) | 4 |  | BASE TABLE |
 | [public.sessions](public.sessions.md) | 5 |  | BASE TABLE |
-| [public.digest_articles](public.digest_articles.md) | 5 |  | BASE TABLE |
+| [public.digest_articles](public.digest_articles.md) | 6 |  | BASE TABLE |
 
 ## Relations
 

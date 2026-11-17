@@ -6,9 +6,10 @@ interface LinkMetaProps {
   untitled: boolean;
   suggested: boolean;
   registered: boolean;
+  repost: boolean;
   firstPublishedOn?: string;
-  reposted: boolean;
-  needsChild: boolean;
+  converted: boolean;
+  unavailable: boolean;
 }
 
 export const LinkMeta = ({
@@ -16,19 +17,22 @@ export const LinkMeta = ({
   untitled,
   suggested,
   registered,
+  repost,
   firstPublishedOn,
-  reposted,
-  needsChild,
+  converted,
+  unavailable,
 }: LinkMetaProps) => (
   <span className={styles.meta}>
     <span className={styles.host}>{host}</span>
-    {firstPublishedOn !== undefined && (
-      <span className={styles.firstPublished}>{formatFirstPublished(firstPublishedOn)}</span>
+    {repost && (
+      <span className={styles.firstPublished}>
+        {firstPublishedOn === undefined ? "再掲載" : formatFirstPublished(firstPublishedOn)}
+      </span>
     )}
     {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
     {suggested && <span className={styles.suggested}>AI が振り分けました</span>}
-    {reposted && <span className={styles.suggested}>再掲載として登録しました</span>}
+    {converted && <span className={styles.suggested}>再掲載にしました</span>}
     {registered && <span className={styles.error}>既に登録済みです</span>}
-    {needsChild && <span className={styles.error}>再掲載には新しい記事を子に付けてください</span>}
+    {unavailable && <span className={styles.error}>この記事は再掲載できません</span>}
   </span>
 );

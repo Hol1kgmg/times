@@ -27,6 +27,7 @@ export const digestStatus = z.enum(["draft", "published", "private"]) satisfies 
 // children を持たない型にすることで孫が作れない (親子 2 階層まで)
 export const childArticle = z.object({
   id: articleId,
+  hot: z.boolean(),
   title: z.string(),
   url: z.url(),
   description: z.string().optional(),
@@ -36,6 +37,7 @@ export const article = z.object({
   id: articleId,
   category,
   hot: z.boolean(),
+  repost: z.boolean(),
   title: z.string(),
   url: z.url(),
   description: z.string().optional(),
@@ -49,10 +51,6 @@ export const digest = z.object({
   status: digestStatus,
   articles: article.array(),
 }) satisfies z.ZodType<Schemas["Digest"]>;
-
-export const savedDigest = digest.extend({
-  repostedUrls: z.string().array(),
-}) satisfies z.ZodType<Schemas["SavedDigest"]>;
 
 export const digestSummary = z.object({
   id: digestId,
@@ -78,23 +76,35 @@ export const domainList = z.object({
 }) satisfies z.ZodType<Schemas["DomainList"]>;
 
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
+// href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
+const articleUrl = z.url({ protocol: /^https?$/u }).max(2000);
+
 export const newChildArticle = z.object({
   // macOS 由来の NFD の濁点は Klee One Fixed に無く、その字だけ端末のフォントになる (issue #83)
   title: z.string().trim().normalize("NFC").min(1).max(300),
-  // href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
-  url: z.url({ protocol: /^https?$/u }).max(2000),
+  url: articleUrl,
+  // openapi.yaml の default: false で生成型は必須になるので、省略を false に埋めて型を合わせる
+  hot: z.boolean().default(false),
 }) satisfies z.ZodType<Schemas["NewChildArticle"]>;
 
 export const newArticle = newChildArticle.extend({
   category,
-  // openapi.yaml の default: false で生成型は必須になるので、省略を false に埋めて型を合わせる
-  hot: z.boolean().default(false),
   children: newChildArticle.array().max(20),
 }) satisfies z.ZodType<Schemas["NewArticle"]>;
 
+export const repostArticle = z.object({
+  repostOf: articleUrl,
+  category,
+  children: newChildArticle.array().max(20),
+}) satisfies z.ZodType<Schemas["RepostArticle"]>;
+
+export const digestEntry = z.union([newArticle, repostArticle]) satisfies z.ZodType<
+  Schemas["DigestEntry"]
+>;
+
 export const newDigest = z.object({
   entryDate: z.iso.date(),
-  articles: newArticle.array().min(1).max(100),
+  articles: digestEntry.array().min(1).max(100),
   // hot と同じく openapi.yaml の default で生成型が必須になるので、省略を埋める
   status: digestStatus.extract(["draft", "published"]).default("draft"),
 }) satisfies z.ZodType<Schemas["NewDigest"]>;
@@ -115,12 +125,16 @@ export const problem = z.object({
     "/problems/url-already-registered",
     "/problems/digest-already-exists",
     "/problems/future-publish",
-    "/problems/repost-needs-child",
+    "/problems/repost-unavailable",
   ]),
   title: z.string(),
   status: z.number().int(),
   detail: z.string().optional(),
   duplicateUrls: z.string().array().optional(),
+  repostable: z
+    .object({ url: z.string(), title: z.string(), category, firstPublishedOn: z.iso.date() })
+    .array()
+    .optional(),
 }) satisfies z.ZodType<Schemas["Problem"]>;
 
 export type DigestId = z.infer<typeof digestId>;
@@ -129,11 +143,12 @@ export type Category = z.infer<typeof category>;
 export type ChildArticle = z.infer<typeof childArticle>;
 export type Article = z.infer<typeof article>;
 export type Digest = z.infer<typeof digest>;
-export type SavedDigest = z.infer<typeof savedDigest>;
 export type DigestSummary = z.infer<typeof digestSummary>;
 export type DigestStatus = z.infer<typeof digestStatus>;
 export type NewChildArticle = z.infer<typeof newChildArticle>;
 export type NewArticle = z.infer<typeof newArticle>;
+export type RepostArticle = z.infer<typeof repostArticle>;
+export type DigestEntry = z.infer<typeof digestEntry>;
 export type NewDigest = z.infer<typeof newDigest>;
 export type DigestUpdate = z.infer<typeof digestUpdate>;
 // プレビューと公開表示はステータスを見ない

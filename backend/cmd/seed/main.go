@@ -115,7 +115,7 @@ func run() error {
 					return err
 				}
 				for _, ch := range a.children {
-					if _, err := insert(c.name, a.hot, ch, &parent); err != nil {
+					if _, err := insert(c.name, a.hot || ch.hot, ch, &parent); err != nil {
 						return err
 					}
 				}

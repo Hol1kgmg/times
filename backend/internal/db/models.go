@@ -35,6 +35,7 @@ type DigestArticle struct {
 	ParentID  *uuid.UUID
 	Position  int32
 	IsHot     bool
+	IsRepost  bool
 }
 
 type Session struct {

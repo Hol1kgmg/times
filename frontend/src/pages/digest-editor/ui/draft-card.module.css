@@ -10,7 +10,7 @@
   box-shadow: var(--shadow-menu);
 }
 
-.card:has([data-registered]) {
+.card:has([data-rejected]) {
   border-color: var(--color-danger);
 }
 

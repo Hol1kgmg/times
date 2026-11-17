@@ -179,14 +179,14 @@ func (s *Server) UpdateDigest(ctx context.Context, req api.UpdateDigestRequestOb
 	if !publishable(d, time.Now()) {
 		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
 	}
-	rows, reposted, err := saveArticles(ctx, q, d, p.UserID, req.Body.Articles)
+	rows, err := saveArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return api.UpdateDigest200JSONResponse(toSavedDigest(d, rows, reposted)), nil
+	return api.UpdateDigest200JSONResponse(toDigest(d, rows)), nil
 }
 
 // digest と articles を 1 トランザクションで入れる。途中で失敗したら digest も残さない
@@ -216,99 +216,144 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 	if !publishable(d, time.Now()) {
 		return nil, apperr.FuturePublish("cannot publish a digest dated after today (JST)")
 	}
-	rows, reposted, err := saveArticles(ctx, q, d, p.UserID, req.Body.Articles)
+	rows, err := saveArticles(ctx, q, d, p.UserID, req.Body.Articles)
 	if err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return api.CreateDigest201JSONResponse(toSavedDigest(d, rows, reposted)), nil
+	return api.CreateDigest201JSONResponse(toDigest(d, rows)), nil
 }
 
-// Digest の掲載を入れ直す。記事の行は upsert で残し、どこにも載らなくなった記事だけ消す (adr/backend/0008)
-// ponytail: 判定と書き込みの間に別の保存が同じ URL を新規に入れると、判定を通らずに掲載される。並行の保存が要るなら URL にも advisory lock をかける
-// ponytail: 載っている記事は確かめ直さない (FR-009) ので、編集で再掲載を子へ動かしても断らない。表示は子として正しく出る
-func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, articles []api.NewArticle) ([]db.ListArticlesByDigestRow, []string, error) {
-	rows, err := q.ListRegisteredURLs(ctx, db.ListRegisteredURLsParams{CreatedBy: userID, DigestID: d.ID, Urls: urlsOf(articles)})
-	if err != nil {
-		return nil, nil, err
-	}
-	registered := make(map[string]bool, len(rows))
-	for _, r := range rows {
-		registered[r.Url] = r.PublishedElsewhere
-	}
-	reposted, rejected, needsChild := classifyReposts(articles, registered)
-	if len(rejected) > 0 {
-		return nil, nil, apperr.URLAlreadyRegistered(rejected)
-	}
-	if len(needsChild) > 0 {
-		return nil, nil, apperr.RepostNeedsChild(needsChild)
-	}
-	if err := q.DeleteDigestArticles(ctx, d.ID); err != nil {
-		return nil, nil, err
-	}
-	var pos int32
-	// position は digest 内の通し番号で、子は親の hot を引き継ぐ
-	place := func(category, title, url string, parent *uuid.UUID, hot bool) (uuid.UUID, error) {
-		row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{Category: category, Title: title, Url: url, CreatedBy: userID})
+// entry は送られた親 1 件。再掲載は記事を参照するだけなので title を持たない
+type entry struct {
+	url, title string
+	category   api.Category
+	hot        bool
+	repost     bool
+	children   []api.NewChildArticle
+}
+
+// OpenAPI の oneOf の検証で一方の形にだけ当たっているので、repostOf の有無で見分けてよい
+func entriesOf(items []api.DigestEntry) ([]entry, error) {
+	out := make([]entry, 0, len(items))
+	for _, item := range items {
+		r, err := item.AsRepostArticle()
 		if err != nil {
-			return uuid.Nil, constraintViolation(err)
+			return nil, err
 		}
-		err = q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: d.ID, ArticleID: row.ID, ParentID: parent, Position: pos, IsHot: hot})
-		if err != nil {
-			return uuid.Nil, constraintViolation(err)
-		}
-		pos++
-		return row.ID, nil
-	}
-	for _, a := range articles {
-		hot := a.Hot != nil && *a.Hot
-		parent, err := place(string(a.Category), a.Title, a.Url, nil, hot)
-		if err != nil {
-			return nil, nil, err
-		}
-		if a.Children == nil {
+		if r.RepostOf != "" {
+			out = append(out, entry{url: r.RepostOf, category: r.Category, repost: true, children: deref(r.Children)})
 			continue
 		}
-		for _, c := range *a.Children {
-			if _, err := place(string(a.Category), c.Title, c.Url, &parent, hot); err != nil {
-				return nil, nil, err
+		a, err := item.AsNewArticle()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, entry{url: a.Url, title: a.Title, category: a.Category, hot: a.Hot != nil && *a.Hot, children: deref(a.Children)})
+	}
+	return out, nil
+}
+
+func deref[T any](p *[]T) []T {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
+
+func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64, items []api.DigestEntry) ([]db.ListArticlesByDigestRow, error) {
+	entries, err := entriesOf(items)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListRegisteredArticles(ctx, db.ListRegisteredArticlesParams{DigestID: d.ID, CreatedBy: userID, Urls: urlsOf(entries)})
+	if err != nil {
+		return nil, err
+	}
+	registered := make(map[string]db.ListRegisteredArticlesRow, len(rows))
+	for _, r := range rows {
+		registered[r.Url] = r
+	}
+	if err := checkEntries(entries, registered); err != nil {
+		return nil, err
+	}
+	// 掲載は id を持たず外から参照されないので、消して入れ直せば並べ替えで position がぶつからない
+	if err := q.DeleteDigestArticles(ctx, d.ID); err != nil {
+		return nil, err
+	}
+	var pos int32
+	place := func(articleID uuid.UUID, parent *uuid.UUID, hot, repost bool) error {
+		err := q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: d.ID, ArticleID: articleID, ParentID: parent, Position: pos, IsHot: hot, IsRepost: repost})
+		pos++
+		return constraintViolation(err)
+	}
+	upsert := func(category api.Category, title, url string) (uuid.UUID, error) {
+		row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{Category: string(category), Title: title, Url: url, CreatedBy: userID})
+		return row.ID, constraintViolation(err)
+	}
+	for _, e := range entries {
+		id := registered[e.url].ID
+		if !e.repost {
+			if id, err = upsert(e.category, e.title, e.url); err != nil {
+				return nil, err
+			}
+		}
+		if err := place(id, nil, e.hot, e.repost); err != nil {
+			return nil, err
+		}
+		for _, c := range e.children {
+			cid, err := upsert(e.category, c.Title, c.Url)
+			if err != nil {
+				return nil, err
+			}
+			// 親が HOT なら子も HOT として持ち、親 HOT・子は HOT でない組み合わせを作らない (specs/018 FR-016)
+			if err := place(cid, &id, e.hot || (c.Hot != nil && *c.Hot), false); err != nil {
+				return nil, err
 			}
 		}
 	}
 	if err := q.DeleteOrphanArticles(ctx, userID); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	saved, err := q.ListArticlesByDigest(ctx, d.ID)
-	return saved, reposted, err
+	return q.ListArticlesByDigest(ctx, d.ID)
 }
 
-// 再掲載は、ほかの公開済み Digest に載っている記事を、新しい子を付けた親として入れたものだけ (specs/018 FR-005・FR-007)
-func classifyReposts(articles []api.NewArticle, registered map[string]bool) (reposted, rejected, needsChild []string) {
-	for _, a := range articles {
-		fresh := 0
-		if a.Children != nil {
-			for _, c := range *a.Children {
-				if _, ok := registered[c.Url]; ok {
-					rejected = append(rejected, c.Url)
-				} else {
-					fresh++
-				}
+// 判定するのはこの Digest にまだ載っていない記事だけ (specs/018 FR-009)。表は data-model.md の業務ルール
+func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticlesRow) error {
+	var duplicates, unavailable []string
+	var repostable []apperr.Repostable
+	mismatch := false
+	for _, e := range entries {
+		for _, c := range e.children {
+			if r, ok := registered[c.Url]; ok && !r.InDigest {
+				duplicates = append(duplicates, c.Url)
 			}
 		}
-		published, ok := registered[a.Url]
+		r, ok := registered[e.url]
 		switch {
-		case !ok:
-		case !published:
-			rejected = append(rejected, a.Url)
-		case fresh == 0:
-			needsChild = append(needsChild, a.Url)
-		default:
-			reposted = append(reposted, a.Url)
+		case e.repost && (!ok || !r.InDigest && r.FirstPublishedOn == nil):
+			unavailable = append(unavailable, e.url)
+		case e.repost:
+			mismatch = mismatch || len(e.children) == 0 && string(e.category) != r.Category
+		case ok && !r.InDigest:
+			duplicates = append(duplicates, e.url)
+			if r.FirstPublishedOn != nil {
+				repostable = append(repostable, apperr.Repostable{URL: r.Url, Title: r.Title, Category: r.Category, FirstPublishedOn: *r.FirstPublishedOn})
+			}
 		}
 	}
-	return reposted, rejected, needsChild
+	switch {
+	case len(duplicates) > 0:
+		return apperr.URLAlreadyRegistered(duplicates, repostable)
+	case len(unavailable) > 0:
+		return apperr.RepostUnavailable(unavailable)
+	case mismatch:
+		// 画面は子のない再掲載のカテゴリを選ばせないので、文言は出し分けない
+		return apperr.ValidationFailed("repost without children must keep the category of the article")
+	}
+	return nil
 }
 
 var jst = time.FixedZone("JST", 9*60*60)
@@ -331,45 +376,44 @@ func constraintViolation(err error) error {
 	return err
 }
 
-func urlsOf(articles []api.NewArticle) []string {
+func urlsOf(entries []entry) []string {
 	var urls []string
-	for _, a := range articles {
-		urls = append(urls, a.Url)
-		if a.Children != nil {
-			for _, c := range *a.Children {
-				urls = append(urls, c.Url)
-			}
+	for _, e := range entries {
+		urls = append(urls, e.url)
+		for _, c := range e.children {
+			urls = append(urls, c.Url)
 		}
 	}
 	return urls
 }
 
-func toSavedDigest(d db.Digest, rows []db.ListArticlesByDigestRow, reposted []string) api.SavedDigest {
-	out := toDigest(d, rows)
-	if reposted == nil {
-		reposted = []string{}
-	}
-	return api.SavedDigest{Id: out.Id, EntryDate: out.EntryDate, Status: out.Status, Articles: out.Articles, RepostedUrls: reposted}
-}
-
 func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow) api.Digest {
 	children := make(map[uuid.UUID][]api.ChildArticle)
+	childCategory := make(map[uuid.UUID]string)
 	articles := make([]api.Article, 0, len(rows))
 	for _, r := range rows {
 		if r.ParentID != nil {
-			children[*r.ParentID] = append(children[*r.ParentID], api.ChildArticle{Id: r.ID, Title: r.Title, Url: r.Url, Description: r.Description})
+			children[*r.ParentID] = append(children[*r.ParentID], api.ChildArticle{Id: r.ID, Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description})
+			if _, ok := childCategory[*r.ParentID]; !ok {
+				childCategory[*r.ParentID] = r.Category
+			}
 			continue
 		}
 		var first *openapi_types.Date
 		if r.FirstPublishedOn != nil {
 			first = &openapi_types.Date{Time: *r.FirstPublishedOn}
 		}
-		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Title: r.Title, Url: r.Url, Description: r.Description, FirstPublishedOn: first})
+		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Repost: r.IsRepost, Title: r.Title, Url: r.Url, Description: r.Description, FirstPublishedOn: first})
 	}
 	for i := range articles {
-		articles[i].Children = children[articles[i].Id]
-		if articles[i].Children == nil {
-			articles[i].Children = []api.ChildArticle{}
+		a := &articles[i]
+		a.Children = children[a.Id]
+		if a.Children == nil {
+			a.Children = []api.ChildArticle{}
+		}
+		// 記事のカテゴリは元の日のもので、再掲載の日は子の都合のカテゴリで出す (specs/018 FR-014)
+		if c, ok := childCategory[a.Id]; ok && a.Repost {
+			a.Category = api.Category(c)
 		}
 	}
 	return api.Digest{Id: d.ID, EntryDate: openapi_types.Date{Time: d.EntryDate}, Status: api.DigestStatus(d.Status), Articles: articles}

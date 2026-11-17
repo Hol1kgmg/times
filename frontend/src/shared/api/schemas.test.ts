@@ -13,6 +13,7 @@ describe("schemas", () => {
     const base = {
       id: "b3b2b6e0-1c8e-4b6a-9f1e-3b8d0d0a1c2d",
       hot: false,
+      repost: false,
       title: "t",
       url: "https://x.example",
       children: [],

@@ -9,8 +9,8 @@
 | 列 | 型 | 制約 | 変更 |
 |---|---|---|---|
 | id | uuid | PK | そのまま |
-| category | text | NOT NULL、CHECK (固定 6 カテゴリ) | そのまま |
-| title | text | NOT NULL、CHECK (空文字禁止) | そのまま |
+| category | text | NOT NULL、CHECK (固定 6 カテゴリ) | そのまま。元の記事のカテゴリで、再掲載では書き換えない |
+| title | text | NOT NULL、CHECK (空文字禁止) | そのまま。再掲載では書き換えない |
 | url | text | NOT NULL、CHECK (`^https?://`) | そのまま |
 | description | text | NULL 可 | そのまま |
 | created_by | bigint | NOT NULL、FK users | そのまま |
@@ -32,12 +32,15 @@
 | article_id | uuid | NOT NULL、FK articles (削除は制限。孤立した記事は保存処理で消す) |
 | parent_id | uuid | NULL 可。NULL ならその日の親 |
 | position | integer | NOT NULL。Digest 内の通し番号 |
-| is_hot | boolean | NOT NULL DEFAULT false。子は親の値を写す (今と同じ) |
+| is_hot | boolean | NOT NULL DEFAULT false。子は自分の値を持つ。親が HOT なら子も true で保存する (FR-016) |
+| is_repost | boolean | NOT NULL DEFAULT false。元の記事を参照する掲載 (FR-004) |
 
 - `PRIMARY KEY (digest_id, article_id)`: 同じ Digest に同じ記事は 1 回 (Edge Cases)
 - `UNIQUE (digest_id, position)`
 - `FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles (digest_id, article_id) ON DELETE CASCADE`: 親は同じ Digest に載っている記事 (FR-003)
 - `CHECK (parent_id <> article_id)`
+- `CHECK (NOT is_repost OR (parent_id IS NULL AND NOT is_hot))`: 再掲載は親としてだけ載り、HOT を持たない (FR-004・FR-016)
+- `UNIQUE (article_id) WHERE NOT is_repost`: 再掲載でない掲載は記事ごとに 1 つ。登録済みの URL を普通の親として通す抜けを DB でも止める (FR-006)
 
 ### article_links (削除)
 
@@ -47,23 +50,25 @@
 
 | 値 | 導き方 | 使う所 |
 |---|---|---|
-| 再掲載か | この Digest 以外の公開済み Digest にも掲載がある | 保存時の判定 (R4) |
-| 「〜に掲載」の日付 (`first_published_on`) | 記事の掲載のうち、`status = 'published'` で表示中の Digest より前の `entry_date` の最小値 | 表示 (FR-010) |
-| 今回の保存で再掲載になった URL (`repostedUrls`) | 保存前にこの Digest に載っていなかった登録済みの記事のうち、再掲載として通したもの | 保存後の案内 (FR-006) |
+| 「〜に初掲載」の日付 (`first_published_on`) | 再掲載の掲載についてだけ、記事の掲載のうち `status = 'published'` で表示中の Digest より前の `entry_date` の最小値 | 編集画面 (FR-010)、再掲載できるかの判定 (FR-005) |
+| 再掲載の投稿のカテゴリ | 子があれば先頭の子の記事のカテゴリ、なければ記事のカテゴリ | 表示 (FR-014) |
 
 ## 保存時の業務ルール (handler)
 
-対象は「登録済みで、この Digest にまだ載っていない記事」だけ (FR-009)。
+判定の対象は「登録済みで、この Digest にまだ載っていない記事」だけ (FR-009)。
 
 | 入力 | 結果 | Problem |
 |---|---|---|
-| 子として入れた | 断る | `/problems/url-already-registered` (`duplicateUrls`) |
-| 親として入れたが、ほかの公開済み Digest に掲載がない | 断る | `/problems/url-already-registered` (`duplicateUrls`) |
-| 親として入れたが、子がない | 断る | `/problems/repost-needs-child` (`duplicateUrls`) |
-| 親として入れ、新規の子が 1 件以上、ほかの公開済み Digest に掲載がある | 再掲載として保存 | なし。`repostedUrls` に入る |
+| 登録済みの URL を子として入れた | 断る | `/problems/url-already-registered` (`duplicateUrls`) |
+| 登録済みの URL を普通の親として入れ、前の日付の公開済み Digest に掲載がない | 断る | `/problems/url-already-registered` (`duplicateUrls`) |
+| 登録済みの URL を普通の親として入れ、前の日付の公開済み Digest に掲載がある | 断る | `/problems/url-already-registered` (`duplicateUrls` と `repostable`) |
+| 再掲載として入れたが、記事がない、または前の日付の公開済み Digest に掲載がない | 断る | `/problems/repost-unavailable` (`duplicateUrls`) |
+| 再掲載として入れ、子がなく、カテゴリが記事と違う | 断る | `/problems/validation-failed` (画面で選べないので、文言は出し分けない) |
+| 再掲載として入れ、上のどれにも当たらない | 保存。記事の行は書き換えず、掲載だけ作る | なし |
 
-- 断る理由が複数の URL にまたがるときは、`url-already-registered` を先に返す (今の画面の表示と同じ流れで、直す数が多い方を先に出す)
-- 再掲載の子は新しい記事だけ。登録済みの子は「子として入れた」に当たる
+- 断る理由が両方あるときは `url-already-registered` を先に返す (行の切り替えが先に要るため)
+- 子の HOT は「親の HOT か、子自身の HOT か」で保存する。再掲載の親は HOT を送れない (`RepostArticle` が `hot` を持たない)
+- 再掲載の子の記事は、再掲載に送ったカテゴリで作る
 
 ## 状態の変化
 
@@ -73,7 +78,7 @@
 ## 移行 (000013)
 
 1. `digest_articles` を作る
-2. `INSERT INTO digest_articles SELECT a.digest_id, a.id, l.parent_id, a.position, a.is_hot FROM articles a LEFT JOIN article_links l ON l.child_id = a.id`
+2. `INSERT INTO digest_articles SELECT a.digest_id, a.id, l.parent_id, a.position, a.is_hot FROM articles a LEFT JOIN article_links l ON l.child_id = a.id` (`is_repost` は既定の false)
 3. `DROP TABLE article_links`、`articles` から `digest_id` / `position` / `is_hot` を消す
 
-down は各記事のいちばん古い掲載 (`entry_date` の最小) を `articles` に戻し、`article_links` を作り直す。ほかの掲載 (再掲載) は捨てる (research R9)。
+down は再掲載でない掲載を `articles` に戻し、`article_links` を作り直す。再掲載は捨てる (research R9)。

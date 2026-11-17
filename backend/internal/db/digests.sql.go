@@ -39,7 +39,7 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 }
 
 const createDigestArticle = `-- name: CreateDigestArticle :exec
-INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot) VALUES ($1, $2, $3, $4, $5)
+INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot, is_repost) VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateDigestArticleParams struct {
@@ -48,6 +48,7 @@ type CreateDigestArticleParams struct {
 	ParentID  *uuid.UUID
 	Position  int32
 	IsHot     bool
+	IsRepost  bool
 }
 
 func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArticleParams) error {
@@ -57,6 +58,7 @@ func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArtic
 		arg.ParentID,
 		arg.Position,
 		arg.IsHot,
+		arg.IsRepost,
 	)
 	return err
 }
@@ -142,9 +144,9 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 }
 
 const listArticlesByDigest = `-- name: ListArticlesByDigest :many
-SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, f.entry_date AS first_published_on
+SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, da.is_repost, f.entry_date AS first_published_on
 FROM digest_articles da JOIN articles a ON a.id = da.article_id JOIN digests cur ON cur.id = da.digest_id
-LEFT JOIN digests f ON f.id = (
+LEFT JOIN digests f ON da.is_repost AND f.id = (
   SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
   WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
   ORDER BY d.entry_date LIMIT 1
@@ -160,6 +162,7 @@ type ListArticlesByDigestRow struct {
 	Description      *string
 	ParentID         *uuid.UUID
 	IsHot            bool
+	IsRepost         bool
 	FirstPublishedOn *time.Time
 }
 
@@ -183,6 +186,7 @@ func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) 
 			&i.Description,
 			&i.ParentID,
 			&i.IsHot,
+			&i.IsRepost,
 			&i.FirstPublishedOn,
 		); err != nil {
 			return nil, err
@@ -301,38 +305,54 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 	return items, nil
 }
 
-const listRegisteredURLs = `-- name: ListRegisteredURLs :many
-SELECT a.url, EXISTS (
-    SELECT 1 FROM digest_articles da JOIN digests d ON d.id = da.digest_id
-    WHERE da.article_id = a.id AND d.status = 'published'
-) AS published_elsewhere
+const listRegisteredArticles = `-- name: ListRegisteredArticles :many
+SELECT a.id, a.url, a.title, a.category,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $1) AS in_digest,
+  f.entry_date AS first_published_on
 FROM articles a
-WHERE a.created_by = $1 AND a.url = ANY($2::text[])
-  AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $3)
+LEFT JOIN digests f ON f.id = (
+  SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+  WHERE o.article_id = a.id AND d.status = 'published'
+    AND d.entry_date < (SELECT cur.entry_date FROM digests cur WHERE cur.id = $1)
+  ORDER BY d.entry_date LIMIT 1
+)
+WHERE a.created_by = $2 AND a.url = ANY($3::text[])
 `
 
-type ListRegisteredURLsParams struct {
+type ListRegisteredArticlesParams struct {
+	DigestID  uuid.UUID
 	CreatedBy int64
 	Urls      []string
-	DigestID  uuid.UUID
 }
 
-type ListRegisteredURLsRow struct {
-	Url                string
-	PublishedElsewhere bool
+type ListRegisteredArticlesRow struct {
+	ID               uuid.UUID
+	Url              string
+	Title            string
+	Category         string
+	InDigest         bool
+	FirstPublishedOn *time.Time
 }
 
-// unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く。この Digest に載っている記事は確かめ直さない (specs/018 FR-009)
-func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLsParams) ([]ListRegisteredURLsRow, error) {
-	rows, err := q.db.Query(ctx, listRegisteredURLs, arg.CreatedBy, arg.Urls, arg.DigestID)
+// unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
+// 前の日付の公開済みの掲載があれば再掲載にできる (specs/018 FR-005)。sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
+func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegisteredArticlesParams) ([]ListRegisteredArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listRegisteredArticles, arg.DigestID, arg.CreatedBy, arg.Urls)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListRegisteredURLsRow
+	var items []ListRegisteredArticlesRow
 	for rows.Next() {
-		var i ListRegisteredURLsRow
-		if err := rows.Scan(&i.Url, &i.PublishedElsewhere); err != nil {
+		var i ListRegisteredArticlesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Title,
+			&i.Category,
+			&i.InDigest,
+			&i.FirstPublishedOn,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

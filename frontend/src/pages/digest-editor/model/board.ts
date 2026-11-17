@@ -1,5 +1,6 @@
 import { category } from "#/shared/api";
-import type { Category, Digest, DigestContent } from "#/shared/api";
+import type { Category, Digest, DigestContent, DigestEntry } from "#/shared/api";
+import type { Repostable } from "../api/rejection-of";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import type { DraftDigest } from "#/shared/ui/digest-post";
 import { youTubeId } from "#/shared/lib/parse-link-preview";
@@ -19,6 +20,7 @@ export interface Link {
   initial: { url: string; title: string };
   // 一度翻訳した記事を重ねて訳さないための印。保存しない
   translated: boolean;
+  hot: boolean;
 }
 
 export interface LinkEdit {
@@ -28,16 +30,11 @@ export interface LinkEdit {
 }
 
 export interface Draft extends Link {
-  hot: boolean;
   suggested: boolean;
   children: Link[];
-  // 読み込んだときの再掲載の印。保存しない
-  firstPublishedOn?: string;
+  // category は子がない間に戻す元の記事のカテゴリ。子付きで保存した再掲載は backend が返さないので持たない
+  repost?: { category?: Category; firstPublishedOn?: string };
 }
-
-// URL を直すと別の記事になり、読み込んだときの印は当たらなくなる
-export const firstPublishedOf = (d: Draft) =>
-  d.url === d.initial.url ? d.firstPublishedOn : undefined;
 
 export type Board = Record<BoxId, Draft[]>;
 export type Rejected = "duplicate" | "limit";
@@ -186,7 +183,7 @@ export const settleCategory = (board: Board, id: string, suggested: Category | n
 };
 
 export const toggleHot = (board: Board, id: string): Board =>
-  mapDrafts(board, (d) => (d.id === id ? { ...d, hot: !d.hot } : d));
+  mapLink(board, id, (l) => ({ ...l, hot: !l.hot }));
 
 const hasLink = (board: Board, id: string) => links(board).some((l) => l.id === id);
 
@@ -198,7 +195,7 @@ export const describeBoard = (board: Board): string =>
       `${box} (${board[box].length} 件)`,
       ...board[box].flatMap((d) => [
         `- ${linkLine(d)}${d.hot ? " [hot]" : ""}`,
-        ...d.children.map((c) => `  - 子記事 ${linkLine(c)}`),
+        ...d.children.map((c) => `  - 子記事 ${linkLine(c)}${c.hot ? " [hot]" : ""}`),
       ]),
     ])
     .join("\n");
@@ -294,7 +291,7 @@ export const makeChild = (board: Board, id: string): Board => {
   const { url, title, initial, translated } = draft;
   items[at.index - 1] = {
     ...parent,
-    children: [...parent.children, { id, url, title, initial, translated }],
+    children: [...parent.children, { id, url, title, initial, translated, hot: false }],
   };
   return replaceBox(board, at.box, items);
 };
@@ -417,10 +414,11 @@ export const blockers = (board: Board): Blocker[] => {
   return out;
 };
 
-const savedLink = ({ id, url, title }: { id: string; url: string; title: string }): Link => ({
+const savedLink = ({ id, url, title, hot }: Pick<Link, "id" | "url" | "title" | "hot">): Link => ({
   id,
   url,
   title,
+  hot,
   initial: { url, title },
   translated: false,
 });
@@ -430,33 +428,75 @@ export const fromDigest = (digest: Digest): Board => {
   for (const a of digest.articles) {
     board[a.category].push({
       ...savedLink(a),
-      hot: a.hot,
       suggested: false,
       children: a.children.map(savedLink),
-      firstPublishedOn: a.firstPublishedOn,
+      ...(a.repost && {
+        repost: {
+          ...(a.children.length === 0 && { category: a.category }),
+          ...(a.firstPublishedOn !== undefined && { firstPublishedOn: a.firstPublishedOn }),
+        },
+      }),
     });
   }
   return board;
 };
 
+// 子のない再掲載は元の記事のカテゴリでしか保存できないので、外れた箱から戻す
+export const pinReposts = (board: Board): Board => {
+  let next = board;
+  for (const box of boxIds) {
+    for (const d of board[box]) {
+      const home = d.children.length === 0 ? d.repost?.category : undefined;
+      if (home !== undefined && home !== box) {
+        next = moveToBoxEnd(next, d.id, home);
+      }
+    }
+  }
+  return next;
+};
+
+export const convertToReposts = (board: Board, repostable: readonly Repostable[]): Board => {
+  const byUrl = new Map(repostable.map((r) => [r.url, r]));
+  return pinReposts(
+    mapDrafts(board, (d) => {
+      const r = byUrl.get(d.url);
+      return r === undefined
+        ? d
+        : {
+            ...d,
+            title: r.title,
+            hot: false,
+            repost: { category: r.category, firstPublishedOn: r.firstPublishedOn },
+          };
+    }),
+  );
+};
+
+const toEntry = (d: Draft, c: Category): DigestEntry => {
+  const children = d.children.map((ch) => ({ title: ch.title, url: ch.url, hot: ch.hot }));
+  return d.repost === undefined
+    ? { category: c, hot: d.hot, title: d.title, url: d.url, children }
+    : { repostOf: d.url, category: c, children };
+};
+
 export const toNewDigest = (board: Board, entryDate: string): DigestContent => ({
+  entryDate,
+  articles: category.options.flatMap((c) => board[c].map((d) => toEntry(d, c))),
+});
+
+export const toPreview = (board: Board, entryDate: string): DraftDigest => ({
   entryDate,
   articles: category.options.flatMap((c) =>
     board[c].map((d) => ({
       category: c,
-      hot: d.hot,
+      hot: d.repost === undefined && d.hot,
+      repost: d.repost !== undefined,
       title: d.title,
       url: d.url,
-      children: d.children.map((ch) => ({ title: ch.title, url: ch.url })),
+      ...(d.repost?.firstPublishedOn !== undefined && {
+        firstPublishedOn: d.repost.firstPublishedOn,
+      }),
+      children: d.children.map(({ title, url, hot }) => ({ title, url, hot })),
     })),
   ),
 });
-
-export const toPreview = (board: Board, entryDate: string): DraftDigest => {
-  const firsts = new Map(drafts(board).map((d) => [d.url, firstPublishedOf(d)]));
-  const entry = toNewDigest(board, entryDate);
-  return {
-    ...entry,
-    articles: entry.articles.map((a) => ({ ...a, firstPublishedOn: firsts.get(a.url) })),
-  };
-};

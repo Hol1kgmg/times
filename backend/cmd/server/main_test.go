@@ -224,6 +224,24 @@ func TestCreateDigestRejectsNonHTTPURL(t *testing.T) {
 	}
 }
 
+// 記事は新規 (url・title) か再掲載 (repostOf) のどちらか一方の形でなければならない (specs/018 contracts)
+func TestCreateDigestRejectsArticleInBothShapes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
+		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
+	}
+	r, _ := newRouter(newStub(nil), "", lookup)
+	body := `{"entryDate":"2026-10-17","articles":[{"category":"その他","title":"t","url":"https://example.com","repostOf":"https://example.com"}]}`
+	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer valid")
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
+		t.Errorf("got %d: %s", w.Code, w.Body)
+	}
+}
+
 // 下書きへ戻せないことは、更新の status が draft を受けないことで守る (specs/006 SC-004)
 func TestUpdateDigestRejectsDraft(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -242,15 +260,17 @@ func TestUpdateDigestRejectsDraft(t *testing.T) {
 	}
 }
 
-// 登録済み URL の 400 は、画面が印を付けられるよう該当 URL をすべて duplicateUrls で返す
+// 登録済み URL の 400 は、画面が印を付けられるよう該当 URL をすべて duplicateUrls で、再掲載にできる親を repostable で返す
 func TestURLAlreadyRegisteredProblem(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("POST", "/digests", nil)
-	writeProblem(c, apperr.URLAlreadyRegistered([]string{"https://a.example", "https://b.example"}))
+	repostable := []apperr.Repostable{{URL: "https://a.example", Title: "a", Category: "IT系", FirstPublishedOn: time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)}}
+	writeProblem(c, apperr.URLAlreadyRegistered([]string{"https://a.example", "https://b.example"}, repostable))
 	p := problem(t, w)
-	if w.Code != 400 || p.Type != api.ProblemsurlAlreadyRegistered || p.DuplicateUrls == nil || len(*p.DuplicateUrls) != 2 {
+	if w.Code != 400 || p.Type != api.ProblemsurlAlreadyRegistered || p.DuplicateUrls == nil || len(*p.DuplicateUrls) != 2 ||
+		p.Repostable == nil || len(*p.Repostable) != 1 || (*p.Repostable)[0].FirstPublishedOn.String() != "2026-10-03" {
 		t.Errorf("got %d: %s", w.Code, w.Body)
 	}
 }

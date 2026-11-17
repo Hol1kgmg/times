@@ -50,9 +50,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SavedDigest"
+                $ref: "#/components/schemas/Digest"
         "400":
-          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き。ほかの公開済み Digest に載っている記事を、新しい子を付けた親として入れた再掲載は除く)、公開済み Digest に載っている記事を新しい子を付けずに親として入れた (repost-needs-child、duplicateUrls 付き)、今日 (JST) より後の日付で公開しようとした (future-publish)。日付と URL が両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、その日付の Digest が登録済み (digest-already-exists)、前の Digest で登録済みの URL を普通の親・子として含む (url-already-registered、duplicateUrls 付き。再掲載にできる親は repostable にも入る)、再掲載として送った記事がない・前の日付の公開済み Digest に載っていない (repost-unavailable、duplicateUrls 付き)、今日 (JST) より後の日付で公開しようとした (future-publish)。日付と URL が両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -154,9 +154,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SavedDigest"
+                $ref: "#/components/schemas/Digest"
         "400":
-          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を含む (url-already-registered、duplicateUrls 付き。再掲載は除き、この Digest に載っている記事は確かめ直さない)、公開済み Digest に載っている記事を新しい子を付けずに親として入れた (repost-needs-child、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)。両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を普通の親・子として含む (url-already-registered、duplicateUrls 付き。再掲載にできる親は repostable にも入る。この Digest に載っている記事は確かめ直さない)、再掲載として送った記事がない・前の日付の公開済み Digest に載っていない (repost-unavailable、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)。両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -406,17 +406,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Article"
-    SavedDigest:
-      allOf:
-        - $ref: "#/components/schemas/Digest"
-        - type: object
-          required: [repostedUrls]
-          properties:
-            repostedUrls:
-              type: array
-              items:
-                type: string
-              description: この保存で新しく再掲載になった記事の URL。保存前から載っていた再掲載は含めない
     DigestPage:
       type: object
       required: [digests]
@@ -469,7 +458,8 @@ components:
       description: draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
     Article:
       type: object
-      required: [id, category, hot, title, url, children]
+      required: [id, category, hot, repost, title, url, children]
+      description: 再掲載で子があれば、category は子のカテゴリ (specs/018 FR-014)
       properties:
         id:
           type: string
@@ -478,7 +468,10 @@ components:
           $ref: "#/components/schemas/Category"
         hot:
           type: boolean
-          description: ホットトピックかどうか。子記事は親に従うので ChildArticle には持たない
+          description: ホットトピックかどうか。再掲載なら常に false
+        repost:
+          type: boolean
+          description: 元の記事を参照する再掲載の掲載か (specs/018 FR-004)
         title:
           type: string
         url:
@@ -498,11 +491,14 @@ components:
     # 親に紐づく関連記事。children を持たないので孫は表現できない (親子 2 階層まで)
     ChildArticle:
       type: object
-      required: [id, title, url]
+      required: [id, hot, title, url]
       properties:
         id:
           type: string
           format: uuid
+        hot:
+          type: boolean
+          description: 親が HOT なら常に true (specs/018 FR-016)
         title:
           type: string
         url:
@@ -522,7 +518,7 @@ components:
           minItems: 1
           maxItems: 100
           items:
-            $ref: "#/components/schemas/NewArticle"
+            $ref: "#/components/schemas/DigestEntry"
         status:
           type: string
           enum: [draft, published]
@@ -540,7 +536,7 @@ components:
           minItems: 1
           maxItems: 100
           items:
-            $ref: "#/components/schemas/NewArticle"
+            $ref: "#/components/schemas/DigestEntry"
         status:
           type: string
           enum: [published, private]
@@ -569,10 +565,36 @@ components:
           maxItems: 20
           items:
             $ref: "#/components/schemas/NewChildArticle"
+    # url と title、repostOf がそれぞれ必須なので、要素はどちらか一方にだけ当たる
+    DigestEntry:
+      oneOf:
+        - $ref: "#/components/schemas/NewArticle"
+        - $ref: "#/components/schemas/RepostArticle"
+    # 元の記事を参照する再掲載。タイトル・カテゴリは記事のものを使い、書き換えない (specs/018 FR-004)
+    RepostArticle:
+      type: object
+      required: [repostOf, category]
+      properties:
+        repostOf:
+          type: string
+          format: uri
+          pattern: "^https?://"
+          maxLength: 2000
+          description: 再掲載する記事の URL
+        category:
+          $ref: "#/components/schemas/Category"
+        children:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/NewChildArticle"
     NewChildArticle:
       type: object
       required: [title, url]
       properties:
+        hot:
+          type: boolean
+          default: false
         title:
           type: string
           minLength: 1
@@ -612,7 +634,7 @@ components:
             - /problems/url-already-registered
             - /problems/digest-already-exists
             - /problems/future-publish
-            - /problems/repost-needs-child
+            - /problems/repost-unavailable
         title:
           type: string
         status:
@@ -623,4 +645,22 @@ components:
           type: array
           items:
             type: string
-          description: url-already-registered と repost-needs-child のときだけ入る。url-already-registered は同じ管理者が前の Digest で登録済みの URL、repost-needs-child は新しい子を付けずに入れた再掲載の親の URL (送った articles と children のうち該当するものすべて)
+          description: url-already-registered と repost-unavailable のときだけ入る。url-already-registered は同じ管理者が別の Digest で登録済みの URL、repost-unavailable は再掲載できない repostOf (送った articles と children のうち該当するものすべて)
+        repostable:
+          type: array
+          description: url-already-registered のときだけ入る。duplicateUrls のうち、再掲載にできる親の URL と元の記事
+          items:
+            $ref: "#/components/schemas/Repostable"
+    Repostable:
+      type: object
+      required: [url, title, category, firstPublishedOn]
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        firstPublishedOn:
+          type: string
+          format: date

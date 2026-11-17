@@ -36,20 +36,35 @@ func TestConstraintViolation(t *testing.T) {
 
 // 登録済みの照合は関連記事の URL も対象にする。漏れると印が付かず DB の unique で汎用エラーになる
 func TestURLsOfIncludesChildren(t *testing.T) {
-	children := []api.NewChildArticle{{Title: "a-child", Url: "https://a.example/child"}}
-	articles := []api.NewArticle{
-		{Title: "a", Url: "https://a.example", Children: &children},
-		{Title: "b", Url: "https://b.example"},
+	entries := []entry{
+		{url: "https://a.example", children: []api.NewChildArticle{{Title: "a-child", Url: "https://a.example/child"}}},
+		{url: "https://b.example"},
 	}
-	got := urlsOf(articles)
+	got := urlsOf(entries)
 	want := []string{"https://a.example", "https://a.example/child", "https://b.example"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
+// 再掲載は repostOf で見分け、タイトルを持たない参照として扱う
+func TestEntriesOfTellsRepostFromNewArticle(t *testing.T) {
+	var items []api.DigestEntry
+	body := `[{"category":"その他","title":"t","url":"https://a.example","hot":true},{"category":"IT系","repostOf":"https://b.example"}]`
+	if err := json.Unmarshal([]byte(body), &items); err != nil {
+		t.Fatal(err)
+	}
+	got, err := entriesOf(items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got[0].repost || got[0].title != "t" || !got[0].hot || !got[1].repost || got[1].url != "https://b.example" || got[1].category != api.CategoryIT {
+		t.Errorf("got %+v", got)
+	}
+}
+
 // DB 行 → API 応答の変換: 日付は date 形式、description は NULL なら省略、順序は行 (position) 順のまま。
-// parent_id を持つ行は親の children に行順で入り、子のない親も children は [] になる。hot は親にだけ出る
+// parent_id を持つ行は親の children に行順で入り、子のない親も children は [] になる。hot は子も自分の値を出す
 func TestToDigest(t *testing.T) {
 	desc := "summary"
 	d := db.Digest{ID: uuid.New(), EntryDate: time.Date(2026, 9, 22, 0, 0, 0, 0, time.UTC)}
@@ -93,8 +108,8 @@ func TestToDigest(t *testing.T) {
 	if got.Articles[0].Hot || !got.Articles[2].Hot {
 		t.Errorf("hot: got %s", body)
 	}
-	if _, ok := got.Articles[2].Children[0]["hot"]; ok {
-		t.Errorf("child should not carry hot: got %s", body)
+	if got.Articles[2].Children[0]["hot"] != true || got.Articles[0].Children[0]["hot"] != false {
+		t.Errorf("child hot: got %s", body)
 	}
 	if got.Articles[1].Children == nil || len(got.Articles[1].Children) != 0 {
 		t.Errorf("children of childless parent should be []: got %s", body)
@@ -104,13 +119,14 @@ func TestToDigest(t *testing.T) {
 	}
 }
 
-// 再掲載の初掲載日は親にだけ出し、子には出さない (子は新しい記事だけ)
-func TestToDigestFirstPublishedOnParentOnly(t *testing.T) {
+// 再掲載の投稿は子があれば子のカテゴリで出し、初掲載日は親にだけ出す (specs/018 FR-010・FR-014)
+func TestToDigestRepost(t *testing.T) {
 	first := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
-	p := uuid.New()
+	p, q := uuid.New(), uuid.New()
 	rows := []db.ListArticlesByDigestRow{
-		{ID: p, Category: "IT系", Title: "p", Url: "https://p.example", FirstPublishedOn: &first},
-		{ID: uuid.New(), Category: "IT系", Title: "c", Url: "https://p.example/c", ParentID: &p, FirstPublishedOn: &first},
+		{ID: p, Category: "セキュリティ", Title: "p", Url: "https://p.example", IsRepost: true, FirstPublishedOn: &first},
+		{ID: uuid.New(), Category: "IT系", Title: "c", Url: "https://p.example/c", ParentID: &p},
+		{ID: q, Category: "セキュリティ", Title: "q", Url: "https://q.example", IsRepost: true},
 	}
 	body, err := json.Marshal(toDigest(db.Digest{ID: uuid.New()}, rows))
 	if err != nil {
@@ -118,6 +134,8 @@ func TestToDigestFirstPublishedOnParentOnly(t *testing.T) {
 	}
 	var got struct {
 		Articles []struct {
+			Category         string
+			Repost           bool
 			FirstPublishedOn string
 			Children         []map[string]any
 		}
@@ -125,35 +143,64 @@ func TestToDigestFirstPublishedOnParentOnly(t *testing.T) {
 	if err := json.Unmarshal(body, &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Articles[0].FirstPublishedOn != "2026-10-03" {
-		t.Errorf("parent firstPublishedOn: got %s", body)
+	if got.Articles[0].Category != "IT系" || !got.Articles[0].Repost || got.Articles[0].FirstPublishedOn != "2026-10-03" {
+		t.Errorf("repost with a child: got %s", body)
+	}
+	if got.Articles[1].Category != "セキュリティ" {
+		t.Errorf("repost without children keeps the article category: got %s", body)
 	}
 	if _, ok := got.Articles[0].Children[0]["firstPublishedOn"]; ok {
 		t.Errorf("child should not carry firstPublishedOn: got %s", body)
 	}
 }
 
-// 登録済みの URL は、ほかの公開済み Digest に載っていて、新しい子を付けた親のときだけ再掲載として通す (specs/018 FR-005・FR-007)
-func TestClassifyReposts(t *testing.T) {
-	fresh := []api.NewChildArticle{{Title: "new", Url: "https://new.example"}}
-	withRegisteredChild := []api.NewChildArticle{{Title: "c", Url: "https://c.example"}, {Title: "new", Url: "https://new.example"}}
-	registered := map[string]bool{"https://a.example": true, "https://c.example": true, "https://draft.example": false}
+// 保存の振り分けは data-model.md の業務ルールの表の行ごと (specs/018 FR-005・FR-006・FR-008)
+func TestCheckEntries(t *testing.T) {
+	first := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
+	registered := map[string]db.ListRegisteredArticlesRow{
+		"https://old.example":   {Url: "https://old.example", Title: "old", Category: "セキュリティ", FirstPublishedOn: &first},
+		"https://draft.example": {Url: "https://draft.example", Category: "その他"},
+		"https://here.example":  {Url: "https://here.example", Category: "その他", InDigest: true},
+	}
+	child := []api.NewChildArticle{{Title: "new", Url: "https://new.example"}}
 	tests := []struct {
-		name                               string
-		articles                           []api.NewArticle
-		wantReposted, rejected, needsChild []string
+		name     string
+		entries  []entry
+		wantType string
 	}{
-		{"published parent with a new child", []api.NewArticle{{Url: "https://a.example", Children: &fresh}}, []string{"https://a.example"}, nil, nil},
-		{"published parent without a new child", []api.NewArticle{{Url: "https://a.example"}}, nil, nil, []string{"https://a.example"}},
-		{"registered url as a child", []api.NewArticle{{Url: "https://b.example", Children: &[]api.NewChildArticle{{Url: "https://a.example"}}}}, nil, []string{"https://a.example"}, nil},
-		{"parent only on a draft digest", []api.NewArticle{{Url: "https://draft.example", Children: &fresh}}, nil, []string{"https://draft.example"}, nil},
-		{"registered url among the children", []api.NewArticle{{Url: "https://a.example", Children: &withRegisteredChild}}, []string{"https://a.example"}, []string{"https://c.example"}, nil},
+		{"registered url as a child", []entry{{url: "https://new.example", children: []api.NewChildArticle{{Url: "https://old.example"}}}}, "/problems/url-already-registered"},
+		{"registered parent without an earlier published placement", []entry{{url: "https://draft.example"}}, "/problems/url-already-registered"},
+		{"repost of an unknown article", []entry{{url: "https://none.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
+		{"repost of an article only on drafts", []entry{{url: "https://draft.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
+		{"repost without children changing the category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT}}, "/problems/validation-failed"},
+		{"repost with a child in another category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT, children: child}}, ""},
+		{"repost without children", []entry{{url: "https://old.example", repost: true, category: api.CategorySecurity}}, ""},
+		{"article already in this digest", []entry{{url: "https://here.example", title: "edited"}}, ""},
 	}
 	for _, tt := range tests {
-		reposted, rejected, needsChild := classifyReposts(tt.articles, registered)
-		if !slices.Equal(reposted, tt.wantReposted) || !slices.Equal(rejected, tt.rejected) || !slices.Equal(needsChild, tt.needsChild) {
-			t.Errorf("%s: got %v %v %v, want %v %v %v", tt.name, reposted, rejected, needsChild, tt.wantReposted, tt.rejected, tt.needsChild)
+		err := checkEntries(tt.entries, registered)
+		var e *apperr.Error
+		got := ""
+		if errors.As(err, &e) {
+			got = e.Type
 		}
+		if got != tt.wantType {
+			t.Errorf("%s: got %v, want %q", tt.name, err, tt.wantType)
+		}
+	}
+}
+
+// 再掲載にできる親は、画面が行を切り替えられるよう元の記事ごと返す
+func TestCheckEntriesReturnsRepostable(t *testing.T) {
+	first := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
+	registered := map[string]db.ListRegisteredArticlesRow{
+		"https://old.example":   {Url: "https://old.example", Title: "old", Category: "セキュリティ", FirstPublishedOn: &first},
+		"https://draft.example": {Url: "https://draft.example", Category: "その他"},
+	}
+	err := checkEntries([]entry{{url: "https://old.example", title: "typed"}, {url: "https://draft.example"}}, registered)
+	var e *apperr.Error
+	if !errors.As(err, &e) || len(e.DuplicateURLs) != 2 || len(e.Repostable) != 1 || e.Repostable[0].Title != "old" || !e.Repostable[0].FirstPublishedOn.Equal(first) {
+		t.Errorf("got %+v", err)
 	}
 }
 

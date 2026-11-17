@@ -3,6 +3,7 @@ import {
   addDraft,
   blockers,
   canMakeChild,
+  convertToReposts,
   describeBoard,
   draftTitle,
   editLink,
@@ -12,14 +13,15 @@ import {
   fromIds,
   makeChild,
   moveToBoxEnd,
+  pinReposts,
   rejectUpdate,
+  remove,
   revert,
   settleCategory,
   stripTracking,
   toggleHot,
   toIds,
   toNewDigest,
-  toPreview,
   unmakeChild,
   UNSORTED,
   updateDraft,
@@ -33,10 +35,10 @@ const link = (id: string, title = `title ${id}`): Link => ({
   title,
   initial: { url: `https://example.com/${id}`, title },
   translated: false,
+  hot: false,
 });
 const draft = (id: string, extra: Partial<Draft> = {}): Draft => ({
   ...link(id),
-  hot: false,
   suggested: false,
   children: [],
   ...extra,
@@ -149,7 +151,7 @@ describe("登録", () => {
     });
     const urls = toNewDigest(b, "2026-10-25").articles.map((i) => [
       i.category,
-      i.url,
+      "url" in i ? i.url : i.repostOf,
       i.children.map((c) => c.url),
     ]);
     expect(urls).toStrictEqual([
@@ -191,7 +193,7 @@ describe("関連記事", () => {
     const b = board({ その他: [draft("a"), draft("b", { hot: true }), draft("z")] });
     const nested = makeChild(toggleHot(b, "a"), "b");
     expect(nested.その他.map((d) => d.id)).toStrictEqual(["a", "z"]);
-    expect(nested.その他[0]?.children[0]).not.toHaveProperty("hot");
+    expect(nested.その他[0]?.children[0]?.hot).toBeFalsy();
     const back = ok(unmakeChild(nested, "a", "b"));
     expect(back.その他.map((d) => [d.id, d.hot])).toStrictEqual([
       ["a", true],
@@ -208,6 +210,7 @@ describe("保存済みの Digest を開く", () => {
     id: uuid(n),
     category: "その他",
     hot: false,
+    repost: false,
     title: `title ${n}`,
     url: `https://example.com/${n}`,
     children: [],
@@ -222,8 +225,8 @@ describe("保存済みの Digest を開く", () => {
       article(2, { category: "IT系" }),
       article(3, {
         children: [
-          { id: uuid(31), title: "title 31", url: "https://example.com/31" },
-          { id: uuid(32), title: "title 32", url: "https://example.com/32" },
+          { id: uuid(31), hot: false, title: "title 31", url: "https://example.com/31" },
+          { id: uuid(32), hot: true, title: "title 32", url: "https://example.com/32" },
         ],
       }),
     ],
@@ -239,7 +242,7 @@ describe("保存済みの Digest を開く", () => {
         hot,
         title,
         url,
-        children: children.map((c) => ({ title: c.title, url: c.url })),
+        children: children.map((c) => ({ title: c.title, url: c.url, hot: c.hot })),
       })),
     });
   });
@@ -256,18 +259,44 @@ describe("保存済みの Digest を開く", () => {
     });
   });
 
-  it("keeps the repost mark in the preview only while the article URL is unchanged", () => {
+  it("sends a repost as a reference to the article, keeping the hot flags of its children", () => {
     const b = board({
-      その他: [
-        draft("a", { firstPublishedOn: "2026-10-03" }),
-        draft("b", { firstPublishedOn: "2026-10-03" }),
-      ],
+      IT系: [draft("a", { repost: { firstPublishedOn: "2026-10-03" }, children: [link("c")] })],
     });
-    const edited = ok(editLink(b, "b", { url: "https://example.com/z", title: "t" }));
-    expect(toPreview(edited, "2026-10-20").articles.map((a) => a.firstPublishedOn)).toStrictEqual([
-      "2026-10-03",
-      undefined,
+    const hot = toggleHot(b, "c");
+    expect(toNewDigest(hot, "2026-10-20").articles).toStrictEqual([
+      {
+        repostOf: "https://example.com/a",
+        category: "IT系",
+        children: [{ title: "title c", url: "https://example.com/c", hot: true }],
+      },
     ]);
+  });
+});
+
+describe("断られた行を再掲載にする", () => {
+  const original = {
+    url: "https://example.com/a",
+    title: "元のタイトル",
+    category: "AI系",
+    firstPublishedOn: "2026-10-03",
+  } as const;
+
+  it("turns a rejected article into a repost of the original, moving it back unless it has children", () => {
+    const b = board({
+      IT系: [draft("a", { hot: true }), draft("b", { children: [link("c")] })],
+    });
+    const converted = convertToReposts(b, [
+      original,
+      { ...original, url: "https://example.com/b" },
+    ]);
+    expect(converted.IT系.map((d) => [d.id, d.title, d.repost?.category])).toStrictEqual([
+      ["b", "元のタイトル", "AI系"],
+    ]);
+    expect(converted.AI系).toMatchObject([
+      { id: "a", title: "元のタイトル", hot: false, repost: { firstPublishedOn: "2026-10-03" } },
+    ]);
+    expect(pinReposts(remove(converted, "c")).AI系.map((d) => d.id)).toStrictEqual(["a", "b"]);
   });
 });
 

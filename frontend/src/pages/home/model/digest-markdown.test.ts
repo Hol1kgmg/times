@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { newDigest } from "#/shared/api";
+import { digest as digestSchema } from "#/shared/api";
 import { digestMarkdown } from "./digest-markdown";
 
-const make = (articles: unknown[]) => newDigest.parse({ entryDate: "2026-10-20", articles });
+let seq = 0;
+const id = () => {
+  seq += 1;
+  return `00000000-0000-4000-8000-${String(seq).padStart(12, "0")}`;
+};
+const make = (articles: object[]) =>
+  digestSchema.parse({
+    id: id(),
+    entryDate: "2026-10-20",
+    status: "published",
+    articles: articles.map((a) => ({ id: id(), hot: false, repost: false, ...a })),
+  });
 
 describe(digestMarkdown, () => {
   it("gathers hot articles with their children first and drops categories left empty", () => {
@@ -13,7 +24,7 @@ describe(digestMarkdown, () => {
         hot: true,
         title: "a",
         url: "https://x.example/a",
-        children: [{ title: "a1", url: "https://x.example/a1" }],
+        children: [{ id: id(), hot: true, title: "a1", url: "https://x.example/a1" }],
       },
     ]);
     expect(digestMarkdown(digest)).toBe(

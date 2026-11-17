@@ -39,11 +39,14 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
-  min-width: 0;
+  /* 文言を 1 文字ずつに潰す前にタイトルの下へ回す */
+  min-width: min(100%, 30rem);
 }
 
-.submit .message,
-.submit .error {
+.messages {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   text-align: end;
 }
 

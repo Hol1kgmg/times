@@ -121,6 +121,48 @@ description: "Task list for 記事の再掲載と関連記事"
 
 ---
 
+## 見直し (2026-11-17): 再掲載を明示的な参照にする
+
+Phase 1〜6 は初版の方針で完了した。spec の Revision (research R10〜R13) で次を置き換える: 自動の再掲載の判定 (T019・T021)、保存後の案内 (T017・T022〜T025)、子のない再掲載の拒否 (Phase 5)、公開ページの印 (T002・T003)。Phase 7 以降で直す。
+
+## Phase 7: Storybook のデモ (見直し後の見た目) 🎯 先行して確認する
+
+**Gate**: `just fe-storybook` で contracts/ui.md の 7 story をライト・ダークで見てもらい、承認を得る。
+
+- [X] T042 [P] DigestPost の再掲載の親を細い行にする (contracts/ui.md の DigestPost): frontend/src/shared/ui/digest-post.tsx と digest-post.module.css。OpenAPI の生成型はまだ変えないので、`repost` と子の `hot` はこのファイルの中の型で受ける
+- [X] T043 DigestPost の HOT の印を FR-017 の形にする (HOT でない親の下の HOT の子にも付ける)。frontend/src/shared/ui/digest-post.tsx
+- [X] T044 [P] LinkMeta の `reposted` / `needsChild` を `repost` / `converted` / `unavailable` に替える。frontend/src/pages/digest-editor/ui/link-meta.tsx と link-meta.module.css、呼び出し元の draft-card.tsx は今の値で型を通す
+- [X] T045 [P] story を contracts/ui.md の表に揃える: digest-post.stories.tsx (`Repost` / `RepostWithAskAi` を直し `HotPatterns` を足す)、link-meta.stories.tsx (`Repost` / `RepostConverted` / `RepostUnavailable` / `Registered`)
+- [X] T046 `just fe-typecheck` と `just lint` を通し、`just fe-storybook` を起動してユーザーにデモの確認を頼む。**承認まで止まる**
+
+## Phase 8: backend (参照の再掲載と子の HOT)
+
+- [X] T047 backend/db/migrations/000013_split_digest_articles.up.sql に `is_repost`、`CHECK (NOT is_repost OR (parent_id IS NULL AND NOT is_hot))`、`UNIQUE (article_id) WHERE NOT is_repost` を足す。down は再掲載でない掲載を戻す形に直す (000013 は main に未マージなので書き換える)
+- [X] T048 backend/api/openapi.yaml を contracts/openapi.md に合わせる (`RepostArticle`、`oneOf`、`Article.repost`、子の `hot`、`Problem.repostable`、`repost-unavailable`。`SavedDigest` と `repost-needs-child` を消す)。`just be-gen`
+- [X] T049 backend/db/queries/digests.sql: `ListRegisteredURLs` を、記事の id・カテゴリ・タイトル・この Digest に載っているか・前の日付の公開済みの最小の日付を返す形にする。`CreateDigestArticle` に `is_repost`。`ListArticlesByDigest` に `is_repost` を足し、`first_published_on` は再掲載の行だけ引く。`just be-gen`
+- [X] T050 backend/internal/handler/handler.go: 振り分けを data-model.md の業務ルールの表の純粋関数にし、`saveArticles` で再掲載は upsert せず掲載だけ作る。子の HOT は親か子自身。`toDigest` で再掲載の投稿のカテゴリを先頭の子から取り、子の `hot` を写す。`apperr.RepostNeedsChild` を `apperr.RepostUnavailable` に、`URLAlreadyRegistered` に `repostable` を足す。事実と違う `ponytail:` コメントと、何をするかの説明のコメントを消す
+- [X] T051 [P] handler_test.go: 振り分けの表の行ごとに 1 件 (子として入れた・前の公開がない・再掲載にできる・再掲載先がない・子のないカテゴリ違い・通る)、`toDigest` の再掲載のカテゴリと子の HOT に 1 件。apperr の Problem の形 (`repostable`、`repost-unavailable`) に 1 件。cmd/server/main_test.go に `oneOf` の両方に当たる要素が 400 になる 1 件
+- [X] T052 [P] backend/cmd/seed/main.go の子の HOT を「親か子自身の 🔥」にする。seed.md に同じ URL を 2 日に入れる記事はないので再掲載は入れない (入れると `digest_articles_original_key` で止まる)
+- [X] T053 `just be-gen` (差分なし)、`just lint && just test`
+
+## Phase 9: frontend (自動の切り替えと再掲載の行)
+
+- [X] T054 frontend/src/shared/api/schemas.ts を新しい OpenAPI に合わせる (`article.repost`、子の `hot`、problem の `repostable` と `repost-unavailable`。`savedDigest` を消す)。digest-post.tsx の仮の型を生成型に置き換える
+- [X] T055 create-digest.ts / update-digest.ts と admin.digests.$date.edit.tsx を初版の前の遷移に戻す (`savedDigest`・`?reposted` を消す)
+- [X] T056 rejection-of.ts を contracts/ui.md に合わせ、rejection-of.test.ts に `repostable` と `repost-unavailable` の 1 件ずつ
+- [X] T057 board.ts: `Draft.repost`、子の `hot`、断られた行を再掲載に切り替える純粋関数 (子がなければカテゴリも元に戻す)、子が 0 件になったらカテゴリを元に戻す、送る形 (`RepostArticle`) への変換。board.test.ts に切り替えと送る形の 1 件ずつ
+- [X] T058 digest-editor-page.tsx と draft-card.tsx: 断られるたびに `registered` / `converted` / `unavailable` を入れ替える、再掲載の行のメニューとカテゴリの固定、子の行の HOT のメニュー (contracts/ui.md の DraftCard)
+- [X] T059 frontend/e2e/digest-repost.spec.ts を書き直す: 公開済みの記事を親・新しい URL を子にして保存 → 断られて行が「再掲載にしました」→ 保存し直す → トップで細い親の下に子が並ぶ
+
+## Phase 10: Polish
+
+- [X] T060 [P] packages/project/.apm/instructions/frontend-ui-design.instructions.md の「Digest の投稿」の再掲載の項目を、細い親の行と子の HOT の印の決まりに書き直す (Phase 7 で承認した形)
+- [X] T061 [P] adr/backend/0008 に、再掲載を参照の掲載として持つこと (`is_repost`、記事を書き換えない) を足す
+- [X] T062 quality.md の完了の判定を通す: `just be-gen` (差分なし)、`just lint && just test`、`just fe-typecheck`、`just fe-test-e2e digest-repost digest-new digest-edit`
+- [X] T063 quickstart.md を見直し後の流れに直し、手で確かめる
+
+---
+
 ## Dependencies & Execution Order
 
 - **Phase 1 (デモ)**: 依存なし。**承認がゲート**
@@ -129,6 +171,10 @@ description: "Task list for 記事の再掲載と関連記事"
 - **Phase 4 (US2)**: Phase 2 の後。表示は US1 なしでも、移行後のデータに印が付かないことは確かめられるが、印の確認には再掲載のデータが要るので US1 の後に回す
 - **Phase 5 (US3)**: Phase 3 の後 (`classifyReposts` を広げる)
 - **Phase 6**: すべての後
+- **Phase 7 (見直しのデモ)**: **承認がゲート**
+- **Phase 8 (backend)**: Phase 7 の承認の後
+- **Phase 9 (frontend)**: Phase 8 の後 (生成型が要る)
+- **Phase 10**: すべての後
 
 ### Parallel Opportunities
 

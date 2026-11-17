@@ -16,7 +16,6 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
-import { firstPublishedOf } from "../model/board";
 import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
@@ -24,8 +23,8 @@ import styles from "./draft-card.module.css";
 export interface CardActions {
   atLimit: boolean;
   registered: ReadonlySet<string>;
-  reposted: ReadonlySet<string>;
-  needsChild: ReadonlySet<string>;
+  converted: ReadonlySet<string>;
+  unavailable: ReadonlySet<string>;
   edit: (id: string, next: LinkEdit) => Rejected | null;
   revert: (id: string) => void;
   toggleHot: (id: string) => void;
@@ -209,9 +208,10 @@ const LinkRow = ({
   hot = false,
   suggested = false,
   registered,
-  reposted = false,
-  needsChild = false,
+  repost = false,
   firstPublishedOn,
+  converted = false,
+  unavailable = false,
   handle,
   menu,
   onEdit,
@@ -220,12 +220,14 @@ const LinkRow = ({
   hot?: boolean;
   suggested?: boolean;
   registered: boolean;
-  reposted?: boolean;
-  needsChild?: boolean;
+  repost?: boolean;
   firstPublishedOn?: string;
+  converted?: boolean;
+  unavailable?: boolean;
   handle?: ReactNode;
   menu: MenuItem[];
-  onEdit: (next: LinkEdit) => Rejected | null;
+  // 再掲載は元の記事を書き換えないので、渡さず「編集」を出さない
+  onEdit?: (next: LinkEdit) => Rejected | null;
 }) => {
   const [editing, setEditing] = useState(false);
   const host = new URL(link.url).hostname;
@@ -237,7 +239,7 @@ const LinkRow = ({
   });
   const untitled = link.title.trim() === "";
   return (
-    <div className={styles.row} data-registered={registered ? "" : undefined}>
+    <div className={styles.row} data-rejected={registered || unavailable ? "" : undefined}>
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
       <span className={styles.text}>
@@ -262,27 +264,32 @@ const LinkRow = ({
         </AriaLink>
         {card}
         <LinkMeta
+          converted={converted}
           firstPublishedOn={firstPublishedOn}
           host={host}
-          needsChild={needsChild}
           registered={registered}
-          reposted={reposted}
+          repost={repost}
           suggested={suggested}
+          unavailable={unavailable}
           untitled={untitled}
         />
       </span>
       <Menu
         items={[
-          {
-            label: "編集",
-            onSelect: () => {
-              setEditing(true);
-            },
-          },
+          ...(onEdit === undefined
+            ? []
+            : [
+                {
+                  label: "編集",
+                  onSelect: () => {
+                    setEditing(true);
+                  },
+                },
+              ]),
           ...menu,
         ]}
       />
-      {editing && (
+      {editing && onEdit !== undefined && (
         <EditDialog
           link={link}
           onClose={() => {
@@ -337,10 +344,17 @@ export const DraftCard = ({
     data: { title: draft.title === "" ? new URL(draft.url).hostname : draft.title, box },
   });
   const last = draft.children.length - 1;
+  const remove = {
+    label: "削除",
+    onSelect: () => {
+      actions.remove(draft.id, draft.children.length);
+    },
+  };
   return (
     <li ref={ref} className={styles.card} data-dragging={isDragging ? "" : undefined}>
       <LinkRow
-        firstPublishedOn={firstPublishedOf(draft)}
+        converted={actions.converted.has(draft.url)}
+        firstPublishedOn={draft.repost?.firstPublishedOn}
         handle={
           <button ref={handleRef} aria-label="並べ替え" className={styles.handle} type="button">
             <Grip />
@@ -348,46 +362,57 @@ export const DraftCard = ({
         }
         hot={draft.hot}
         link={draft}
-        menu={[
-          {
-            label: draft.hot ? "ホットを外す" : "ホットにする",
-            onSelect: () => {
-              actions.toggleHot(draft.id);
-            },
-          },
-          {
-            label: "上の記事の関連記事にする",
-            disabled: !actions.canMakeChild(draft.id),
-            onSelect: () => {
-              actions.makeChild(draft.id);
-            },
-          },
-          {
-            label: "変更を戻す",
-            onSelect: () => {
-              actions.revert(draft.id);
-            },
-          },
-          {
-            label: "削除",
-            onSelect: () => {
-              actions.remove(draft.id, draft.children.length);
-            },
-          },
-        ]}
-        needsChild={draft.children.length === 0 && actions.needsChild.has(draft.url)}
+        menu={
+          draft.repost === undefined
+            ? [
+                {
+                  label: draft.hot ? "ホットを外す" : "ホットにする",
+                  onSelect: () => {
+                    actions.toggleHot(draft.id);
+                  },
+                },
+                {
+                  label: "上の記事の関連記事にする",
+                  disabled: !actions.canMakeChild(draft.id),
+                  onSelect: () => {
+                    actions.makeChild(draft.id);
+                  },
+                },
+                {
+                  label: "変更を戻す",
+                  onSelect: () => {
+                    actions.revert(draft.id);
+                  },
+                },
+                remove,
+              ]
+            : [remove]
+        }
         registered={actions.registered.has(draft.url)}
-        reposted={actions.reposted.has(draft.url)}
+        repost={draft.repost !== undefined}
         suggested={draft.suggested}
-        onEdit={(next) => actions.edit(draft.id, next)}
+        unavailable={actions.unavailable.has(draft.url)}
+        onEdit={draft.repost === undefined ? (next) => actions.edit(draft.id, next) : undefined}
       />
       {draft.children.length > 0 && (
         <ul className={styles.children}>
           {draft.children.map((child, i) => (
             <li key={child.id}>
               <LinkRow
+                hot={!draft.hot && child.hot}
                 link={child}
                 menu={[
+                  // 親が HOT なら子もまとめて HOT なので、子だけを切り替えさせない (specs/018 FR-016)
+                  ...(draft.hot
+                    ? []
+                    : [
+                        {
+                          label: child.hot ? "ホットを外す" : "ホットにする",
+                          onSelect: () => {
+                            actions.toggleHot(child.id);
+                          },
+                        },
+                      ]),
                   {
                     label: "上へ",
                     disabled: i === 0,

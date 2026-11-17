@@ -12,20 +12,25 @@ const failed = (type: Problem["type"], extra?: Partial<Problem>) =>
   });
 
 describe(rejectionOf, () => {
-  it("returns the already registered urls so the page can mark those cards", () => {
+  it("returns the already registered urls and the articles they can be reposted as", () => {
+    const repostable = [
+      { url: "https://a.example", title: "a", category: "IT系", firstPublishedOn: "2026-10-03" },
+    ] satisfies Problem["repostable"];
     const err = failed("/problems/url-already-registered", {
-      duplicateUrls: ["https://a.example"],
+      duplicateUrls: ["https://a.example", "https://b.example"],
+      repostable,
     });
     expect(rejectionOf(err)).toStrictEqual({
       reason: "url-already-registered",
-      duplicateUrls: ["https://a.example"],
+      duplicateUrls: ["https://a.example", "https://b.example"],
+      repostable,
     });
   });
 
-  it("returns the reposted urls without a new child so the page can mark those cards", () => {
-    const err = failed("/problems/repost-needs-child", { duplicateUrls: ["https://a.example"] });
+  it("returns the reposts that have nothing to point to so the page can mark those cards", () => {
+    const err = failed("/problems/repost-unavailable", { duplicateUrls: ["https://a.example"] });
     expect(rejectionOf(err)).toStrictEqual({
-      reason: "repost-needs-child",
+      reason: "repost-unavailable",
       duplicateUrls: ["https://a.example"],
     });
   });

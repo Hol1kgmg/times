@@ -2,14 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useFocusVisible, useHover } from "react-aria";
 import { Link } from "react-aria-components";
-import type {
-  Article,
-  ArticleId,
-  Digest,
-  DigestContent,
-  NewArticle,
-  NewChildArticle,
-} from "#/shared/api";
+import type { Article, ArticleId, ChildArticle, Digest } from "#/shared/api";
 import { formatEntryDate } from "#/shared/lib/entry-date";
 import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
@@ -29,21 +22,31 @@ type Open = (url: string) => void;
 interface Ai {
   shown: boolean;
 }
-// 下書きは送る形 (NewArticle) に、読み込んだ再掲載の印だけを添えて描く
-type PostArticle = NewArticle & Pick<Article, "firstPublishedOn">;
-export type DraftDigest = Omit<DigestContent, "articles"> & { articles: PostArticle[] };
+type PostChild = Pick<ChildArticle, "title" | "url" | "hot">;
+type PostArticle = Pick<
+  Article,
+  "category" | "hot" | "repost" | "title" | "url" | "firstPublishedOn"
+> & {
+  children: PostChild[];
+};
+export interface DraftDigest {
+  entryDate: string;
+  articles: PostArticle[];
+}
 
 const ArticleLink = ({
   article,
   hot = false,
-  firstPublishedOn,
+  repost = false,
+  thin = false,
   loadPreview,
   open,
   ai,
 }: {
-  article: NewChildArticle;
+  article: Pick<ChildArticle, "title" | "url">;
   hot?: boolean;
-  firstPublishedOn?: string;
+  repost?: boolean;
+  thin?: boolean;
   loadPreview: LoadPreview;
   open?: Open;
   ai?: Ai;
@@ -62,7 +65,8 @@ const ArticleLink = ({
   return (
     <div className={styles.row} data-ai-shown={ai?.shown === true ? "" : undefined}>
       <Favicon className={styles.favicon} url={article.url} />
-      <span className={styles.text}>
+      <span className={thin ? `${styles.text} ${styles.thin}` : styles.text}>
+        {repost && <span className={styles.repostMark}>再掲載</span>}
         {/* リンクとアイコンを 1 つのインラインに入れ、間の隙間と折り返しの先もホバーに含める */}
         <span className={styles.zone} {...hoverProps} data-hovered={isHovered ? "" : undefined}>
           <Link
@@ -104,7 +108,6 @@ const ArticleLink = ({
             </span>
           </span>
         )}
-        {firstPublishedOn !== undefined && <span className={styles.firstPublished}>再掲載</span>}
       </span>
     </div>
   );
@@ -126,16 +129,25 @@ const Entry = ({
     <ArticleLink
       ai={ai}
       article={article}
-      firstPublishedOn={article.firstPublishedOn}
-      hot={article.hot}
+      hot={!article.repost && article.hot}
       loadPreview={loadPreview}
       open={open}
+      repost={article.repost}
+      // 子がなければ再掲載の行そのものを読ませるので、普通の大きさのままにする
+      thin={article.repost && article.children.length > 0}
     />
     {article.children.length > 0 && (
       <ul className={styles.children}>
         {article.children.map((c) => (
           <li key={c.url}>
-            <ArticleLink ai={ai} article={c} loadPreview={loadPreview} open={open} />
+            {/* 親が HOT なら印は親の行だけで話題全体を示す (specs/018 FR-017) */}
+            <ArticleLink
+              ai={ai}
+              article={c}
+              hot={c.hot && !article.hot}
+              loadPreview={loadPreview}
+              open={open}
+            />
           </li>
         ))}
       </ul>
