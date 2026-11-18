@@ -502,7 +502,7 @@ components:
     # 親に紐づく関連記事。children を持たないので孫は表現できない (親子 2 階層まで)
     ChildArticle:
       type: object
-      required: [id, category, hot, repost, originalStatus, title, url]
+      required: [id, category, hot, repost, hidden, originalStatus, title, url]
       properties:
         id:
           type: string
@@ -512,6 +512,9 @@ components:
         repost:
           type: boolean
           description: 前の日付に掲載がある子か。記事を書き換えないので、編集画面では動かすだけにする
+        hidden:
+          type: boolean
+          description: 記事が隠されているか
         originalStatus:
           $ref: "#/components/schemas/DigestStatus"
         hot:

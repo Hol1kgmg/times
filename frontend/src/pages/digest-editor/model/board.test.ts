@@ -215,6 +215,7 @@ describe("保存済みの Digest を開く", () => {
     hot: false,
     repost: false,
     originalStatus: "published",
+    hidden: false,
     title: `title ${n}`,
     url: `https://example.com/${n}`,
     ...extra,
@@ -258,6 +259,19 @@ describe("保存済みの Digest を開く", () => {
         children: a.children.map((c) => ({ title: c.title, url: c.url, hot: c.hot })),
       })),
     });
+  });
+
+  it("keeps a hidden child out of the preview without hiding its siblings", () => {
+    const b = fromDigest(
+      digest.parse({
+        ...saved,
+        articles: [article(3, { children: [child(31, { hidden: true }), child(32)] })],
+      }),
+    );
+    expect(b.その他[0]?.children[0]?.hidden).toBeTruthy();
+    expect(toPreview(b, saved.entryDate).articles[0]?.children.map((c) => c.url)).toStrictEqual([
+      "https://example.com/32",
+    ]);
   });
 
   it("reverts a saved article to its saved title and URL, keeping its hot flag", () => {

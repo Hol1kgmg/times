@@ -23,6 +23,7 @@ const latest = digest.parse({
           hot: false,
           repost: false,
           originalStatus: "published",
+          hidden: false,
           title: "child",
           url: "https://x.example/child",
         },

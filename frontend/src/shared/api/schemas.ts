@@ -30,6 +30,7 @@ export const childArticle = z.object({
   category,
   hot: z.boolean(),
   repost: z.boolean(),
+  hidden: z.boolean(),
   originalStatus: digestStatus,
   title: z.string(),
   url: z.url(),

@@ -23,6 +23,7 @@ const make = (articles: ({ category: string; children: object[] } & Record<strin
         category: a.category,
         repost: false,
         originalStatus: "published",
+        hidden: false,
         ...c,
       })),
     })),

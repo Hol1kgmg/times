@@ -77,3 +77,9 @@ export const RepostUnpublished: Story = {
   },
 };
 export const Hidden: Story = { args: { draft: draft({ hidden: true }) } };
+export const HiddenRepost: Story = {
+  args: { draft: draft({ hidden: true, repost: { category: "セキュリティ" }, children: [child] }) },
+};
+export const HiddenChild: Story = {
+  args: { draft: draft({ children: [{ ...child, hidden: true }] }) },
+};

@@ -257,7 +257,11 @@ const LinkRow = ({
   });
   const untitled = link.title.trim() === "";
   return (
-    <div className={styles.row} data-rejected={registered || unavailable ? "" : undefined}>
+    <div
+      className={styles.row}
+      data-private={hidden || link.unpublished === true ? "" : undefined}
+      data-rejected={registered || unavailable ? "" : undefined}
+    >
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
       <span className={styles.text}>
@@ -358,6 +362,8 @@ export const DraftCard = ({
   box: BoxId;
   actions: CardActions;
 }) => {
+  const reasonId = useId();
+  const [showVisibilityReason, setShowVisibilityReason] = useState(false);
   const { ref, handleRef, isDragging } = useSortable({
     id: draft.id,
     index,
@@ -376,15 +382,43 @@ export const DraftCard = ({
     <li ref={ref} className={styles.card} data-dragging={isDragging ? "" : undefined}>
       <LinkRow
         action={
-          draft.hidden === true && (
-            <Button
-              className={styles.button}
-              onPress={() => {
-                actions.unhide(draft.id);
-              }}
-            >
-              表示に戻す
-            </Button>
+          (draft.hidden === true || draft.unpublished === true) && (
+            <span className={styles.visibilityAction}>
+              <Button
+                className={styles.button}
+                isDisabled={draft.repost !== undefined || draft.unpublished === true}
+                onPress={() => {
+                  actions.unhide(draft.id);
+                }}
+              >
+                表示に戻す
+              </Button>
+              {draft.repost !== undefined && (
+                <>
+                  <Button
+                    aria-describedby={reasonId}
+                    aria-label="表示に戻せない理由"
+                    className={styles.visibilityHelp}
+                    onBlur={() => {
+                      setShowVisibilityReason(false);
+                    }}
+                    onPress={() => {
+                      setShowVisibilityReason((shown) => !shown);
+                    }}
+                  >
+                    ?
+                  </Button>
+                  <span
+                    className={styles.visibilityReason}
+                    data-open={showVisibilityReason ? "" : undefined}
+                    id={reasonId}
+                    role="tooltip"
+                  >
+                    再掲載なので表示を切り替えられません
+                  </span>
+                </>
+              )}
+            </span>
           )
         }
         converted={actions.converted.has(draft.url)}
@@ -435,6 +469,7 @@ export const DraftCard = ({
           {draft.children.map((child, i) => (
             <li key={child.id}>
               <LinkRow
+                hidden={child.hidden === true}
                 hot={!draft.hot && child.hot}
                 link={child}
                 menu={[

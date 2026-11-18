@@ -419,7 +419,7 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 		}
 		r := registered[e.url]
 		switch {
-		case e.repost && !repostAvailable(e.url):
+		case e.repost && !repostAvailable(e.url) && !r.HasPlacedChild:
 			unavailable = append(unavailable, e.url)
 		case !e.repost && !original(e.url):
 			duplicates = append(duplicates, e.url)
@@ -513,7 +513,7 @@ func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow, public bool) api.D
 		if public && !visible(r) {
 			continue
 		}
-		children[*r.ParentID] = append(children[*r.ParentID], api.ChildArticle{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Repost: r.IsRepost,
+		children[*r.ParentID] = append(children[*r.ParentID], api.ChildArticle{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Repost: r.IsRepost, Hidden: r.Hidden,
 			OriginalStatus: originalStatus(r), Title: r.Title, Url: r.Url, Description: r.Description})
 	}
 	articles := make([]api.Article, 0, len(parents))

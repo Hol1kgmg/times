@@ -249,12 +249,15 @@ func TestToDigestConcealsInvisibleArticles(t *testing.T) {
 func TestCheckEntries(t *testing.T) {
 	first := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
 	oldParent := "https://old.example"
+	privateParent := "https://private-parent.example"
 	registered := map[string]db.ListRegisteredArticlesRow{
-		"https://old.example":       {Url: "https://old.example", Title: "old", Category: "セキュリティ", FirstPublishedOn: &first},
-		"https://old.example/child": {Url: "https://old.example/child", Category: "IT系", FirstPublishedOn: &first, ParentUrl: &oldParent},
-		"https://draft.example":     {Url: "https://draft.example", Category: "その他"},
-		"https://here.example":      {Url: "https://here.example", Category: "その他", Placed: true},
-		"https://kept.example":      {Url: "https://kept.example", Category: "その他", Placed: true, HasEarlier: true},
+		"https://old.example":            {Url: "https://old.example", Title: "old", Category: "セキュリティ", FirstPublishedOn: &first},
+		"https://old.example/child":      {Url: "https://old.example/child", Category: "IT系", FirstPublishedOn: &first, ParentUrl: &oldParent},
+		"https://draft.example":          {Url: "https://draft.example", Category: "その他"},
+		"https://here.example":           {Url: "https://here.example", Category: "その他", Placed: true},
+		"https://kept.example":           {Url: "https://kept.example", Category: "その他", Placed: true, HasEarlier: true},
+		"https://private-parent.example": {Url: "https://private-parent.example", HasPlacedChild: true},
+		"https://private-child.example":  {Url: "https://private-child.example", Placed: true, ParentUrl: &privateParent},
 	}
 	newChild := []child{{title: "new", url: "https://new.example"}}
 	repostChild := []child{{url: "https://old.example/child", repost: true}}
@@ -273,6 +276,9 @@ func TestCheckEntries(t *testing.T) {
 		{"repost without children", []entry{{url: "https://old.example", repost: true, category: api.CategorySecurity}}, ""},
 		{"article already in this digest", []entry{{url: "https://here.example", title: "edited"}}, ""},
 		{"repost already in this digest whose original was made private", []entry{{url: "https://kept.example", repost: true, category: api.CategoryOther}}, ""},
+		{"recalled parent whose original was made private", []entry{{url: "https://private-parent.example", repost: true, children: []child{{url: "https://private-child.example", repost: true}}}}, ""},
+		{"recalled parent with a new child", []entry{{url: "https://private-parent.example", repost: true, children: newChild}}, ""},
+		{"new private parent with a new child", []entry{{url: "https://draft.example", repost: true, children: newChild}}, "/problems/repost-unavailable"},
 		{"original in this digest sent as a repost stays the original", []entry{{url: "https://here.example", repost: true, category: api.CategoryOther}}, ""},
 		{"article in this digest with an earlier placement sent as an ordinary parent", []entry{{url: "https://kept.example", title: "again"}}, "/problems/url-already-registered"},
 		{"repost in this digest sent as a child", []entry{{url: "https://new.example", children: []child{{url: "https://kept.example"}}}}, "/problems/url-already-registered"},

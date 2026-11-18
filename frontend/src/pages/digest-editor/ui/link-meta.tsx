@@ -36,8 +36,10 @@ export const LinkMeta = ({
       </span>
     )}
     {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
-    {hidden && <span className={styles.warn}>子がほかの日にいるので、外す代わりに隠してます</span>}
-    {unpublished && <span className={styles.warn}>元の Digest が公開されてないので出ません</span>}
+    {hidden && <span className={styles.warn}>この記事は隠してます</span>}
+    {unpublished && (
+      <span className={styles.warn}>表示するには初回掲載の Digest を公開してください</span>
+    )}
     {typeof categoryNote === "string" && <span className={styles.warn}>{categoryNote}</span>}
     {suggested && <span className={styles.suggested}>AI が振り分けました</span>}
     {converted && <span className={styles.suggested}>再掲載にしました</span>}

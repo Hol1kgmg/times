@@ -366,6 +366,8 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 const listRegisteredArticles = `-- name: ListRegisteredArticles :many
 SELECT a.id, a.url, a.title, a.category,
   EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = cur.id) AS placed,
+  EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id
+    WHERE c.parent_id = a.id AND da.digest_id = cur.id) AS has_placed_child,
   -- 下書き・非公開も数える。前に掲載があれば、この Digest の掲載は再掲載になる (specs/018 FR-019)
   EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
     WHERE o.article_id = a.id AND d.entry_date < cur.entry_date) AS has_earlier,
@@ -396,6 +398,7 @@ type ListRegisteredArticlesRow struct {
 	Title            string
 	Category         string
 	Placed           bool
+	HasPlacedChild   bool
 	HasEarlier       bool
 	FirstPublishedOn *time.Time
 	ParentUrl        *string
@@ -417,6 +420,7 @@ func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegistered
 			&i.Title,
 			&i.Category,
 			&i.Placed,
+			&i.HasPlacedChild,
 			&i.HasEarlier,
 			&i.FirstPublishedOn,
 			&i.ParentUrl,

@@ -22,6 +22,55 @@
   anchor-scope: --link;
 }
 
+.row[data-private] {
+  background-color: var(--color-fill-subtle);
+  border-radius: var(--radius-control);
+}
+
+.visibilityAction {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+}
+
+.visibilityReason {
+  composes: t-meta from global;
+  position: absolute;
+  z-index: 2;
+  inset: 100% 0 auto auto;
+  width: max-content;
+  max-width: 16rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+  color: var(--color-text);
+  visibility: hidden;
+}
+
+.visibilityAction:hover .visibilityReason,
+.visibilityAction:focus-within .visibilityReason,
+.visibilityReason[data-open] {
+  visibility: visible;
+}
+
+.visibilityAction [data-disabled] {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.visibilityHelp {
+  composes: t-meta from global;
+  padding: var(--space-half);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
 .handle {
   display: flex;
   flex-shrink: 0;

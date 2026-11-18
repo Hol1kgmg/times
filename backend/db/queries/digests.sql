@@ -31,6 +31,8 @@ WHERE digests.created_by = sqlc.arg(created_by) AND digests.entry_date = sqlc.ar
 -- unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
 SELECT a.id, a.url, a.title, a.category,
   EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = cur.id) AS placed,
+  EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id
+    WHERE c.parent_id = a.id AND da.digest_id = cur.id) AS has_placed_child,
   -- 下書き・非公開も数える。前に掲載があれば、この Digest の掲載は再掲載になる (specs/018 FR-019)
   EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
     WHERE o.article_id = a.id AND d.entry_date < cur.entry_date) AS has_earlier,

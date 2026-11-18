@@ -27,6 +27,7 @@ export interface Link {
   repostChild?: true;
   // 元の掲載の Digest が公開済みでなく、公開ページに出ない
   unpublished?: true;
+  hidden?: true;
 }
 
 export interface LinkEdit {
@@ -41,7 +42,6 @@ export interface Draft extends Link {
   // category は子がない間に戻す元の記事のカテゴリ
   repost?: { category: Category; firstPublishedOn?: string };
   // 子がほかの日にいて外せないので、外す代わりに隠した行
-  hidden?: true;
 }
 
 export type Board = Record<BoxId, Draft[]>;
@@ -485,6 +485,7 @@ export const fromDigest = (digest: Digest): Board => {
         category: c.category,
         ...(c.repost && { repostChild: true as const }),
         ...(c.repost && c.originalStatus !== "published" && { unpublished: true as const }),
+        ...(c.hidden && { hidden: true as const }),
       })),
       ...(a.hidden && { hidden: true }),
       ...(a.repost && {
@@ -608,7 +609,7 @@ export const toPreview = (board: Board, entryDate: string): DraftDigest => ({
   articles: category.options.flatMap((c) =>
     board[c].flatMap((d): DraftDigest["articles"] => {
       const children = d.children
-        .filter((ch) => ch.unpublished !== true)
+        .filter((ch) => ch.unpublished !== true && ch.hidden !== true)
         .map(({ title, url, hot }) => ({ title, url, hot }));
       if (d.hidden === true || d.unpublished === true) {
         return children.length > 0 || d.repost !== undefined
