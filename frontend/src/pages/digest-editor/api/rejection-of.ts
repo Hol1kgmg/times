@@ -2,12 +2,14 @@ import type { Problem } from "#/shared/api";
 import type { BackendError } from "#/shared/api/index.server";
 
 export type Repostable = NonNullable<Problem["repostable"]>[number];
+export type Hideable = NonNullable<Problem["hideable"]>[number];
 
 export type Rejection =
   | { reason: "digest-already-exists" }
   | { reason: "future-publish" }
   | { reason: "url-already-registered"; duplicateUrls: string[]; repostable: Repostable[] }
-  | { reason: "repost-unavailable"; duplicateUrls: string[] };
+  | { reason: "repost-unavailable"; duplicateUrls: string[] }
+  | { reason: "parent-has-children"; hideable: Hideable[] };
 
 export const rejectionOf = (error: BackendError): Rejection | undefined => {
   const p = error.name === "BackendProblemError" ? error.problem : undefined;
@@ -26,6 +28,9 @@ export const rejectionOf = (error: BackendError): Rejection | undefined => {
   }
   if (p?.type === "/problems/repost-unavailable") {
     return { reason: "repost-unavailable", duplicateUrls: p.duplicateUrls ?? [] };
+  }
+  if (p?.type === "/problems/parent-has-children") {
+    return { reason: "parent-has-children", hideable: p.hideable ?? [] };
   }
   return undefined;
 };

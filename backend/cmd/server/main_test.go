@@ -275,6 +275,19 @@ func TestURLAlreadyRegisteredProblem(t *testing.T) {
 	}
 }
 
+// 外せない親の 400 は、画面が隠した行として戻せるよう親の URL・タイトル・カテゴリを hideable で返す
+func TestParentHasChildrenProblem(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("PUT", "/digests/2026-10-17", nil)
+	writeProblem(c, apperr.ParentHasChildren([]apperr.Hideable{{URL: "https://p.example", Title: "p", Category: "IT系"}}))
+	p := problem(t, w)
+	if w.Code != 400 || p.Type != api.ProblemsparentHasChildren || p.Hideable == nil || len(*p.Hideable) != 1 || (*p.Hideable)[0].Category != api.CategoryIT {
+		t.Errorf("got %d: %s", w.Code, w.Body)
+	}
+}
+
 // openapi.yaml の Problem.type enum と apperr.Types が一致する
 func TestProblemTypesMatchSpec(t *testing.T) {
 	spec, err := api.GetSwagger()

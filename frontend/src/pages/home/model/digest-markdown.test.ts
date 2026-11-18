@@ -7,12 +7,25 @@ const id = () => {
   seq += 1;
   return `00000000-0000-4000-8000-${String(seq).padStart(12, "0")}`;
 };
-const make = (articles: object[]) =>
+const make = (articles: ({ category: string; children: object[] } & Record<string, unknown>)[]) =>
   digestSchema.parse({
     id: id(),
     entryDate: "2026-10-20",
     status: "published",
-    articles: articles.map((a) => ({ id: id(), hot: false, repost: false, ...a })),
+    articles: articles.map((a) => ({
+      id: id(),
+      hot: false,
+      repost: false,
+      hidden: false,
+      originalStatus: "published",
+      ...a,
+      children: a.children.map((c) => ({
+        category: a.category,
+        repost: false,
+        originalStatus: "published",
+        ...c,
+      })),
+    })),
   });
 
 describe(digestMarkdown, () => {
@@ -60,6 +73,20 @@ describe(digestMarkdown, () => {
         "IT系",
         "- [b](https://x.example/b)",
       ].join("\n"),
+    );
+  });
+
+  it("writes a concealed parent without its content", () => {
+    const digest = make([
+      {
+        category: "IT系",
+        repost: true,
+        concealed: true,
+        children: [{ id: id(), hot: false, title: "a1", url: "https://x.example/a1" }],
+      },
+    ]);
+    expect(digestMarkdown(digest)).toBe(
+      ["IT系", "- 非公開記事", "  - [a1](https://x.example/a1)"].join("\n"),
     );
   });
 

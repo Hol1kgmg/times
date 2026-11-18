@@ -21,7 +21,7 @@ export const NotFoundPage = () => {
       try {
         const digest = await getLatestDigest();
         const all = (digest?.articles ?? []).flatMap((a) => [
-          a.url,
+          ...(a.concealed === true ? [] : [a.url]),
           ...a.children.map((c) => c.url),
         ]);
         if (active) {

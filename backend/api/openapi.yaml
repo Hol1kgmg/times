@@ -156,7 +156,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Digest"
         "400":
-          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を普通の親・子として含む (url-already-registered、duplicateUrls 付き。再掲載にできる親は repostable にも入る。この Digest に載っている記事は確かめ直さない)、再掲載として送った記事がない・前の日付の公開済み Digest に載っていない (repost-unavailable、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)。両方ぶつかるときは digest-already-exists
+          description: 形式違反 (validation-failed)、変更先の日付に別の Digest が登録済み (digest-already-exists)、他の Digest で登録済みの URL を普通の親・子として含む (url-already-registered、duplicateUrls 付き。再掲載にできる親は repostable にも入る。この Digest に載っている記事は確かめ直さない)、再掲載として送った記事がない・前の日付の公開済み Digest に載っていない (repost-unavailable、duplicateUrls 付き)、保存後の状態が今日 (JST) より後の日付の公開になる (future-publish)、外すとどこにも載らなくなる親に、ほかの日に載っている子がいる (parent-has-children、hideable 付き)。両方ぶつかるときは digest-already-exists
           content:
             application/problem+json:
               schema:
@@ -458,8 +458,8 @@ components:
       description: draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
     Article:
       type: object
-      required: [id, category, hot, repost, title, url, children]
-      description: 再掲載で子があれば、category は子のカテゴリ (specs/018 FR-014)
+      required: [id, category, hot, repost, hidden, originalStatus, children]
+      description: 再掲載で子があれば、category は子のカテゴリ (specs/018 FR-014)。concealed でなければ title と url を持つ
       properties:
         id:
           type: string
@@ -471,7 +471,15 @@ components:
           description: ホットトピックかどうか。再掲載なら常に false
         repost:
           type: boolean
-          description: 元の記事を参照する再掲載の掲載か (specs/018 FR-004)
+          description: 元の記事を参照する再掲載の掲載か。子のために呼び出した、この Digest に載っていない親も true (specs/018 FR-004)
+        hidden:
+          type: boolean
+          description: 子がほかの日にいて外せないので、外す代わりに隠した記事か
+        originalStatus:
+          $ref: "#/components/schemas/DigestStatus"
+        concealed:
+          type: boolean
+          description: 公開ページでだけ入る。表示しない記事 (隠した記事か、元の掲載の Digest が公開済みでない) の場所を「非公開記事」として残す。title・url・description・firstPublishedOn を持たない
         title:
           type: string
         url:
@@ -494,11 +502,18 @@ components:
     # 親に紐づく関連記事。children を持たないので孫は表現できない (親子 2 階層まで)
     ChildArticle:
       type: object
-      required: [id, hot, title, url]
+      required: [id, category, hot, repost, originalStatus, title, url]
       properties:
         id:
           type: string
           format: uuid
+        category:
+          $ref: "#/components/schemas/Category"
+        repost:
+          type: boolean
+          description: 前の日付に掲載がある子か。記事を書き換えないので、編集画面では動かすだけにする
+        originalStatus:
+          $ref: "#/components/schemas/DigestStatus"
         hot:
           type: boolean
           description: 親が HOT なら常に true (specs/018 FR-016)
@@ -553,6 +568,10 @@ components:
         hot:
           type: boolean
           default: false
+        hidden:
+          type: boolean
+          default: false
+          description: 外す代わりに隠すか。Digest を公開すると false に戻る
         title:
           type: string
           minLength: 1
@@ -567,7 +586,7 @@ components:
           type: array
           maxItems: 20
           items:
-            $ref: "#/components/schemas/NewChildArticle"
+            $ref: "#/components/schemas/ChildEntry"
     # url と title、repostOf がそれぞれ必須なので、要素はどちらか一方にだけ当たる
     DigestEntry:
       oneOf:
@@ -590,7 +609,25 @@ components:
           type: array
           maxItems: 20
           items:
-            $ref: "#/components/schemas/NewChildArticle"
+            $ref: "#/components/schemas/ChildEntry"
+    # title と url、repostOf がそれぞれ必須なので、要素はどちらか一方にだけ当たる
+    ChildEntry:
+      oneOf:
+        - $ref: "#/components/schemas/NewChildArticle"
+        - $ref: "#/components/schemas/RepostChildArticle"
+    # 前の日付に掲載がある子。記事の親と同じ親の下でだけ送れる
+    RepostChildArticle:
+      type: object
+      required: [repostOf]
+      properties:
+        repostOf:
+          type: string
+          format: uri
+          pattern: "^https?://"
+          maxLength: 2000
+        hot:
+          type: boolean
+          default: false
     NewChildArticle:
       type: object
       required: [title, url]
@@ -638,6 +675,7 @@ components:
             - /problems/digest-already-exists
             - /problems/future-publish
             - /problems/repost-unavailable
+            - /problems/parent-has-children
         title:
           type: string
         status:
@@ -654,6 +692,21 @@ components:
           description: url-already-registered のときだけ入る。duplicateUrls のうち、再掲載にできる親の URL と元の記事
           items:
             $ref: "#/components/schemas/Repostable"
+        hideable:
+          type: array
+          description: parent-has-children のときだけ入る。外せない親。画面はこの行を隠した行として戻す
+          items:
+            $ref: "#/components/schemas/Hideable"
+    Hideable:
+      type: object
+      required: [url, title, category]
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
     Repostable:
       type: object
       required: [url, title, category, firstPublishedOn]

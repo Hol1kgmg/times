@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useFocusVisible, useHover } from "react-aria";
 import { Link } from "react-aria-components";
-import type { Article, ArticleId, ChildArticle, Digest } from "#/shared/api";
+import type { ArticleId, ChildArticle, Digest, VisibleArticle } from "#/shared/api";
 import { formatEntryDate } from "#/shared/lib/entry-date";
 import { countArticles, groupByCategory } from "#/shared/lib/group-by-category";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
@@ -23,12 +23,14 @@ interface Ai {
   shown: boolean;
 }
 type PostChild = Pick<ChildArticle, "title" | "url" | "hot">;
-type PostArticle = Pick<
-  Article,
-  "category" | "hot" | "repost" | "title" | "url" | "firstPublishedOn"
-> & {
-  children: PostChild[];
-};
+type PostArticle =
+  | (Pick<VisibleArticle, "category" | "hot" | "repost" | "title" | "url"> & {
+      concealed?: undefined;
+      firstPublishedOn?: string | undefined;
+      children: PostChild[];
+    })
+  // 表示しない記事の場所。子は表示する子だけが届く
+  | { concealed: true; category: VisibleArticle["category"]; children: PostChild[] };
 export interface DraftDigest {
   entryDate: string;
   articles: PostArticle[];
@@ -126,19 +128,25 @@ const Entry = ({
   ai?: Ai;
 }) => {
   // 前の掲載が下書き・非公開にしかないと閲覧者は元の記事を見つけられないので、印を出さない (specs/018 FR-010)
-  const marked = article.firstPublishedOn !== undefined;
+  const marked = article.concealed !== true && article.firstPublishedOn !== undefined;
   return (
     <>
-      <ArticleLink
-        ai={ai}
-        article={article}
-        hot={!article.repost && article.hot}
-        loadPreview={loadPreview}
-        open={open}
-        repost={marked}
-        // 子がなければ再掲載の行そのものを読ませるので、普通の大きさのままにする
-        thin={marked && article.children.length > 0}
-      />
+      {article.concealed === true ? (
+        <div className={styles.row}>
+          <span className={styles.concealed}>非公開記事</span>
+        </div>
+      ) : (
+        <ArticleLink
+          ai={ai}
+          article={article}
+          hot={!article.repost && article.hot}
+          loadPreview={loadPreview}
+          open={open}
+          repost={marked}
+          // 子がなければ再掲載の行そのものを読ませるので、普通の大きさのままにする
+          thin={marked && article.children.length > 0}
+        />
+      )}
       {article.children.length > 0 && (
         <ul className={styles.children}>
           {article.children.map((c) => (
@@ -147,7 +155,7 @@ const Entry = ({
               <ArticleLink
                 ai={ai}
                 article={c}
-                hot={c.hot && !article.hot}
+                hot={c.hot && (article.concealed === true || !article.hot)}
                 loadPreview={loadPreview}
                 open={open}
               />
@@ -185,7 +193,9 @@ const opener = (props: DigestPostProps): Open | undefined => {
   }
   const { onOpen } = props;
   const ids = new Map(
-    props.digest.articles.flatMap((a) => [a, ...a.children]).map((a) => [a.url, a.id]),
+    props.digest.articles
+      .flatMap((a) => (a.concealed === true ? a.children : [a, ...a.children]))
+      .map((a) => [a.url, a.id]),
   );
   return (url) => {
     const id = ids.get(url);
@@ -227,8 +237,9 @@ export const DigestPost = (props: DigestPostProps) => {
             </span>
             <h3 className={styles.author}>{name}</h3>
             <ul className={styles.entries}>
-              {articles.map((a) => (
-                <li key={a.url}>
+              {articles.map((a, i) => (
+                // 非公開記事は URL を持たないが、子の URL か並びで決まる
+                <li key={a.concealed === true ? `concealed-${a.children[0]?.url ?? i}` : a.url}>
                   <Entry ai={ai} article={a} loadPreview={loadPreview} open={open} />
                 </li>
               ))}

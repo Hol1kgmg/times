@@ -1,6 +1,6 @@
 import { category } from "#/shared/api";
-import type { Category, Digest, DigestContent, DigestEntry } from "#/shared/api";
-import type { Repostable } from "../api/rejection-of";
+import type { Category, ChildEntry, Digest, DigestContent, DigestEntry } from "#/shared/api";
+import type { Hideable, Repostable } from "../api/rejection-of";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import type { DraftDigest } from "#/shared/ui/digest-post";
 import { youTubeId } from "#/shared/lib/parse-link-preview";
@@ -21,6 +21,12 @@ export interface Link {
   // 一度翻訳した記事を重ねて訳さないための印。保存しない
   translated: boolean;
   hot: boolean;
+  // 保存済みの記事のカテゴリ。枠と違えば、保存で変わるか (元の掲載)、変わらないか (再掲載) を示す
+  category?: Category;
+  // 前の日付に掲載がある子。記事を書き換えないので、並べ替えと削除だけにする
+  repostChild?: true;
+  // 元の掲載の Digest が公開済みでなく、公開ページに出ない
+  unpublished?: true;
 }
 
 export interface LinkEdit {
@@ -34,6 +40,8 @@ export interface Draft extends Link {
   children: Link[];
   // category は子がない間に戻す元の記事のカテゴリ
   repost?: { category: Category; firstPublishedOn?: string };
+  // 子がほかの日にいて外せないので、外す代わりに隠した行
+  hidden?: true;
 }
 
 export type Board = Record<BoxId, Draft[]>;
@@ -194,8 +202,6 @@ export const toggleHot = (board: Board, id: string): Board =>
     (d) => (d.id === id ? settleChildHot(d) : d),
   );
 
-const hasLink = (board: Board, id: string) => links(board).some((l) => l.id === id);
-
 const linkLine = (l: Link) => `${l.id}: ${l.title === "" ? "(タイトルなし)" : l.title} / ${l.url}`;
 
 export const describeBoard = (board: Board): string =>
@@ -203,8 +209,11 @@ export const describeBoard = (board: Board): string =>
     .flatMap((box) => [
       `${box} (${board[box].length} 件)`,
       ...board[box].flatMap((d) => [
-        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}${d.repost === undefined ? "" : " [再掲載]"}`,
-        ...d.children.map((c) => `  - 子記事 ${linkLine(c)}${c.hot ? " [hot]" : ""}`),
+        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}${d.repost === undefined ? "" : " [再掲載]"}${d.hidden === true ? " [隠した行]" : ""}`,
+        ...d.children.map(
+          (c) =>
+            `  - 子記事 ${linkLine(c)}${c.hot ? " [hot]" : ""}${c.repostChild === true ? " [再掲載]" : ""}`,
+        ),
       ]),
     ])
     .join("\n");
@@ -223,10 +232,14 @@ export const rejectUpdate = (
       title !== undefined || hot !== undefined || (box !== undefined && d?.children.length === 0);
     return d?.repost !== undefined && fixed ? "repost" : null;
   }
-  if (!hasLink(board, id)) {
+  const link = links(board).find((l) => l.id === id);
+  if (link === undefined) {
     return "missing";
   }
-  return box === undefined && hot === undefined ? null : "child";
+  if (box !== undefined || hot !== undefined) {
+    return "child";
+  }
+  return link.repostChild === true && title !== undefined ? "repost" : null;
 };
 
 // 取得を待つ間にエージェントや人が入れたタイトルを、後から届いた取得結果で消さない
@@ -285,7 +298,9 @@ export const canMakeChild = (board: Board, id: string) => {
     return false;
   }
   const items = board[at.box];
+  // 再掲載は親を書き換えないので、ほかの記事の子にできない
   return (
+    items[at.index]?.repost === undefined &&
     items[at.index]?.children.length === 0 &&
     (items[at.index - 1]?.children.length ?? MAX_CHILDREN) < MAX_CHILDREN
   );
@@ -302,12 +317,20 @@ export const makeChild = (board: Board, id: string): Board => {
   if (draft === undefined || parent === undefined) {
     return board;
   }
-  const { url, title, initial, translated } = draft;
+  const { url, title, initial, translated, category: saved } = draft;
   items[at.index - 1] = {
     ...parent,
     children: [
       ...parent.children,
-      { id, url, title, initial, translated, hot: draft.hot && !parent.hot },
+      {
+        id,
+        url,
+        title,
+        initial,
+        translated,
+        hot: draft.hot && !parent.hot,
+        ...(saved !== undefined && { category: saved }),
+      },
     ],
   };
   return replaceBox(board, at.box, items);
@@ -317,7 +340,8 @@ export const unmakeChild = (board: Board, parentId: string, childId: string): Bo
   const at = locate(board, parentId);
   const parent = at === null ? undefined : board[at.box][at.index];
   const child = parent?.children.find((c) => c.id === childId);
-  if (at === null || parent === undefined || child === undefined) {
+  // 再掲載の子は記事の親の下でしか保存できない
+  if (at === null || parent === undefined || child === undefined || child.repostChild === true) {
     return board;
   }
   if (draftCount(board) >= MAX_DRAFTS) {
@@ -350,6 +374,7 @@ export const moveChild = (board: Board, parentId: string, childId: string, step:
   });
 
 export const isBoxId = (id: unknown): id is BoxId => boxIds.some((b) => b === id);
+export const isCategory = (box: BoxId): box is Category => box !== UNSORTED;
 
 // move() は箱そのもの (見出しや空き) に落とすと先頭に入れるが、spec は末尾に入れる
 export const moveToBoxEnd = (board: Board, id: string, box: BoxId): Board => {
@@ -445,11 +470,23 @@ const savedLink = ({ id, url, title, hot }: Pick<Link, "id" | "url" | "title" | 
 export const fromDigest = (digest: Digest): Board => {
   const board = emptyBoard();
   for (const a of digest.articles) {
+    // 編集画面の取得は表示しない記事も中身ごと返すので、ここには来ない
+    if (a.concealed === true) {
+      continue;
+    }
     board[a.category].push({
       ...savedLink(a),
       suggested: false,
+      category: a.originalCategory ?? a.category,
+      ...(a.repost && a.originalStatus !== "published" && { unpublished: true }),
       // 親が HOT の子は保存時に HOT にそろうので、子自身の HOT ではない
-      children: a.children.map((c) => savedLink({ ...c, hot: c.hot && !a.hot })),
+      children: a.children.map((c) => ({
+        ...savedLink({ ...c, hot: c.hot && !a.hot }),
+        category: c.category,
+        ...(c.repost && { repostChild: true as const }),
+        ...(c.repost && c.originalStatus !== "published" && { unpublished: true as const }),
+      })),
+      ...(a.hidden && { hidden: true }),
       ...(a.repost && {
         repost: {
           category: a.originalCategory ?? a.category,
@@ -461,12 +498,24 @@ export const fromDigest = (digest: Digest): Board => {
   return board;
 };
 
-// 子のない再掲載は元の記事のカテゴリでしか保存できないので、外れた箱から戻す
+// 投稿のカテゴリを書き換えられない行の枠。子のない再掲載は記事のカテゴリ、先頭の子が再掲載の再掲載はその子のカテゴリ
+const pinnedBox = (d: Draft): Category | undefined => {
+  if (d.repost === undefined) {
+    return undefined;
+  }
+  const [first] = d.children;
+  if (first === undefined) {
+    return d.repost.category;
+  }
+  return first.repostChild === true ? first.category : undefined;
+};
+
+// 外れた箱から戻す
 export const pinReposts = (board: Board): Board => {
   let next = board;
   for (const box of boxIds) {
     for (const d of board[box]) {
-      const home = d.children.length === 0 ? d.repost?.category : undefined;
+      const home = pinnedBox(d);
       if (home !== undefined && home !== box) {
         next = moveToBoxEnd(next, d.id, home);
       }
@@ -486,16 +535,51 @@ export const convertToReposts = (board: Board, repostable: readonly Repostable[]
             ...d,
             title: r.title,
             hot: false,
+            category: r.category,
             repost: { category: r.category, firstPublishedOn: r.firstPublishedOn },
           };
     }),
   );
 };
 
+// 外したのに消せなかった親を、隠した行として元の枠の末尾に戻す
+export const restoreHidden = (board: Board, hideable: readonly Hideable[]): Board => {
+  let next = board;
+  for (const h of hideable) {
+    if (findDuplicate(next, h.url)) {
+      next = mapDrafts(next, (d) => (d.url === h.url ? { ...d, hidden: true } : d));
+      continue;
+    }
+    const draft: Draft = {
+      ...savedLink({ id: `hidden:${h.url}`, url: h.url, title: h.title, hot: false }),
+      suggested: false,
+      category: h.category,
+      children: [],
+      hidden: true,
+    };
+    next = replaceBox(next, h.category, [...next[h.category], draft]);
+  }
+  return next;
+};
+
+export const unhide = (board: Board, id: string): Board =>
+  mapDrafts(board, (d) => {
+    if (d.id !== id) {
+      return d;
+    }
+    const { hidden: _, ...rest } = d;
+    return rest;
+  });
+
+const toChildEntry = (ch: Link): ChildEntry =>
+  ch.repostChild === true
+    ? { repostOf: ch.url, hot: ch.hot }
+    : { title: ch.title, url: ch.url, hot: ch.hot };
+
 const toEntry = (d: Draft, c: Category): DigestEntry => {
-  const children = d.children.map((ch) => ({ title: ch.title, url: ch.url, hot: ch.hot }));
+  const children = d.children.map(toChildEntry);
   return d.repost === undefined
-    ? { category: c, hot: d.hot, title: d.title, url: d.url, children }
+    ? { category: c, hot: d.hot, hidden: d.hidden === true, title: d.title, url: d.url, children }
     : { repostOf: d.url, category: c, children };
 };
 
@@ -504,19 +588,32 @@ export const toNewDigest = (board: Board, entryDate: string): DigestContent => (
   articles: category.options.flatMap((c) => board[c].map((d) => toEntry(d, c))),
 });
 
+// 公開ページと同じく、隠した行と公開されない記事は出さない
 export const toPreview = (board: Board, entryDate: string): DraftDigest => ({
   entryDate,
   articles: category.options.flatMap((c) =>
-    board[c].map((d) => ({
-      category: c,
-      hot: d.repost === undefined && d.hot,
-      repost: d.repost !== undefined,
-      title: d.title,
-      url: d.url,
-      ...(d.repost?.firstPublishedOn !== undefined && {
-        firstPublishedOn: d.repost.firstPublishedOn,
-      }),
-      children: d.children.map(({ title, url, hot }) => ({ title, url, hot })),
-    })),
+    board[c].flatMap((d): DraftDigest["articles"] => {
+      const children = d.children
+        .filter((ch) => ch.unpublished !== true)
+        .map(({ title, url, hot }) => ({ title, url, hot }));
+      if (d.hidden === true || d.unpublished === true) {
+        return children.length > 0 || d.repost !== undefined
+          ? [{ concealed: true, category: c, children }]
+          : [];
+      }
+      return [
+        {
+          category: c,
+          hot: d.repost === undefined && d.hot,
+          repost: d.repost !== undefined,
+          title: d.title,
+          url: d.url,
+          ...(d.repost?.firstPublishedOn !== undefined && {
+            firstPublishedOn: d.repost.firstPublishedOn,
+          }),
+          children,
+        },
+      ];
+    }),
   ),
 });

@@ -205,6 +205,13 @@ func writeProblem(c *gin.Context, err error) {
 			}
 			p.Repostable = &r
 		}
+		if e.Hideable != nil {
+			h := make([]api.Hideable, len(e.Hideable))
+			for i, x := range e.Hideable {
+				h[i] = api.Hideable{Url: x.URL, Title: x.Title, Category: api.Category(x.Category)}
+			}
+			p.Hideable = &h
+		}
 	} else {
 		slog.Error("handler error", "err", err, "method", c.Request.Method, "path", c.Request.URL.Path)
 	}

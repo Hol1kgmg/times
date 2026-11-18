@@ -4,9 +4,8 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| digest_id | uuid |  | false | [public.digest_articles](public.digest_articles.md) | [public.digests](public.digests.md) [public.digest_articles](public.digest_articles.md) |  |
-| article_id | uuid |  | false | [public.digest_articles](public.digest_articles.md) | [public.articles](public.articles.md) |  |
-| parent_id | uuid |  | true |  | [public.digest_articles](public.digest_articles.md) |  |
+| digest_id | uuid |  | false |  | [public.digests](public.digests.md) |  |
+| article_id | uuid |  | false |  | [public.articles](public.articles.md) |  |
 | position | integer |  | false |  |  |  |
 | is_hot | boolean | false | false |  |  |  |
 
@@ -15,13 +14,11 @@
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
 | digest_articles_article_id_not_null | n | NOT NULL article_id |
-| digest_articles_check | CHECK | CHECK ((parent_id <> article_id)) |
 | digest_articles_digest_id_not_null | n | NOT NULL digest_id |
 | digest_articles_is_hot_not_null | n | NOT NULL is_hot |
 | digest_articles_position_not_null | n | NOT NULL "position" |
 | digest_articles_digest_id_fkey | FOREIGN KEY | FOREIGN KEY (digest_id) REFERENCES digests(id) ON DELETE CASCADE |
 | digest_articles_article_id_fkey | FOREIGN KEY | FOREIGN KEY (article_id) REFERENCES articles(id) |
-| digest_articles_digest_id_parent_id_fkey | FOREIGN KEY | FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles(digest_id, article_id) ON DELETE CASCADE |
 | digest_articles_pkey | PRIMARY KEY | PRIMARY KEY (digest_id, article_id) |
 | digest_articles_digest_id_position_key | UNIQUE | UNIQUE (digest_id, "position") |
 

@@ -205,6 +205,29 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "parent_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "is_child",
+          "type": "boolean",
+          "nullable": true,
+          "extra_def": "GENERATED ALWAYS AS (parent_id IS NOT NULL) STORED"
+        },
+        {
+          "name": "parent_is_child",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "hidden",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
         }
       ],
       "indexes": [
@@ -223,6 +246,15 @@
           "columns": [
             "created_by",
             "url"
+          ]
+        },
+        {
+          "name": "articles_id_is_child_key",
+          "def": "CREATE UNIQUE INDEX articles_id_is_child_key ON public.articles USING btree (id, is_child)",
+          "table": "public.articles",
+          "columns": [
+            "id",
+            "is_child"
           ]
         }
       ],
@@ -268,6 +300,16 @@
           ]
         },
         {
+          "name": "articles_hidden_not_null",
+          "type": "n",
+          "def": "NOT NULL hidden",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "hidden"
+          ]
+        },
+        {
           "name": "articles_id_not_null",
           "type": "n",
           "def": "NOT NULL id",
@@ -275,6 +317,37 @@
           "referenced_table": "",
           "columns": [
             "id"
+          ]
+        },
+        {
+          "name": "articles_parent_id_check",
+          "type": "CHECK",
+          "def": "CHECK ((parent_id \u003c\u003e id))",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "parent_id",
+            "id"
+          ]
+        },
+        {
+          "name": "articles_parent_is_child_check",
+          "type": "CHECK",
+          "def": "CHECK ((NOT parent_is_child))",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "parent_is_child"
+          ]
+        },
+        {
+          "name": "articles_parent_is_child_not_null",
+          "type": "n",
+          "def": "NOT NULL parent_is_child",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "parent_is_child"
           ]
         },
         {
@@ -359,6 +432,32 @@
           "columns": [
             "created_by",
             "url"
+          ]
+        },
+        {
+          "name": "articles_id_is_child_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (id, is_child)",
+          "table": "public.articles",
+          "referenced_table": "",
+          "columns": [
+            "id",
+            "is_child"
+          ]
+        },
+        {
+          "name": "articles_parent_id_parent_is_child_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (parent_id, parent_is_child) REFERENCES articles(id, is_child)",
+          "table": "public.articles",
+          "referenced_table": "public.articles",
+          "columns": [
+            "parent_id",
+            "parent_is_child"
+          ],
+          "referenced_columns": [
+            "id",
+            "is_child"
           ]
         }
       ]
@@ -614,11 +713,6 @@
           "nullable": false
         },
         {
-          "name": "parent_id",
-          "type": "uuid",
-          "nullable": true
-        },
-        {
           "name": "position",
           "type": "integer",
           "nullable": false
@@ -666,17 +760,6 @@
           "table": "public.digest_articles",
           "referenced_table": "",
           "columns": [
-            "article_id"
-          ]
-        },
-        {
-          "name": "digest_articles_check",
-          "type": "CHECK",
-          "def": "CHECK ((parent_id \u003c\u003e article_id))",
-          "table": "public.digest_articles",
-          "referenced_table": "",
-          "columns": [
-            "parent_id",
             "article_id"
           ]
         },
@@ -737,21 +820,6 @@
           ]
         },
         {
-          "name": "digest_articles_digest_id_parent_id_fkey",
-          "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles(digest_id, article_id) ON DELETE CASCADE",
-          "table": "public.digest_articles",
-          "referenced_table": "public.digest_articles",
-          "columns": [
-            "digest_id",
-            "parent_id"
-          ],
-          "referenced_columns": [
-            "digest_id",
-            "article_id"
-          ]
-        },
-        {
           "name": "digest_articles_pkey",
           "type": "PRIMARY KEY",
           "def": "PRIMARY KEY (digest_id, article_id)",
@@ -804,6 +872,21 @@
       "def": "FOREIGN KEY (created_by) REFERENCES users(id)"
     },
     {
+      "table": "public.articles",
+      "columns": [
+        "parent_id",
+        "parent_is_child"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.articles",
+      "parent_columns": [
+        "id",
+        "is_child"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (parent_id, parent_is_child) REFERENCES articles(id, is_child)"
+    },
+    {
       "table": "public.sessions",
       "columns": [
         "user_id"
@@ -841,21 +924,6 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (article_id) REFERENCES articles(id)"
-    },
-    {
-      "table": "public.digest_articles",
-      "columns": [
-        "digest_id",
-        "parent_id"
-      ],
-      "cardinality": "zero_or_more",
-      "parent_table": "public.digest_articles",
-      "parent_columns": [
-        "digest_id",
-        "article_id"
-      ],
-      "parent_cardinality": "exactly_one",
-      "def": "FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles(digest_id, article_id) ON DELETE CASCADE"
     }
   ],
   "driver": {

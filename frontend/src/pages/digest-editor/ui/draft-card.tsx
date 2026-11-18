@@ -16,6 +16,7 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
+import { isCategory } from "../model/board";
 import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
@@ -33,7 +34,18 @@ export interface CardActions {
   makeChild: (id: string) => void;
   unmakeChild: (parentId: string, childId: string) => void;
   moveChild: (parentId: string, childId: string, step: -1 | 1) => void;
+  unhide: (id: string) => void;
 }
+
+// 記事のカテゴリは元の掲載の保存でだけ枠のカテゴリに変わり、再掲載では変わらない
+const categoryNote = (link: Link, box: BoxId, repost: boolean): string | null => {
+  if (link.category === undefined || link.category === box || !isCategory(box)) {
+    return null;
+  }
+  return repost
+    ? `記事のカテゴリは${link.category}のままです`
+    : `保存するとカテゴリが${box}に変わります`;
+};
 
 interface MenuItem {
   label: string;
@@ -212,7 +224,10 @@ const LinkRow = ({
   firstPublishedOn,
   converted = false,
   unavailable = false,
+  hidden = false,
+  note,
   handle,
+  action,
   menu,
   onEdit,
 }: {
@@ -224,7 +239,10 @@ const LinkRow = ({
   firstPublishedOn?: string;
   converted?: boolean;
   unavailable?: boolean;
+  hidden?: boolean;
+  note?: string | null;
   handle?: ReactNode;
+  action?: ReactNode;
   menu: MenuItem[];
   // 再掲載は元の記事を書き換えないので、渡さず「編集」を出さない
   onEdit?: (next: LinkEdit) => Rejected | null;
@@ -264,16 +282,20 @@ const LinkRow = ({
         </AriaLink>
         {card}
         <LinkMeta
+          categoryNote={note}
           converted={converted}
           firstPublishedOn={firstPublishedOn}
+          hidden={hidden}
           host={host}
           registered={registered}
           repost={repost}
           suggested={suggested}
           unavailable={unavailable}
+          unpublished={link.unpublished === true}
           untitled={untitled}
         />
       </span>
+      {action}
       <Menu
         items={[
           ...(onEdit === undefined
@@ -353,6 +375,18 @@ export const DraftCard = ({
   return (
     <li ref={ref} className={styles.card} data-dragging={isDragging ? "" : undefined}>
       <LinkRow
+        action={
+          draft.hidden === true && (
+            <Button
+              className={styles.button}
+              onPress={() => {
+                actions.unhide(draft.id);
+              }}
+            >
+              表示に戻す
+            </Button>
+          )
+        }
         converted={actions.converted.has(draft.url)}
         firstPublishedOn={draft.repost?.firstPublishedOn}
         handle={
@@ -360,6 +394,7 @@ export const DraftCard = ({
             <Grip />
           </button>
         }
+        hidden={draft.hidden === true}
         hot={draft.hot}
         link={draft}
         menu={
@@ -388,6 +423,7 @@ export const DraftCard = ({
               ]
             : [remove]
         }
+        note={categoryNote(draft, box, draft.repost !== undefined)}
         registered={actions.registered.has(draft.url)}
         repost={draft.repost !== undefined}
         suggested={draft.suggested}
@@ -427,19 +463,24 @@ export const DraftCard = ({
                       actions.moveChild(draft.id, child.id, 1);
                     },
                   },
-                  {
-                    label: "関連記事から外す",
-                    disabled: actions.atLimit,
-                    onSelect: () => {
-                      actions.unmakeChild(draft.id, child.id);
-                    },
-                  },
-                  {
-                    label: "変更を戻す",
-                    onSelect: () => {
-                      actions.revert(child.id);
-                    },
-                  },
+                  // 再掲載の子は記事の親を書き換えないので、親から外せない
+                  ...(child.repostChild === true
+                    ? []
+                    : [
+                        {
+                          label: "関連記事から外す",
+                          disabled: actions.atLimit,
+                          onSelect: () => {
+                            actions.unmakeChild(draft.id, child.id);
+                          },
+                        },
+                        {
+                          label: "変更を戻す",
+                          onSelect: () => {
+                            actions.revert(child.id);
+                          },
+                        },
+                      ]),
                   {
                     label: "削除",
                     onSelect: () => {
@@ -447,8 +488,12 @@ export const DraftCard = ({
                     },
                   },
                 ]}
+                note={categoryNote(child, box, child.repostChild === true)}
                 registered={actions.registered.has(child.url)}
-                onEdit={(next) => actions.edit(child.id, next)}
+                repost={child.repostChild === true}
+                onEdit={
+                  child.repostChild === true ? undefined : (next) => actions.edit(child.id, next)
+                }
               />
             </li>
           ))}

@@ -12,12 +12,17 @@ const latest = digest.parse({
       category: "その他",
       hot: false,
       repost: false,
+      hidden: false,
+      originalStatus: "published",
       title: "parent",
       url: "https://x.example/parent",
       children: [
         {
           id: "0b2a2f3e-0000-4000-8000-000000000003",
+          category: "その他",
           hot: false,
+          repost: false,
+          originalStatus: "published",
           title: "child",
           url: "https://x.example/child",
         },

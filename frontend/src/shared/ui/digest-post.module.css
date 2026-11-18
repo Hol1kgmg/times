@@ -119,6 +119,12 @@
   color: var(--color-text-muted);
 }
 
+/* 表示しない記事の場所。押せる要素ではないので、再掲載の印と同じ控えめな文字にする */
+.concealed {
+  composes: t-body from global;
+  color: var(--color-text-faint);
+}
+
 /* 子のある再掲載の親は続報の子を主役にするため、細く目立たない行にする (specs/018 R12) */
 .thin {
   composes: t-body from global;

@@ -109,9 +109,9 @@ func run() error {
 		}
 		var pos int32
 		insert := func(cat string, hot bool, a article, parent *uuid.UUID) (uuid.UUID, error) {
-			row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{Category: cat, Title: a.title, Url: a.url, CreatedBy: seeder.ID})
+			row, err := q.UpsertArticle(ctx, db.UpsertArticleParams{Category: cat, Title: a.title, Url: a.url, CreatedBy: seeder.ID, ParentID: parent})
 			if err == nil {
-				err = q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: dg.ID, ArticleID: row.ID, ParentID: parent, Position: pos, IsHot: hot})
+				err = q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: dg.ID, ArticleID: row.ID, Position: pos, IsHot: hot})
 			}
 			if err != nil {
 				return uuid.Nil, fmt.Errorf("%d日目 %q: %w", dy.n, a.title, err)

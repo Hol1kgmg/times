@@ -14,6 +14,8 @@ describe("schemas", () => {
       id: "b3b2b6e0-1c8e-4b6a-9f1e-3b8d0d0a1c2d",
       hot: false,
       repost: false,
+      hidden: false,
+      originalStatus: "published",
       title: "t",
       url: "https://x.example",
       children: [],
@@ -22,6 +24,21 @@ describe("schemas", () => {
     expect(article.safeParse({ ...base, category: "未知" }).success).toBeFalsy();
     // ホットトピックはカテゴリではなく hot で表す (specs/004)
     expect(article.safeParse({ ...base, category: "ホットトピック" }).success).toBeFalsy();
+  });
+
+  // 公開ページで隠した記事は中身を持たず、中身のない記事は隠した記事としてしか通らない
+  it("accepts a concealed article only without its content", () => {
+    const base = {
+      id: "b3b2b6e0-1c8e-4b6a-9f1e-3b8d0d0a1c2d",
+      category: "その他",
+      hot: false,
+      repost: true,
+      hidden: false,
+      originalStatus: "private",
+      children: [],
+    };
+    expect(article.parse({ ...base, concealed: true }).concealed).toBeTruthy();
+    expect(article.safeParse(base).success).toBeFalsy();
   });
 
   it("accepts only http(s) URLs for a new article", () => {

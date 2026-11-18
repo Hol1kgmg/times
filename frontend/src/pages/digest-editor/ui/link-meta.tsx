@@ -10,6 +10,9 @@ interface LinkMetaProps {
   firstPublishedOn?: string;
   converted: boolean;
   unavailable: boolean;
+  hidden?: boolean;
+  unpublished?: boolean;
+  categoryNote?: string | null | undefined;
 }
 
 export const LinkMeta = ({
@@ -21,6 +24,9 @@ export const LinkMeta = ({
   firstPublishedOn,
   converted,
   unavailable,
+  hidden = false,
+  unpublished = false,
+  categoryNote,
 }: LinkMetaProps) => (
   <span className={styles.meta}>
     <span className={styles.host}>{host}</span>
@@ -30,6 +36,9 @@ export const LinkMeta = ({
       </span>
     )}
     {untitled && <span className={styles.warn}>タイトルを入れてください</span>}
+    {hidden && <span className={styles.warn}>子がほかの日にいるので、外す代わりに隠してます</span>}
+    {unpublished && <span className={styles.warn}>元の Digest が公開されてないので出ません</span>}
+    {typeof categoryNote === "string" && <span className={styles.warn}>{categoryNote}</span>}
     {suggested && <span className={styles.suggested}>AI が振り分けました</span>}
     {converted && <span className={styles.suggested}>再掲載にしました</span>}
     {registered && <span className={styles.error}>既に登録済みです</span>}

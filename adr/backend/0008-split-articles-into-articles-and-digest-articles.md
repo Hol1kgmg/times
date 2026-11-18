@@ -20,8 +20,9 @@ specs/018 で、前に公開した記事の続報 (例: ツールの新しいバ
 
 - `UNIQUE (created_by, url)` は `articles` に残す。記事は増えない
 - 並び・HOT・親子は掲載ごとに持つ。同じ記事でも日によって子が違ってよい
-- 親は同じ Digest の掲載に限る (`FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles (digest_id, article_id)`)。日をまたぐ関連は、同じ `article_id` の掲載どうしで表す
-- `article_links` は `digest_articles.parent_id` に吸収して消す (000005 のコメントにあった「digest をまたぐ関連」は、この形で表す)
+- 親子は記事どうしの関係として `articles.parent_id` に持つ (specs/018 Revision 3)。子の親は 1 つで、親と子は同じ Digest に載っていなくてよい。孫は生成列 `is_child` と複合 FK `(parent_id, parent_is_child) → articles (id, is_child)` で DB が止める。親子を書き換えるのは子の元の掲載の保存だけで、子の載る日に親が載っていなければ読むときに親を呼び出す
+- `article_links` は `articles.parent_id` に吸収して消す
+- どこにも載らなくなるのにほかの日に子がいる親は消せないので、`articles.hidden` で隠す。公開ページは隠した記事と元の掲載の Digest が公開済みでない記事を「非公開記事」に置き換える
 - カテゴリは記事に置く。再掲載の投稿は子があれば子のカテゴリで、なければ記事のカテゴリで出す (掲載にカテゴリを持たず、子から導く)
 - 再掲載かどうかは掲載に保存せず、掲載の日付から導く。記事の掲載のうち Digest の日付がいちばん古いもの (下書き・非公開を含む) を元の掲載とし、それ以外を再掲載の掲載とする。元の掲載を外す・日付を変えても、残った掲載から導き直すので、元の掲載は記事ごとに必ず 1 つある
 - 再掲載の掲載は元の記事を参照するだけにする。API では `RepostArticle { repostOf, category, children }` として URL で指し、タイトル・カテゴリを送らせない。保存しても記事の行は書き換えない。元の日の表示を後の日の保存で変えないため。再掲載の掲載は親だけで HOT を持たないことを、handler が保存のたびに確かめる
@@ -35,7 +36,7 @@ specs/018 で、前に公開した記事の続報 (例: ツールの新しいバ
 - 再掲載を掲載の `is_repost` に保存し、`UNIQUE (article_id) WHERE NOT is_repost` と `CHECK (NOT is_repost OR (parent_id IS NULL AND NOT is_hot))` で縛る (Revision 1): DB で形を守れるが、元の掲載を外す・元の Digest の日付を後ろへずらす・元の掲載を再掲載に変えると、元の掲載のない記事や元より前の日付の再掲載が残り、URL を元の掲載として戻せなくなる。防ぐには状態を変える操作ごとに再掲載を確かめる必要があり、仕様の「後から状態が変わっても再掲載を取り消さない」と合わない
 - 印の根拠を元の掲載 (下書き・非公開を含む) にする: 元の Digest を非公開にすると、一般の閲覧者には前の記事が見当たらない「再掲載」が出る
 - `article_links` の親を過去の Digest の記事にする: migration は要らないが、再掲載がその日の並びと HOT を持てず、子が記事に固定される
-- 孫の禁止を DB で縛る (トリガー、生成列 + 複合 FK): 書き込み口は 1 か所で、API の形 (`ChildArticle` が children を持たない) が塞いでいる
+- 親子を掲載に持ち、親を同じ Digest の掲載に限る (`digest_articles.parent_id`、Revision 2 まで): 元の日の記事を後の日の続報の子にできず、子だけの再掲載も表せない。掲載ごとに親が違ってよくなり、親の付け替えがほかの日に追従しない
 
 ## Consequences
 

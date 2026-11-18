@@ -4,23 +4,26 @@
 
 ### articles (変更)
 
-記事そのもの。利用者ごとに URL で一意。
+記事そのもの。利用者ごとに URL で一意。親子もここに持つ (Revision 3)。
 
 | 列 | 型 | 制約 | 変更 |
 |---|---|---|---|
 | id | uuid | PK | そのまま |
-| category | text | NOT NULL、CHECK (固定 6 カテゴリ) | そのまま。元の記事のカテゴリで、再掲載では書き換えない |
+| category | text | NOT NULL、CHECK (固定 6 カテゴリ) | そのまま。元の掲載の保存でだけ書き換える |
 | title | text | NOT NULL、CHECK (空文字禁止) | そのまま。再掲載では書き換えない |
 | url | text | NOT NULL、CHECK (`^https?://`) | そのまま |
 | description | text | NULL 可 | そのまま |
 | created_by | bigint | NOT NULL、FK users | そのまま |
 | created_at | timestamptz | NOT NULL DEFAULT now() | そのまま |
-| digest_id | | | **削除** (digest_articles へ) |
-| position | | | **削除** (digest_articles へ) |
-| is_hot | | | **削除** (digest_articles へ) |
+| parent_id | uuid | NULL 可。CHECK (`parent_id <> id`) | **追加**。子の親。子の元の掲載の保存でだけ書き換える |
+| is_child | boolean | `GENERATED ALWAYS AS (parent_id IS NOT NULL) STORED` | **追加**。孫を止める複合 FK の参照先 |
+| parent_is_child | boolean | NOT NULL DEFAULT false、CHECK (`NOT parent_is_child`) | **追加**。複合 FK の参照元。常に false |
+| hidden | boolean | NOT NULL DEFAULT false | **追加**。外す代わりに隠した親 (FR-020) |
+| digest_id / position / is_hot | | | **削除** (digest_articles へ) |
 
 - `UNIQUE (created_by, url)` はそのまま (FR-001)
-- `UNIQUE (digest_id, position)` は列と一緒に消える
+- `UNIQUE (id, is_child)` と `FOREIGN KEY (parent_id, parent_is_child) REFERENCES articles (id, is_child)`: 親に指せるのは子でない記事だけ。子を持つ記事に親を付けると、子からの FK が止める。どちらも 23503 (`articles_parent_id_parent_is_child_fkey`) で、handler が 400 に写す。子のいる親の削除もこの FK が止めるが、保存処理が先に避けるので 400 にはしない
+- 深さが 1 段までで自分も指せないので、循環は起きない
 
 ### digest_articles (新規)
 
@@ -30,20 +33,18 @@
 |---|---|---|
 | digest_id | uuid | NOT NULL、FK digests ON DELETE CASCADE |
 | article_id | uuid | NOT NULL、FK articles (削除は制限。孤立した記事は保存処理で消す) |
-| parent_id | uuid | NULL 可。NULL ならその日の親 |
-| position | integer | NOT NULL。Digest 内の通し番号 |
+| position | integer | NOT NULL。Digest の中の兄弟どうしの相対的な順番 |
 | is_hot | boolean | NOT NULL DEFAULT false。子は自分の値を持つ。親が HOT なら子も true で保存する (FR-016) |
 
 - `PRIMARY KEY (digest_id, article_id)`: 同じ Digest に同じ記事は 1 回 (Edge Cases)
 - `UNIQUE (digest_id, position)`
-- `FOREIGN KEY (digest_id, parent_id) REFERENCES digest_articles (digest_id, article_id) ON DELETE CASCADE`: 親は同じ Digest に載っている記事 (FR-003)
-- `CHECK (parent_id <> article_id)`
 - `INDEX (article_id)`: 孤立した記事の削除と、元の掲載・初掲載の日付を導くとき、記事から掲載を引く
-- 再掲載かどうかは列に持たない (FR-019)。元の掲載かどうかは別の行の日付と比べないと決まらず、CHECK や部分 UNIQUE では表せないため、再掲載の形の制限 (親だけ・HOT なし) は handler で守る
+- 子付きの再掲載の親は掲載を持たない。子の `parent_id` から呼び出して出す (FR-012)。子のない再掲載はそれ自体を読ませるので掲載を持つ
+- 再掲載かどうかは列に持たない (FR-019)
 
 ### article_links (削除)
 
-`digest_articles.parent_id` に吸収する。子の順は `position` の順 (research R3)。
+`articles.parent_id` に吸収する。子の並びは掲載ごとの `position` で決まり、再掲載の日は元の日と別の並びを持つ。
 
 ## 導出する値 (保存しない)
 
@@ -51,7 +52,8 @@
 |---|---|---|
 | 元の掲載か (`is_original`) | 記事の掲載のうち、Digest の `entry_date` がいちばん古いものなら true。Digest の状態 (`draft` / `published` / `private`) は問わない | 編集画面の行のロック (FR-008)、保存時の形の制限、編集画面の「再掲載」の印 (FR-010) |
 | 「〜に初掲載」の日付 (`first_published_on`) | 記事の掲載のうち、`status = 'published'` で表示中の Digest より前の `entry_date` の最小値。`draft` と `private` は数えない。元の掲載では前の掲載がないので常に NULL | 編集画面の日付 (FR-010)、再掲載できるかの判定 (FR-005)、公開ページの「再掲載」の印と細い行 (FR-010・FR-014: 親で、この値があるとき) |
-| 再掲載の投稿のカテゴリ | 子があれば先頭の子の記事のカテゴリ、なければ記事のカテゴリ | 表示 (FR-014) |
+| 再掲載の投稿のカテゴリ | 子があれば先頭の子の記事のカテゴリ、なければ記事のカテゴリ。呼び出した親も同じ | 表示 (FR-014) |
+| 表示するか | `NOT hidden` かつ元の掲載の Digest が公開済み | 公開ページの「非公開記事」(FR-021) |
 
 - 記事と Digest はどちらも利用者ごとで、Digest は利用者ごとに日付で一意 (`UNIQUE (created_by, entry_date)`、000008)。記事の掲載どうしで日付は重ならず、いちばん古い掲載は 1 つに決まる
 - 2 つの値は別のことを決める。`is_original` は管理者の編集の範囲で、見えない掲載も含めて決める。`first_published_on` は閲覧者に見える根拠で、公開の掲載だけで決める
@@ -99,12 +101,30 @@ FR-005・FR-006 の判定の対象は「登録済みで、この Digest に載�
 - Digest の日付を変えて掲載の前後が入れ替わる: `is_original` も入れ替わる。前の元の掲載の `is_hot` は残るので、再掲載の掲載では読むときに HOT を false にする (Edge Cases)
 - 編集で掲載を外した結果、どの掲載もない記事: `articles` から消す (FR-013)。同じ URL は次から新規として登録できる
 
+## 保存の手順 (Revision 3)
+
+1. 送られた記事を確かめる (上の表)
+2. この保存で元の掲載として送られた記事の `parent_id` を NULL にする。1 行ずつ upsert すると、親と子を入れ替える保存で子のままの記事を親に指して 23503 になるため
+3. 元の掲載の記事を upsert する。カテゴリは今いる枠のもの、子の `parent_id` は今いる親、親の `hidden` は送られた値
+4. 再掲載の記事は参照するだけ
+5. 掲載を入れる。子付きの再掲載の親は入れない。隠した行も `position` を振って入れる
+6. 外した記事のうち、どこにも載らないのに、どこかに載っている子がいる親があれば断る (`/problems/parent-has-children`、`hideable` 付き)
+7. 外した記事のうち、どこにも載らず、載っている子もいないものを消す
+8. 下書き・非公開から公開にしたときは、この Digest が元の掲載の記事の `hidden` を false に戻す
+
+| 入力 | 結果 | Problem |
+|---|---|---|
+| 再掲載の子を、記事の親と違う親の下で送った (親のない記事を含む) | 断る | `/problems/validation-failed` |
+| 再掲載の子が、記事がない、または前の日付の公開済み Digest に掲載がない | 断る | `/problems/repost-unavailable` |
+| 親を持つ記事を、子のない再掲載として単独で送った | 保存。読むときに記事の親を呼び出す | なし |
+| 外すとどこにも載らなくなる親に、ほかの日に載っている子がいる | 断る。画面はその行を隠した行として戻す | `/problems/parent-has-children` |
+
 ## 移行 (000013)
 
-1. `digest_articles` を作る
-2. `INSERT INTO digest_articles SELECT a.digest_id, a.id, l.parent_id, a.position, a.is_hot FROM articles a LEFT JOIN article_links l ON l.child_id = a.id`
+1. `digest_articles` を `parent_id` なしで作り、今の掲載を写す
+2. `articles` に `parent_id` 一式と `hidden` を足し、`article_links.parent_id` を写す。今の子は親が 1 つで、親子は同じ Digest にいるので、そのまま写せる
 3. `DROP TABLE article_links`、`articles` から `digest_id` / `position` / `is_hot` を消す
 
-000013 は main に入っていないので、番号を足さずに書き換える (`is_repost`・その CHECK・`digest_articles_original_key` を消す)。手元の DB は作り直す。
+000013 は main に入っていないので、番号を足さずに書き換える。
 
-down は各記事のいちばん古い掲載 (元の掲載) を `articles` に戻し、`article_links` を作り直す。再掲載は捨てる (research R9)。
+down は各記事のいちばん古い掲載 (元の掲載) を `articles` に戻し、`article_links` を `articles.parent_id` から作り直す。元の掲載が親と別の日の子は親子を捨て、再掲載は捨てる (research R9)。

@@ -22,10 +22,12 @@ import {
   moveChild,
   pinReposts,
   remove,
+  restoreHidden,
   revert,
   toggleHot,
   toNewDigest,
   toPreview,
+  unhide,
   unmakeChild,
   UNSORTED,
 } from "../model/board";
@@ -149,6 +151,8 @@ const DigestForm = <S extends DigestStatus>({
     entryDate: string;
     reason: "digest-already-exists" | "future-publish";
   }>();
+  // 外せずに隠した行へ戻した件数。次に保存するまで案内を出す
+  const [restored, setRestored] = useState(0);
   const [previewing, setPreviewing] = useState(false);
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
@@ -171,7 +175,9 @@ const DigestForm = <S extends DigestStatus>({
   const entry = toNewDigest(board, entryDate);
   const dirty = isDirty(entry, board) && !submitting;
   const parentUrls = entry.articles.map((a) => ("repostOf" in a ? a.repostOf : a.url));
-  const childUrls = entry.articles.flatMap((a) => a.children.map((c) => c.url));
+  const childUrls = entry.articles.flatMap((a) =>
+    a.children.map((c) => ("repostOf" in c ? c.repostOf : c.url)),
+  );
   const registeredLeft = [...parentUrls, ...childUrls].filter((u) => registered.has(u)).length;
   const unavailableLeft = parentUrls.filter((u) => unavailable.has(u)).length;
   const dateError =
@@ -220,11 +226,15 @@ const DigestForm = <S extends DigestStatus>({
     moveChild: (parentId, childId, step) => {
       setBoard(moveChild(board, parentId, childId, step));
     },
+    unhide: (id) => {
+      setBoard(unhide(board, id));
+    },
   };
 
   const onSubmit = async (status: S) => {
     setSubmitting(true);
     setSubmitError(undefined);
+    setRestored(0);
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が遷移する
       const rejected = await save(entry, status);
@@ -245,6 +255,11 @@ const DigestForm = <S extends DigestStatus>({
         });
         // 自動では保存し直さず、切り替えた行を見てから保存してもらう
         setBoard((b) => convertToReposts(b, repostable));
+      }
+      if (rejected.reason === "parent-has-children") {
+        // 自動では保存し直さず、戻した行を見てから保存してもらう
+        setBoard((b) => restoreHidden(b, rejected.hideable));
+        setRestored(rejected.hideable.length);
       }
       if (rejected.reason === "digest-already-exists" || rejected.reason === "future-publish") {
         setDateRejection({ entryDate: entry.entryDate, reason: rejected.reason });
@@ -297,6 +312,11 @@ const DigestForm = <S extends DigestStatus>({
               </p>
             )}
             <RowRejections registeredLeft={registeredLeft} unavailableLeft={unavailableLeft} />
+            {restored > 0 && (
+              <p className={styles.error} role="alert">
+                子がほかの日にいる記事は外せないので、隠した行に戻しました。確かめてから保存してください
+              </p>
+            )}
           </div>
           <Button
             className={styles.button}

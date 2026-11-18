@@ -2,15 +2,19 @@
 
 ## Columns
 
-| Name | Type | Default | Nullable | Children | Parents | Comment |
-| ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| id | uuid | gen_random_uuid() | false | [public.digest_articles](public.digest_articles.md) |  |  |
-| category | text |  | false |  |  |  |
-| title | text |  | false |  |  |  |
-| url | text |  | false |  |  |  |
-| description | text |  | true |  |  |  |
-| created_by | bigint |  | false |  | [public.users](public.users.md) |  |
-| created_at | timestamp with time zone | now() | false |  |  |  |
+| Name | Type | Default | Nullable | Extra Definition | Children | Parents | Comment |
+| ---- | ---- | ------- | -------- | ---------------- | -------- | ------- | ------- |
+| id | uuid | gen_random_uuid() | false |  | [public.articles](public.articles.md) [public.digest_articles](public.digest_articles.md) |  |  |
+| category | text |  | false |  |  |  |  |
+| title | text |  | false |  |  |  |  |
+| url | text |  | false |  |  |  |  |
+| description | text |  | true |  |  |  |  |
+| created_by | bigint |  | false |  |  | [public.users](public.users.md) |  |
+| created_at | timestamp with time zone | now() | false |  |  |  |  |
+| parent_id | uuid |  | true |  |  | [public.articles](public.articles.md) |  |
+| is_child | boolean |  | true | GENERATED ALWAYS AS (parent_id IS NOT NULL) STORED | [public.articles](public.articles.md) |  |  |
+| parent_is_child | boolean | false | false |  |  | [public.articles](public.articles.md) |  |
+| hidden | boolean | false | false |  |  |  |  |
 
 ## Constraints
 
@@ -20,7 +24,11 @@
 | articles_category_not_null | n | NOT NULL category |
 | articles_created_at_not_null | n | NOT NULL created_at |
 | articles_created_by_not_null | n | NOT NULL created_by |
+| articles_hidden_not_null | n | NOT NULL hidden |
 | articles_id_not_null | n | NOT NULL id |
+| articles_parent_id_check | CHECK | CHECK ((parent_id <> id)) |
+| articles_parent_is_child_check | CHECK | CHECK ((NOT parent_is_child)) |
+| articles_parent_is_child_not_null | n | NOT NULL parent_is_child |
 | articles_title_check | CHECK | CHECK ((title <> ''::text)) |
 | articles_title_not_null | n | NOT NULL title |
 | articles_url_check | CHECK | CHECK ((url <> ''::text)) |
@@ -29,6 +37,8 @@
 | articles_pkey | PRIMARY KEY | PRIMARY KEY (id) |
 | articles_created_by_fkey | FOREIGN KEY | FOREIGN KEY (created_by) REFERENCES users(id) |
 | articles_created_by_url_key | UNIQUE | UNIQUE (created_by, url) |
+| articles_id_is_child_key | UNIQUE | UNIQUE (id, is_child) |
+| articles_parent_id_parent_is_child_fkey | FOREIGN KEY | FOREIGN KEY (parent_id, parent_is_child) REFERENCES articles(id, is_child) |
 
 ## Indexes
 
@@ -36,6 +46,7 @@
 | ---- | ---------- |
 | articles_pkey | CREATE UNIQUE INDEX articles_pkey ON public.articles USING btree (id) |
 | articles_created_by_url_key | CREATE UNIQUE INDEX articles_created_by_url_key ON public.articles USING btree (created_by, url) |
+| articles_id_is_child_key | CREATE UNIQUE INDEX articles_id_is_child_key ON public.articles USING btree (id, is_child) |
 
 ## Relations
 

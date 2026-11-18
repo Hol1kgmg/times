@@ -16,12 +16,15 @@ import {
   pinReposts,
   rejectUpdate,
   remove,
+  restoreHidden,
   revert,
   settleCategory,
   stripTracking,
   toggleHot,
   toIds,
   toNewDigest,
+  toPreview,
+  unhide,
   unmakeChild,
   UNSORTED,
   updateDraft,
@@ -152,7 +155,7 @@ describe("登録", () => {
     const urls = toNewDigest(b, "2026-10-25").articles.map((i) => [
       i.category,
       "url" in i ? i.url : i.repostOf,
-      i.children.map((c) => c.url),
+      i.children.map((c) => ("url" in c ? c.url : c.repostOf)),
     ]);
     expect(urls).toStrictEqual([
       [
@@ -206,11 +209,23 @@ describe("関連記事", () => {
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 describe("保存済みの Digest を開く", () => {
+  const child = (n: number, extra: object = {}) => ({
+    id: uuid(n),
+    category: "その他",
+    hot: false,
+    repost: false,
+    originalStatus: "published",
+    title: `title ${n}`,
+    url: `https://example.com/${n}`,
+    ...extra,
+  });
   const article = (n: number, extra: object = {}) => ({
     id: uuid(n),
     category: "その他",
     hot: false,
     repost: false,
+    hidden: false,
+    originalStatus: "published",
     title: `title ${n}`,
     url: `https://example.com/${n}`,
     children: [],
@@ -224,10 +239,7 @@ describe("保存済みの Digest を開く", () => {
       article(1, { category: "IT系", hot: true }),
       article(2, { category: "IT系" }),
       article(3, {
-        children: [
-          { id: uuid(31), hot: false, title: "title 31", url: "https://example.com/31" },
-          { id: uuid(32), hot: true, title: "title 32", url: "https://example.com/32" },
-        ],
+        children: [child(31), child(32, { hot: true })],
       }),
     ],
   });
@@ -237,12 +249,13 @@ describe("保存済みの Digest を開く", () => {
     expect(b[UNSORTED]).toHaveLength(0);
     expect(toNewDigest(b, saved.entryDate)).toStrictEqual({
       entryDate: saved.entryDate,
-      articles: saved.articles.map(({ category, hot, title, url, children }) => ({
-        category,
-        hot,
-        title,
-        url,
-        children: children.map((c) => ({ title: c.title, url: c.url, hot: c.hot })),
+      articles: saved.articles.map((a) => ({
+        category: a.category,
+        hot: a.hot,
+        hidden: false,
+        title: a.concealed === true ? "" : a.title,
+        url: a.concealed === true ? "" : a.url,
+        children: a.children.map((c) => ({ title: c.title, url: c.url, hot: c.hot })),
       })),
     });
   });
@@ -266,9 +279,7 @@ describe("保存済みの Digest を開く", () => {
         articles: [
           article(1, {
             hot: true,
-            children: [
-              { id: uuid(11), hot: true, title: "title 11", url: "https://example.com/11" },
-            ],
+            children: [child(11, { hot: true })],
           }),
         ],
       }),
@@ -290,9 +301,7 @@ describe("保存済みの Digest を開く", () => {
             category: "IT系",
             repost: true,
             originalCategory: "AI系",
-            children: [
-              { id: uuid(11), hot: false, title: "title 11", url: "https://example.com/11" },
-            ],
+            children: [child(11)],
           }),
         ],
       }),
@@ -343,6 +352,63 @@ describe("断られた行を再掲載にする", () => {
       { id: "a", title: "元のタイトル", hot: false, repost: { firstPublishedOn: "2026-10-03" } },
     ]);
     expect(pinReposts(remove(converted, "c")).AI系.map((d) => d.id)).toStrictEqual(["a", "b"]);
+  });
+});
+
+describe("再掲載の子", () => {
+  const repostChild = (id: string): Link => ({ ...link(id), category: "AI系", repostChild: true });
+  const group = board({
+    IT系: [
+      draft("p", {
+        repost: { category: "IT系" },
+        children: [repostChild("c"), { ...link("n"), category: "UI系" }],
+      }),
+    ],
+  });
+
+  it("sends a repost child as a reference and keeps it under its parent", () => {
+    expect(toNewDigest(group, "2026-10-20").articles[0]?.children).toStrictEqual([
+      { repostOf: "https://example.com/c", hot: false },
+      { title: "title n", url: "https://example.com/n", hot: false },
+    ]);
+    expect(unmakeChild(group, "p", "c")).toBe(group);
+  });
+
+  it("keeps a repost group in the category of its first child while that child is a repost", () => {
+    expect(pinReposts(group).AI系.map((d) => d.id)).toStrictEqual(["p"]);
+  });
+
+  it("does not make a repost the child of another article", () => {
+    const b = board({ IT系: [draft("a"), draft("r", { repost: { category: "IT系" } })] });
+    expect(canMakeChild(b, "r")).toBeFalsy();
+  });
+});
+
+describe("外せない親を隠す", () => {
+  const hideable = { url: "https://example.com/p", title: "親", category: "IT系" } as const;
+
+  it("brings a removed parent back as a hidden row and sends it hidden until shown again", () => {
+    const b = restoreHidden(board({ IT系: [draft("a")] }), [hideable]);
+    expect(b.IT系.map((d) => [d.url, d.hidden])).toStrictEqual([
+      ["https://example.com/a", undefined],
+      ["https://example.com/p", true],
+    ]);
+    expect(toNewDigest(b, "2026-10-20").articles[1]).toMatchObject({ hidden: true });
+    const shown = unhide(b, b.IT系[1]?.id ?? "");
+    expect(toNewDigest(shown, "2026-10-20").articles[1]).toMatchObject({ hidden: false });
+  });
+
+  it("previews a hidden row like the public page, keeping only the place of its children", () => {
+    const b = board({
+      IT系: [draft("h", { hidden: true }), draft("p", { hidden: true, children: [link("c")] })],
+    });
+    expect(toPreview(b, "2026-10-20").articles).toStrictEqual([
+      {
+        concealed: true,
+        category: "IT系",
+        children: [{ title: "title c", url: "https://example.com/c", hot: false }],
+      },
+    ]);
   });
 });
 

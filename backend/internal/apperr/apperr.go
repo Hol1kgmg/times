@@ -18,6 +18,13 @@ type Error struct {
 	DuplicateURLs []string
 	// url-already-registered のときだけ。Problem の拡張メンバー repostable になる
 	Repostable []Repostable
+	// parent-has-children のときだけ。Problem の拡張メンバー hideable になる
+	Hideable []Hideable
+}
+
+// 画面が外した行を隠した行として戻すのに使う、外せない親
+type Hideable struct {
+	URL, Title, Category string
 }
 
 // 画面が断られた行を再掲載に切り替えるのに使う元の記事 (specs/018 FR-007)
@@ -40,6 +47,7 @@ var Types = map[string]int{
 	"/problems/digest-already-exists":  http.StatusBadRequest,
 	"/problems/future-publish":         http.StatusBadRequest,
 	"/problems/repost-unavailable":     http.StatusBadRequest,
+	"/problems/parent-has-children":    http.StatusBadRequest,
 }
 
 func newError(typ, detail string) error {
@@ -68,4 +76,9 @@ func URLAlreadyRegistered(urls []string, repostable []Repostable) error {
 func RepostUnavailable(urls []string) error {
 	typ := "/problems/repost-unavailable"
 	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d reposts have no earlier published article", len(urls)), DuplicateURLs: urls}
+}
+
+func ParentHasChildren(parents []Hideable) error {
+	typ := "/problems/parent-has-children"
+	return &Error{Status: Types[typ], Type: typ, Detail: fmt.Sprintf("%d parents have children in other digests", len(parents)), Hideable: parents}
 }

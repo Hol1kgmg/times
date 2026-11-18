@@ -11,9 +11,6 @@ ORDER BY da.article_id, d.entry_date, d.created_at;
 
 UPDATE articles a SET digest_id = f.digest_id, position = f.position, is_hot = f.is_hot
 FROM first_placements f WHERE f.article_id = a.id;
-DELETE FROM articles WHERE digest_id IS NULL;
-ALTER TABLE articles ALTER COLUMN digest_id SET NOT NULL, ALTER COLUMN position SET NOT NULL;
-ALTER TABLE articles ADD CONSTRAINT articles_digest_id_position_key UNIQUE (digest_id, position) DEFERRABLE INITIALLY DEFERRED;
 
 CREATE TABLE article_links (
     parent_id uuid NOT NULL REFERENCES articles (id) ON DELETE CASCADE,
@@ -23,11 +20,16 @@ CREATE TABLE article_links (
     UNIQUE (parent_id, position),
     CHECK (parent_id <> child_id)
 );
--- 親が別の日に戻った子 (再掲載の子) は、親を失うのでその日の親として残す
+-- 元の掲載が親と別の日の子は、その日に親がいないので親子を捨てる
 INSERT INTO article_links (parent_id, child_id, position)
-SELECT c.parent_id, c.article_id, row_number() OVER (PARTITION BY c.parent_id ORDER BY c.position) - 1
-FROM first_placements c JOIN first_placements p ON p.article_id = c.parent_id AND p.digest_id = c.digest_id
-WHERE c.parent_id IS NOT NULL;
+SELECT c.parent_id, c.id, row_number() OVER (PARTITION BY c.parent_id ORDER BY c.position) - 1
+FROM articles c JOIN articles p ON p.id = c.parent_id AND p.digest_id = c.digest_id;
+
+-- is_child は parent_id から生成した列で、その一意制約と FK ごと消える
+ALTER TABLE articles DROP COLUMN parent_id CASCADE, DROP COLUMN parent_is_child, DROP COLUMN hidden;
+DELETE FROM articles WHERE digest_id IS NULL;
+ALTER TABLE articles ALTER COLUMN digest_id SET NOT NULL, ALTER COLUMN position SET NOT NULL;
+ALTER TABLE articles ADD CONSTRAINT articles_digest_id_position_key UNIQUE (digest_id, position) DEFERRABLE INITIALLY DEFERRED;
 
 DROP TABLE first_placements;
 DROP TABLE digest_articles;

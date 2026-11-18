@@ -7,8 +7,12 @@ const link = (a: Pick<ChildArticle, "title" | "url">) => {
 };
 
 // 印は公開ページと同じく、閲覧者が見られる前の掲載があるときだけ付ける (specs/018 FR-010)
-const parentLine = (a: Digest["articles"][number]) =>
-  `- ${a.firstPublishedOn === undefined ? "" : "再掲載 "}${link(a)}`;
+const parentLine = (a: Digest["articles"][number]) => {
+  if (a.concealed === true) {
+    return "- 非公開記事";
+  }
+  return `- ${a.firstPublishedOn === undefined ? "" : "再掲載 "}${link(a)}`;
+};
 
 const section = (name: string, articles: Digest["articles"]) =>
   [
