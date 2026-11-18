@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { Button } from "react-aria-components";
 import { loadAnyLinkPreview } from "#/shared/api";
-import type { DigestContent } from "#/shared/api";
 import { DigestPost } from "#/shared/ui/digest-post";
+import type { DraftDigest } from "#/shared/ui/digest-post";
 import { ModalDialog } from "#/shared/ui/modal";
 import styles from "./preview-dialog.module.css";
 
@@ -10,7 +10,7 @@ export const PreviewDialog = ({
   digest,
   onClose,
 }: {
-  digest: DigestContent;
+  digest: DraftDigest;
   onClose: () => void;
 }) => {
   const headingId = useId();

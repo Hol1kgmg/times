@@ -1,0 +1,35 @@
+-- 記事 1 つにつき掲載 1 つの形に戻すので、いちばん古い日付の掲載 (元の掲載) だけを残し、再掲載は捨てる
+ALTER TABLE articles
+    ADD COLUMN digest_id uuid REFERENCES digests (id) ON DELETE CASCADE,
+    ADD COLUMN position integer,
+    ADD COLUMN is_hot boolean NOT NULL DEFAULT false;
+
+CREATE TEMP TABLE first_placements AS
+SELECT DISTINCT ON (da.article_id) da.*
+FROM digest_articles da JOIN digests d ON d.id = da.digest_id
+ORDER BY da.article_id, d.entry_date, d.created_at;
+
+UPDATE articles a SET digest_id = f.digest_id, position = f.position, is_hot = f.is_hot
+FROM first_placements f WHERE f.article_id = a.id;
+
+CREATE TABLE article_links (
+    parent_id uuid NOT NULL REFERENCES articles (id) ON DELETE CASCADE,
+    child_id uuid NOT NULL REFERENCES articles (id) ON DELETE CASCADE,
+    position integer NOT NULL,
+    PRIMARY KEY (child_id),
+    UNIQUE (parent_id, position),
+    CHECK (parent_id <> child_id)
+);
+-- 元の掲載が親と別の日の子は、その日に親がいないので親子を捨てる
+INSERT INTO article_links (parent_id, child_id, position)
+SELECT c.parent_id, c.id, row_number() OVER (PARTITION BY c.parent_id ORDER BY c.position) - 1
+FROM articles c JOIN articles p ON p.id = c.parent_id AND p.digest_id = c.digest_id;
+
+-- is_child は parent_id から生成した列で、その一意制約と FK ごと消える
+ALTER TABLE articles DROP COLUMN parent_id CASCADE, DROP COLUMN parent_is_child, DROP COLUMN hidden;
+DELETE FROM articles WHERE digest_id IS NULL;
+ALTER TABLE articles ALTER COLUMN digest_id SET NOT NULL, ALTER COLUMN position SET NOT NULL;
+ALTER TABLE articles ADD CONSTRAINT articles_digest_id_position_key UNIQUE (digest_id, position) DEFERRABLE INITIALLY DEFERRED;
+
+DROP TABLE first_placements;
+DROP TABLE digest_articles;

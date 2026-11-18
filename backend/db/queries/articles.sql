@@ -3,8 +3,12 @@
 SELECT host, count(*)::int AS count
 FROM (
     SELECT substring(a.url from '^https?://([^/:?#]+)')::text AS host
-    FROM articles a JOIN digests d ON d.id = a.digest_id
-    WHERE NOT sqlc.arg(published_only)::bool OR d.status = 'published'
+    FROM articles a
+    -- 再掲載で同じ記事を 2 回数えないよう、掲載ではなく記事で数える (specs/018 R8)
+    WHERE NOT sqlc.arg(published_only)::bool OR EXISTS (
+        SELECT 1 FROM digest_articles da JOIN digests d ON d.id = da.digest_id
+        WHERE da.article_id = a.id AND d.status = 'published'
+    )
 ) x
 WHERE sqlc.narg(q)::text IS NULL OR strpos(lower(host), lower(sqlc.narg(q))) > 0
 GROUP BY host ORDER BY count DESC, host LIMIT sqlc.arg(lim);

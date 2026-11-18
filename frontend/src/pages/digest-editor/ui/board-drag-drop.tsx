@@ -9,32 +9,31 @@ import { plugins } from "./announcements";
 interface BoardDragDropProps {
   board: Board;
   onChange: (board: Board) => void;
+  onDrag: (board: Board) => void;
   children: ReactNode;
 }
 
-export const BoardDragDrop = ({ board, onChange, children }: BoardDragDropProps) => {
+export const BoardDragDrop = ({ board, onChange, onDrag, children }: BoardDragDropProps) => {
   // Esc でドラッグをやめたとき、ドラッグ中に組み替えた並びを戻す
   const beforeDrag = useRef<Board>(undefined);
   return (
     <DragDropProvider
       plugins={plugins}
       onDragEnd={(e) => {
-        if (e.canceled && beforeDrag.current !== undefined) {
-          onChange(beforeDrag.current);
-        }
+        onChange(e.canceled && beforeDrag.current !== undefined ? beforeDrag.current : board);
         beforeDrag.current = undefined;
       }}
       onDragOver={(e) => {
         const { source, target } = e.operation;
         if (source !== null && target !== null && isBoxId(target.id)) {
-          onChange(moveToBoxEnd(board, String(source.id), target.id));
+          onDrag(moveToBoxEnd(board, String(source.id), target.id));
           return;
         }
         const ids = toIds(board);
         const next = move(ids, e);
         // ポインター移動の大半は並びが変わらないので、ここで打ち切って再描画を避ける
         if (next !== ids) {
-          onChange(fromIds(board, next));
+          onDrag(fromIds(board, next));
         }
       }}
       onDragStart={() => {

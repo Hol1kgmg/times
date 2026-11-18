@@ -117,6 +117,8 @@ const (
 	Problemsforbidden            ProblemType = "/problems/forbidden"
 	ProblemsfuturePublish        ProblemType = "/problems/future-publish"
 	ProblemsnotFound             ProblemType = "/problems/not-found"
+	ProblemsparentHasChildren    ProblemType = "/problems/parent-has-children"
+	ProblemsrepostUnavailable    ProblemType = "/problems/repost-unavailable"
 	Problemsunauthorized         ProblemType = "/problems/unauthorized"
 	ProblemsupstreamFailed       ProblemType = "/problems/upstream-failed"
 	ProblemsurlAlreadyRegistered ProblemType = "/problems/url-already-registered"
@@ -135,6 +137,10 @@ func (e ProblemType) Valid() bool {
 	case ProblemsfuturePublish:
 		return true
 	case ProblemsnotFound:
+		return true
+	case ProblemsparentHasChildren:
+		return true
+	case ProblemsrepostUnavailable:
 		return true
 	case Problemsunauthorized:
 		return true
@@ -156,19 +162,35 @@ type AdminUser struct {
 	Login string `json:"login"`
 }
 
-// Article defines model for Article.
+// Article 再掲載で子があれば、category は子のカテゴリ (specs/018 FR-014)。concealed でなければ title と url を持つ
 type Article struct {
 	Category Category       `json:"category"`
 	Children []ChildArticle `json:"children"`
 
+	// Concealed 公開ページでだけ入る。表示しない記事 (隠した記事か、元の掲載の Digest が公開済みでない) の場所を「非公開記事」として残す。title・url・description・firstPublishedOn を持たない
+	Concealed *bool `json:"concealed,omitempty"`
+
 	// Description ページの説明文。取得できた記事だけ持つ
 	Description *string `json:"description,omitempty"`
 
-	// Hot ホットトピックかどうか。子記事は親に従うので ChildArticle には持たない
-	Hot   bool               `json:"hot"`
-	Id    openapi_types.UUID `json:"id"`
-	Title string             `json:"title"`
-	Url   string             `json:"url"`
+	// FirstPublishedOn 再掲載のときだけ入る。この記事が載っている公開済み Digest のうち、この Digest より前でいちばん古い日付
+	FirstPublishedOn *openapi_types.Date `json:"firstPublishedOn,omitempty"`
+
+	// Hidden 子がほかの日にいて外せないので、外す代わりに隠した記事か
+	Hidden bool `json:"hidden"`
+
+	// Hot ホットトピックかどうか。再掲載なら常に false
+	Hot              bool               `json:"hot"`
+	Id               openapi_types.UUID `json:"id"`
+	OriginalCategory *Category          `json:"originalCategory,omitempty"`
+
+	// OriginalStatus draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
+	OriginalStatus DigestStatus `json:"originalStatus"`
+
+	// Repost 元の記事を参照する再掲載の掲載か。子のために呼び出した、この Digest に載っていない親も true (specs/018 FR-004)
+	Repost bool    `json:"repost"`
+	Title  *string `json:"title,omitempty"`
+	Url    *string `json:"url,omitempty"`
 }
 
 // Category defines model for Category.
@@ -176,10 +198,28 @@ type Category string
 
 // ChildArticle defines model for ChildArticle.
 type ChildArticle struct {
-	Description *string            `json:"description,omitempty"`
-	Id          openapi_types.UUID `json:"id"`
-	Title       string             `json:"title"`
-	Url         string             `json:"url"`
+	Category    Category `json:"category"`
+	Description *string  `json:"description,omitempty"`
+
+	// Hidden 記事が隠されているか
+	Hidden bool `json:"hidden"`
+
+	// Hot 親が HOT なら常に true (specs/018 FR-016)
+	Hot bool               `json:"hot"`
+	Id  openapi_types.UUID `json:"id"`
+
+	// OriginalStatus draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
+	OriginalStatus DigestStatus `json:"originalStatus"`
+
+	// Repost 前の日付に掲載がある子か。記事を書き換えないので、編集画面では動かすだけにする
+	Repost bool   `json:"repost"`
+	Title  string `json:"title"`
+	Url    string `json:"url"`
+}
+
+// ChildEntry defines model for ChildEntry.
+type ChildEntry struct {
+	union json.RawMessage
 }
 
 // CreatedSession defines model for CreatedSession.
@@ -199,6 +239,11 @@ type Digest struct {
 
 	// Status draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
 	Status DigestStatus `json:"status"`
+}
+
+// DigestEntry defines model for DigestEntry.
+type DigestEntry struct {
+	union json.RawMessage
 }
 
 // DigestList defines model for DigestList.
@@ -225,7 +270,7 @@ type DigestSummary struct {
 
 // DigestUpdate defines model for DigestUpdate.
 type DigestUpdate struct {
-	Articles  []NewArticle       `json:"articles"`
+	Articles  []DigestEntry      `json:"articles"`
 	EntryDate openapi_types.Date `json:"entryDate"`
 
 	// Status 省略すると今のステータスのまま
@@ -246,24 +291,35 @@ type DomainList struct {
 	Domains []DomainCount `json:"domains"`
 }
 
+// Hideable defines model for Hideable.
+type Hideable struct {
+	Category Category `json:"category"`
+	Title    string   `json:"title"`
+	Url      string   `json:"url"`
+}
+
 // NewArticle defines model for NewArticle.
 type NewArticle struct {
-	Category Category           `json:"category"`
-	Children *[]NewChildArticle `json:"children,omitempty"`
-	Hot      *bool              `json:"hot,omitempty"`
-	Title    string             `json:"title"`
-	Url      string             `json:"url"`
+	Category Category      `json:"category"`
+	Children *[]ChildEntry `json:"children,omitempty"`
+
+	// Hidden 外す代わりに隠すか。Digest を公開すると false に戻る
+	Hidden *bool  `json:"hidden,omitempty"`
+	Hot    *bool  `json:"hot,omitempty"`
+	Title  string `json:"title"`
+	Url    string `json:"url"`
 }
 
 // NewChildArticle defines model for NewChildArticle.
 type NewChildArticle struct {
+	Hot   *bool  `json:"hot,omitempty"`
 	Title string `json:"title"`
 	Url   string `json:"url"`
 }
 
 // NewDigest defines model for NewDigest.
 type NewDigest struct {
-	Articles  []NewArticle       `json:"articles"`
+	Articles  []DigestEntry      `json:"articles"`
 	EntryDate openapi_types.Date `json:"entryDate"`
 	Status    *NewDigestStatus   `json:"status,omitempty"`
 }
@@ -284,10 +340,16 @@ type NewSession struct {
 type Problem struct {
 	Detail *string `json:"detail,omitempty"`
 
-	// DuplicateUrls url-already-registered のときだけ入る。同じ管理者が前の Digest で登録済みの URL (送った articles と children のうち該当するものすべて)
+	// DuplicateUrls url-already-registered と repost-unavailable のときだけ入る。url-already-registered は同じ管理者が別の Digest で登録済みの URL、repost-unavailable は再掲載できない repostOf (送った articles と children のうち該当するものすべて)
 	DuplicateUrls *[]string `json:"duplicateUrls,omitempty"`
-	Status        int       `json:"status"`
-	Title         string    `json:"title"`
+
+	// Hideable parent-has-children のときだけ入る。外せない親。画面はこの行を隠した行として戻す
+	Hideable *[]Hideable `json:"hideable,omitempty"`
+
+	// Repostable url-already-registered のときだけ入る。duplicateUrls のうち、再掲載にできる親の URL と元の記事
+	Repostable *[]Repostable `json:"repostable,omitempty"`
+	Status     int           `json:"status"`
+	Title      string        `json:"title"`
 
 	// Type エラー種別。クライアントはこれで分岐する。想定外は about:blank
 	Type ProblemType `json:"type"`
@@ -295,6 +357,29 @@ type Problem struct {
 
 // ProblemType エラー種別。クライアントはこれで分岐する。想定外は about:blank
 type ProblemType string
+
+// RepostArticle defines model for RepostArticle.
+type RepostArticle struct {
+	Category Category      `json:"category"`
+	Children *[]ChildEntry `json:"children,omitempty"`
+
+	// RepostOf 再掲載する記事の URL
+	RepostOf string `json:"repostOf"`
+}
+
+// RepostChildArticle defines model for RepostChildArticle.
+type RepostChildArticle struct {
+	Hot      *bool  `json:"hot,omitempty"`
+	RepostOf string `json:"repostOf"`
+}
+
+// Repostable defines model for Repostable.
+type Repostable struct {
+	Category         Category           `json:"category"`
+	FirstPublishedOn openapi_types.Date `json:"firstPublishedOn"`
+	Title            string             `json:"title"`
+	Url              string             `json:"url"`
+}
 
 // Session defines model for Session.
 type Session struct {
@@ -342,6 +427,130 @@ type CreateDigestJSONRequestBody = NewDigest
 
 // UpdateDigestJSONRequestBody defines body for UpdateDigest for application/json ContentType.
 type UpdateDigestJSONRequestBody = DigestUpdate
+
+// AsNewChildArticle returns the union data inside the ChildEntry as a NewChildArticle
+func (t ChildEntry) AsNewChildArticle() (NewChildArticle, error) {
+	var body NewChildArticle
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNewChildArticle overwrites any union data inside the ChildEntry as the provided NewChildArticle
+func (t *ChildEntry) FromNewChildArticle(v NewChildArticle) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNewChildArticle performs a merge with any union data inside the ChildEntry, using the provided NewChildArticle
+func (t *ChildEntry) MergeNewChildArticle(v NewChildArticle) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRepostChildArticle returns the union data inside the ChildEntry as a RepostChildArticle
+func (t ChildEntry) AsRepostChildArticle() (RepostChildArticle, error) {
+	var body RepostChildArticle
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRepostChildArticle overwrites any union data inside the ChildEntry as the provided RepostChildArticle
+func (t *ChildEntry) FromRepostChildArticle(v RepostChildArticle) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRepostChildArticle performs a merge with any union data inside the ChildEntry, using the provided RepostChildArticle
+func (t *ChildEntry) MergeRepostChildArticle(v RepostChildArticle) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ChildEntry) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ChildEntry) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNewArticle returns the union data inside the DigestEntry as a NewArticle
+func (t DigestEntry) AsNewArticle() (NewArticle, error) {
+	var body NewArticle
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNewArticle overwrites any union data inside the DigestEntry as the provided NewArticle
+func (t *DigestEntry) FromNewArticle(v NewArticle) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNewArticle performs a merge with any union data inside the DigestEntry, using the provided NewArticle
+func (t *DigestEntry) MergeNewArticle(v NewArticle) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRepostArticle returns the union data inside the DigestEntry as a RepostArticle
+func (t DigestEntry) AsRepostArticle() (RepostArticle, error) {
+	var body RepostArticle
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRepostArticle overwrites any union data inside the DigestEntry as the provided RepostArticle
+func (t *DigestEntry) FromRepostArticle(v RepostArticle) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRepostArticle performs a merge with any union data inside the DigestEntry, using the provided RepostArticle
+func (t *DigestEntry) MergeRepostArticle(v RepostArticle) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DigestEntry) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DigestEntry) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1865,64 +2074,79 @@ func (sh *strictHandler) GetHealth(ctx *gin.Context) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"qdKIKavIqcNItxoZ+b8AAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

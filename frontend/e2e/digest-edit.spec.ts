@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { boardOf, fillDate, loggedInState } from "./admin";
 
-// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。トップの最新を digest-new.spec.ts から奪わないよう過去にする
+// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。トップの最新を digest-new.spec.ts から奪わないよう過去にし、1 回の実行で 3 日使うので今年に届かない幅で回す
 const dayFrom = (n: number) =>
   new Date(Date.UTC(1900, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -32,13 +32,21 @@ const previewLinks = async (page: Page) => {
   return page.getByRole("dialog").getByRole("link");
 };
 
+// HOT の吹き出しはリンクの外に置く (specs/015) ので、吹き出しのある行のリンクで見る
+const hotLinks = (page: Page) =>
+  page
+    .getByRole("dialog")
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("img", { name: "HOT" }) })
+    .getByRole("link");
+
 test("下書きで登録した Digest を一覧から開き、タイトル・記事・日付を直して公開で保存すると、開き直したときに直した内容で並び公開になっていて、残した記事の id は変わらない", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 30_000) * 2;
+  const base = (Math.floor(run / 1000) % 15_000) * 3;
   const date = dayFrom(base);
   const moved = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -71,7 +79,8 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("group", { name: "日付" })).toHaveText(date.replaceAll("-", "/"));
-  await expect(await previewLinks(page)).toHaveText([security, related, `${other}HOT`]);
+  await expect(await previewLinks(page)).toHaveText([security, related, other]);
+  await expect(hotLinks(page)).toHaveText([other]);
   await page.getByRole("dialog").getByRole("button", { name: "閉じる" }).click();
 
   await menuOf(security, "編集");
@@ -99,6 +108,82 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
     "非公開にして保存",
   ]);
   await page.keyboard.press("Escape");
-  await expect(await previewLinks(page)).toHaveText([fixed, `${other}HOT`]);
+  await expect(await previewLinks(page)).toHaveText([fixed, other]);
+  await expect(hotLinks(page)).toHaveText([other]);
+  await context.close();
+});
+
+test("親と子を入れ替えて保存すると、開き直したときに入れ替えた親子で並ぶ", async ({ browser }) => {
+  const context = await browser.newContext({ storageState: await loggedInState(browser) });
+  const page = await context.newPage();
+  const run = Date.now();
+  const date = dayFrom((Math.floor(run / 1000) % 15_000) * 3 + 2);
+  const { boxOf, dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
+  const collect = async (title: string) => {
+    await collectUrl(`https://e2e.example/swap/${run}/${encodeURIComponent(title)}`, title);
+  };
+  const first = `先の親 ${run}`;
+  const second = `先の子 ${run}`;
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, date);
+  await collect(first);
+  await collect(second);
+  await dragFirstUnsortedTo("セキュリティ");
+  await dragFirstUnsortedTo("セキュリティ");
+  await menuOf(second, "上の記事の関連記事にする");
+  await page.getByRole("button", { name: "下書きで登録" }).click();
+  await page.waitForURL((url) => url.pathname === "/admin/digests");
+
+  await openDigest(page, date);
+  await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
+  await page.waitForLoadState("networkidle");
+  await menuOf(second, "関連記事から外す");
+  // 箱を移ると末尾に入るので、先の親を別の箱へ移して戻し、先の子の下へ回してから子にする
+  const dragTo = async (title: string, box: string) => {
+    const from = await page
+      .getByRole("listitem")
+      .filter({ hasText: title })
+      .getByRole("button", { name: "並べ替え" })
+      .boundingBox();
+    const header = boxOf(box).getByRole("button", { name: new RegExp(`^${box}`, "u") });
+    const to = await header.boundingBox();
+    if (from === null || to === null) {
+      throw new Error("drag target is not visible");
+    }
+    // dnd-kit はポインターの移動量でドラッグを始めるので刻んで動かす
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
+    // 途中で通った箱に記事が入ると見出しがずれるので、着いてから測り直す
+    const settled = await header.boundingBox();
+    if (settled !== null) {
+      await page.mouse.move(settled.x + settled.width / 2, settled.y + settled.height / 2, {
+        steps: 5,
+      });
+    }
+    await page.mouse.up();
+    await expect(page.locator("[data-dnd-dragging], [data-dnd-dropping]")).toHaveCount(0);
+  };
+  await dragTo(first, "その他");
+  await dragTo(first, "セキュリティ");
+  await menuOf(first, "上の記事の関連記事にする");
+  await page.getByRole("button", { name: "下書きのまま保存" }).click();
+  await page.waitForURL((url) => url.pathname === "/admin/digests");
+
+  // 一覧から開くと、保存前に開いたときの loader のキャッシュで盤面が作られるので、読み込み直す
+  await page.goto(`/admin/digests/${date}/edit`);
+  await page.waitForLoadState("networkidle");
+  const links = await previewLinks(page);
+  await expect(links).toHaveText([second, first]);
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("listitem")
+      .filter({ hasText: second })
+      .first()
+      .getByRole("list"),
+  ).toContainText(first);
   await context.close();
 });

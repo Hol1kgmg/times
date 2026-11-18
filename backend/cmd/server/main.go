@@ -25,6 +25,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	ginmiddleware "github.com/oapi-codegen/gin-middleware"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const maxBodyBytes = 1 << 20 // 1 MiB。spec の maxLength は本文を全部読んでからしか効かない
@@ -196,6 +197,20 @@ func writeProblem(c *gin.Context, err error) {
 		p = api.Problem{Type: api.ProblemType(e.Type), Status: e.Status, Detail: &e.Detail}
 		if e.DuplicateURLs != nil {
 			p.DuplicateUrls = &e.DuplicateURLs
+		}
+		if e.Repostable != nil {
+			r := make([]api.Repostable, len(e.Repostable))
+			for i, x := range e.Repostable {
+				r[i] = api.Repostable{Url: x.URL, Title: x.Title, Category: api.Category(x.Category), FirstPublishedOn: openapi_types.Date{Time: x.FirstPublishedOn}}
+			}
+			p.Repostable = &r
+		}
+		if e.Hideable != nil {
+			h := make([]api.Hideable, len(e.Hideable))
+			for i, x := range e.Hideable {
+				h[i] = api.Hideable{Url: x.URL, Title: x.Title, Category: api.Category(x.Category)}
+			}
+			p.Hideable = &h
 		}
 	} else {
 		slog.Error("handler error", "err", err, "method", c.Request.Method, "path", c.Request.URL.Path)

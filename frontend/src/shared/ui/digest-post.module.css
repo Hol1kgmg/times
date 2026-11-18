@@ -119,6 +119,60 @@
   color: var(--color-text-muted);
 }
 
+/* 表示しない記事の場所。押せる要素ではないので、再掲載の印と同じ控えめな文字にする */
+.concealed {
+  composes: t-body from global;
+  color: var(--color-text-faint);
+}
+
+/* 子のある再掲載の親は続報の子を主役にするため、細く目立たない行にする (specs/018 R12) */
+.thin {
+  composes: t-body from global;
+}
+
+/* AI のアイコンの 1lh も細い行の高さにそろえる */
+.thin .title,
+.thin .askAi {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.thin .title {
+  color: var(--color-text-muted);
+}
+
+/* 1 行に収めて省略し、AI のアイコンの幅 (::after) は省略の外に残す */
+.thin,
+.thin .zone,
+.thin .title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.thin .repostMark,
+.thin .title::after,
+.thin .askAi {
+  flex-shrink: 0;
+}
+
+.thin .titleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row:has(.thin) .favicon {
+  width: var(--space-2);
+  height: var(--space-2);
+  margin-top: var(--space-half);
+}
+
+.repostMark {
+  composes: t-meta from global;
+  margin-right: var(--space-1);
+}
+
 .title:focus-visible {
   color: var(--color-accent);
 }

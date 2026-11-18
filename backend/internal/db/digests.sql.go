@@ -12,18 +12,19 @@ import (
 	"github.com/google/uuid"
 )
 
-const createArticleLink = `-- name: CreateArticleLink :exec
-INSERT INTO article_links (parent_id, child_id, position) VALUES ($1, $2, $3)
+const clearParents = `-- name: ClearParents :exec
+UPDATE articles SET parent_id = NULL
+WHERE created_by = $1 AND url = ANY($2::text[]) AND parent_id IS NOT NULL
 `
 
-type CreateArticleLinkParams struct {
-	ParentID uuid.UUID
-	ChildID  uuid.UUID
-	Position int32
+type ClearParentsParams struct {
+	CreatedBy int64
+	Urls      []string
 }
 
-func (q *Queries) CreateArticleLink(ctx context.Context, arg CreateArticleLinkParams) error {
-	_, err := q.db.Exec(ctx, createArticleLink, arg.ParentID, arg.ChildID, arg.Position)
+// 1 行ずつ親を書くと、親と子を入れ替える保存で子のままの記事を親に指して FK で落ちるため、先に外す
+func (q *Queries) ClearParents(ctx context.Context, arg ClearParentsParams) error {
+	_, err := q.db.Exec(ctx, clearParents, arg.CreatedBy, arg.Urls)
 	return err
 }
 
@@ -53,27 +54,61 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 	return i, err
 }
 
-const deleteArticleLinksByDigest = `-- name: DeleteArticleLinksByDigest :exec
-DELETE FROM article_links l USING articles a WHERE a.id = l.child_id AND a.digest_id = $1
+const createDigestArticle = `-- name: CreateDigestArticle :exec
+INSERT INTO digest_articles (digest_id, article_id, position, is_hot) VALUES ($1, $2, $3, $4)
 `
 
-func (q *Queries) DeleteArticleLinksByDigest(ctx context.Context, digestID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteArticleLinksByDigest, digestID)
+type CreateDigestArticleParams struct {
+	DigestID  uuid.UUID
+	ArticleID uuid.UUID
+	Position  int32
+	IsHot     bool
+}
+
+func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArticleParams) error {
+	_, err := q.db.Exec(ctx, createDigestArticle,
+		arg.DigestID,
+		arg.ArticleID,
+		arg.Position,
+		arg.IsHot,
+	)
 	return err
 }
 
-const deleteArticlesNotIn = `-- name: DeleteArticlesNotIn :exec
-DELETE FROM articles WHERE digest_id = $1 AND url <> ALL($2::text[])
+const deleteDigestArticles = `-- name: DeleteDigestArticles :many
+DELETE FROM digest_articles WHERE digest_id = $1 RETURNING article_id
 `
 
-type DeleteArticlesNotInParams struct {
-	DigestID uuid.UUID
-	Urls     []string
+// 掲載は id を持たず外から参照されないので、保存のたびに入れ直してよい
+func (q *Queries) DeleteDigestArticles(ctx context.Context, digestID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, deleteDigestArticles, digestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var article_id uuid.UUID
+		if err := rows.Scan(&article_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-// 残る記事は消さずに upsert で更新し、id とサーバーだけが持つ列を保つ (issue #114)
-func (q *Queries) DeleteArticlesNotIn(ctx context.Context, arg DeleteArticlesNotInParams) error {
-	_, err := q.db.Exec(ctx, deleteArticlesNotIn, arg.DigestID, arg.Urls)
+const deleteOrphanArticles = `-- name: DeleteOrphanArticles :exec
+DELETE FROM articles WHERE id = ANY($1::uuid[])
+  AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = articles.id)
+  AND NOT EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id WHERE c.parent_id = articles.id)
+`
+
+// どの Digest にも載らなくなった記事は消す (specs/018 FR-013)。載っていない子は同じ文で消えるので、親を残す理由にしない
+func (q *Queries) DeleteOrphanArticles(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrphanArticles, ids)
 	return err
 }
 
@@ -136,57 +171,81 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 	return i, err
 }
 
-const listArticleLinksByDigest = `-- name: ListArticleLinksByDigest :many
-SELECT l.parent_id, l.child_id, l.position FROM article_links l
-JOIN articles a ON a.id = l.child_id
-WHERE a.digest_id = $1 ORDER BY l.parent_id, l.position
+const listArticlesByDigest = `-- name: ListArticlesByDigest :many
+WITH placed AS (
+  SELECT da.article_id, da.position, da.is_hot FROM digest_articles da WHERE da.digest_id = $1
+), rows AS (
+  SELECT article_id, position, is_hot, true AS placed FROM placed
+  UNION ALL
+  SELECT a.parent_id, min(p.position), false, false
+  FROM placed p JOIN articles a ON a.id = p.article_id
+  WHERE a.parent_id IS NOT NULL AND a.parent_id NOT IN (SELECT article_id FROM placed)
+  GROUP BY a.parent_id
+)
+SELECT a.id, a.category, a.title, a.url, a.description, a.parent_id, a.hidden,
+  r.position::int AS position, r.is_hot::bool AS is_hot, r.placed::bool AS placed,
+  -- 下書き・非公開も数える。編集の範囲を決めるので、閲覧者に見えるかは問わない (specs/018 FR-019)
+  EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+    WHERE o.article_id = a.id AND d.entry_date < cur.entry_date) AS is_repost,
+  f.entry_date AS first_published_on,
+  -- 公開の判定は元の掲載 (いちばん古い日付の掲載) の Digest の状態で決める
+  o.status AS original_status
+FROM rows r JOIN articles a ON a.id = r.article_id JOIN digests cur ON cur.id = $1
+LEFT JOIN digests f ON f.id = (
+  SELECT d.id FROM digest_articles x JOIN digests d ON d.id = x.digest_id
+  -- 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付く (specs/018 FR-010)
+  WHERE x.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
+  ORDER BY d.entry_date LIMIT 1
+)
+LEFT JOIN digests o ON o.id = (
+  SELECT d.id FROM digest_articles x JOIN digests d ON d.id = x.digest_id
+  WHERE x.article_id = a.id ORDER BY d.entry_date, d.created_at LIMIT 1
+)
+ORDER BY r.position, r.placed
 `
 
-func (q *Queries) ListArticleLinksByDigest(ctx context.Context, digestID uuid.UUID) ([]ArticleLink, error) {
-	rows, err := q.db.Query(ctx, listArticleLinksByDigest, digestID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ArticleLink
-	for rows.Next() {
-		var i ArticleLink
-		if err := rows.Scan(&i.ParentID, &i.ChildID, &i.Position); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+type ListArticlesByDigestRow struct {
+	ID               uuid.UUID
+	Category         string
+	Title            string
+	Url              string
+	Description      *string
+	ParentID         *uuid.UUID
+	Hidden           bool
+	Position         int32
+	IsHot            bool
+	Placed           bool
+	IsRepost         bool
+	FirstPublishedOn *time.Time
+	OriginalStatus   *string
 }
 
-const listArticlesByDigest = `-- name: ListArticlesByDigest :many
-SELECT id, digest_id, position, category, title, url, description, is_hot, created_by, created_at FROM articles WHERE digest_id = $1 ORDER BY position
-`
-
-// position = 登録時のカテゴリ順・カテゴリ内順 (specs/002 FR-004)
-func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) ([]Article, error) {
+// 掲載と、子が載っているのにこの Digest に載っていない親 (呼び出した親) を、position の順に返す。
+// 呼び出した親は最初の子の position を持ち、同じ position の子より前に並ぶ
+// sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
+func (q *Queries) ListArticlesByDigest(ctx context.Context, digestID uuid.UUID) ([]ListArticlesByDigestRow, error) {
 	rows, err := q.db.Query(ctx, listArticlesByDigest, digestID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Article
+	var items []ListArticlesByDigestRow
 	for rows.Next() {
-		var i Article
+		var i ListArticlesByDigestRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.DigestID,
-			&i.Position,
 			&i.Category,
 			&i.Title,
 			&i.Url,
 			&i.Description,
+			&i.ParentID,
+			&i.Hidden,
+			&i.Position,
 			&i.IsHot,
-			&i.CreatedBy,
-			&i.CreatedAt,
+			&i.Placed,
+			&i.IsRepost,
+			&i.FirstPublishedOn,
+			&i.OriginalStatus,
 		); err != nil {
 			return nil, err
 		}
@@ -304,30 +363,105 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 	return items, nil
 }
 
-const listRegisteredURLs = `-- name: ListRegisteredURLs :many
-SELECT url FROM articles WHERE created_by = $1 AND digest_id <> $2 AND url = ANY($3::text[])
+const listRegisteredArticles = `-- name: ListRegisteredArticles :many
+SELECT a.id, a.url, a.title, a.category,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = cur.id) AS placed,
+  EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id
+    WHERE c.parent_id = a.id AND da.digest_id = cur.id) AS has_placed_child,
+  -- 下書き・非公開も数える。前に掲載があれば、この Digest の掲載は再掲載になる (specs/018 FR-019)
+  EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+    WHERE o.article_id = a.id AND d.entry_date < cur.entry_date) AS has_earlier,
+  -- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
+  f.entry_date AS first_published_on,
+  p.url AS parent_url
+FROM articles a
+JOIN digests cur ON cur.id = $1
+LEFT JOIN articles p ON p.id = a.parent_id
+LEFT JOIN digests f ON f.id = (
+  SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+  -- 閲覧者に見えない下書き・非公開と、後の日付の掲載は再掲載の根拠にしない (specs/018 FR-005・FR-010)
+  WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
+  ORDER BY d.entry_date LIMIT 1
+)
+WHERE a.created_by = $2 AND a.url = ANY($3::text[])
 `
 
-type ListRegisteredURLsParams struct {
-	CreatedBy int64
+type ListRegisteredArticlesParams struct {
 	DigestID  uuid.UUID
+	CreatedBy int64
 	Urls      []string
 }
 
+type ListRegisteredArticlesRow struct {
+	ID               uuid.UUID
+	Url              string
+	Title            string
+	Category         string
+	Placed           bool
+	HasPlacedChild   bool
+	HasEarlier       bool
+	FirstPublishedOn *time.Time
+	ParentUrl        *string
+}
+
 // unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
-func (q *Queries) ListRegisteredURLs(ctx context.Context, arg ListRegisteredURLsParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, listRegisteredURLs, arg.CreatedBy, arg.DigestID, arg.Urls)
+func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegisteredArticlesParams) ([]ListRegisteredArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listRegisteredArticles, arg.DigestID, arg.CreatedBy, arg.Urls)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []ListRegisteredArticlesRow
 	for rows.Next() {
-		var url string
-		if err := rows.Scan(&url); err != nil {
+		var i ListRegisteredArticlesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Title,
+			&i.Category,
+			&i.Placed,
+			&i.HasPlacedChild,
+			&i.HasEarlier,
+			&i.FirstPublishedOn,
+			&i.ParentUrl,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, url)
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStrandedParents = `-- name: ListStrandedParents :many
+SELECT a.url, a.title, a.category FROM articles a
+WHERE a.id = ANY($1::uuid[])
+  AND NOT EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id)
+  AND EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id WHERE c.parent_id = a.id)
+`
+
+type ListStrandedParentsRow struct {
+	Url      string
+	Title    string
+	Category string
+}
+
+// どこにも載らなくなるのに、どこかに載っている子がいる親。消せないので、外す代わりに隠させる
+func (q *Queries) ListStrandedParents(ctx context.Context, ids []uuid.UUID) ([]ListStrandedParentsRow, error) {
+	rows, err := q.db.Query(ctx, listStrandedParents, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListStrandedParentsRow
+	for rows.Next() {
+		var i ListStrandedParentsRow
+		if err := rows.Scan(&i.Url, &i.Title, &i.Category); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -342,6 +476,20 @@ SELECT pg_advisory_xact_lock(hashtext('digests.entry_date'))
 // READ COMMITTED では並行する保存のまだコミットしていない日付が見えず、最新日付の比較がずれるため直列にする
 func (q *Queries) LockDigestDates(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, lockDigestDates)
+	return err
+}
+
+const unhideOriginals = `-- name: UnhideOriginals :exec
+UPDATE articles a SET hidden = false
+FROM digest_articles da JOIN digests cur ON cur.id = da.digest_id
+WHERE da.digest_id = $1 AND da.article_id = a.id AND a.hidden
+  AND NOT EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+    WHERE o.article_id = a.id AND d.entry_date < cur.entry_date)
+`
+
+// 公開は載る記事を全部見せてよいという意味なので、この Digest が元の掲載の記事の隠したものを戻す
+func (q *Queries) UnhideOriginals(ctx context.Context, digestID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, unhideOriginals, digestID)
 	return err
 }
 
@@ -383,46 +531,44 @@ func (q *Queries) UpdateDigest(ctx context.Context, arg UpdateDigestParams) (Dig
 }
 
 const upsertArticle = `-- name: UpsertArticle :one
-INSERT INTO articles (digest_id, position, category, title, url, is_hot, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)
-ON CONFLICT (created_by, url) DO UPDATE SET
-  position = EXCLUDED.position, category = EXCLUDED.category, title = EXCLUDED.title, is_hot = EXCLUDED.is_hot
-WHERE articles.digest_id = EXCLUDED.digest_id
-RETURNING id, digest_id, position, category, title, url, description, is_hot, created_by, created_at
+INSERT INTO articles (category, title, url, created_by, parent_id, hidden) VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (created_by, url) DO UPDATE SET category = EXCLUDED.category, title = EXCLUDED.title,
+  parent_id = EXCLUDED.parent_id, hidden = EXCLUDED.hidden
+RETURNING id, category, title, url, description, created_by, created_at, parent_id, is_child, parent_is_child, hidden
 `
 
 type UpsertArticleParams struct {
-	DigestID  uuid.UUID
-	Position  int32
 	Category  string
 	Title     string
 	Url       string
-	IsHot     bool
 	CreatedBy int64
+	ParentID  *uuid.UUID
+	Hidden    bool
 }
 
-// 画面が送る列だけを更新する。他の Digest の URL には当たっても更新せず、行を返さない
+// 記事の行は残して更新し、id とサーバーだけが持つ列を保つ (issue #114)
 func (q *Queries) UpsertArticle(ctx context.Context, arg UpsertArticleParams) (Article, error) {
 	row := q.db.QueryRow(ctx, upsertArticle,
-		arg.DigestID,
-		arg.Position,
 		arg.Category,
 		arg.Title,
 		arg.Url,
-		arg.IsHot,
 		arg.CreatedBy,
+		arg.ParentID,
+		arg.Hidden,
 	)
 	var i Article
 	err := row.Scan(
 		&i.ID,
-		&i.DigestID,
-		&i.Position,
 		&i.Category,
 		&i.Title,
 		&i.Url,
 		&i.Description,
-		&i.IsHot,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.ParentID,
+		&i.IsChild,
+		&i.ParentIsChild,
+		&i.Hidden,
 	)
 	return i, err
 }

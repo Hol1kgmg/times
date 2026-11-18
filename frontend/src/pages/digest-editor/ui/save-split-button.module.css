@@ -7,6 +7,8 @@
 /* 影をボタンごとに付けると、隣り合う辺に相手の影が落ちる */
 .split {
   display: flex;
+  /* 中のボタンは縮まないので、枠だけ縮むと中身が右へはみ出す */
+  flex-shrink: 0;
   border-radius: var(--radius-control);
   box-shadow: var(--shadow-menu);
 }

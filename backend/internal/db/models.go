@@ -8,25 +8,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Article struct {
-	ID          uuid.UUID
-	DigestID    uuid.UUID
-	Position    int32
-	Category    string
-	Title       string
-	Url         string
-	Description *string
-	IsHot       bool
-	CreatedBy   int64
-	CreatedAt   time.Time
-}
-
-type ArticleLink struct {
-	ParentID uuid.UUID
-	ChildID  uuid.UUID
-	Position int32
+	ID            uuid.UUID
+	Category      string
+	Title         string
+	Url           string
+	Description   *string
+	CreatedBy     int64
+	CreatedAt     time.Time
+	ParentID      *uuid.UUID
+	IsChild       pgtype.Bool
+	ParentIsChild bool
+	Hidden        bool
 }
 
 type Digest struct {
@@ -36,6 +32,13 @@ type Digest struct {
 	CreatedBy   int64
 	Status      string
 	PublishedAt *time.Time
+}
+
+type DigestArticle struct {
+	DigestID  uuid.UUID
+	ArticleID uuid.UUID
+	Position  int32
+	IsHot     bool
 }
 
 type Session struct {

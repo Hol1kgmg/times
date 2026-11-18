@@ -16,6 +16,7 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
+import { isCategory } from "../model/board";
 import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
@@ -23,6 +24,8 @@ import styles from "./draft-card.module.css";
 export interface CardActions {
   atLimit: boolean;
   registered: ReadonlySet<string>;
+  converted: ReadonlySet<string>;
+  unavailable: ReadonlySet<string>;
   edit: (id: string, next: LinkEdit) => Rejected | null;
   revert: (id: string) => void;
   toggleHot: (id: string) => void;
@@ -31,7 +34,18 @@ export interface CardActions {
   makeChild: (id: string) => void;
   unmakeChild: (parentId: string, childId: string) => void;
   moveChild: (parentId: string, childId: string, step: -1 | 1) => void;
+  unhide: (id: string) => void;
 }
+
+// 記事のカテゴリは元の掲載の保存でだけ枠のカテゴリに変わり、再掲載では変わらない
+const categoryNote = (link: Link, box: BoxId, repost: boolean): string | null => {
+  if (link.category === undefined || link.category === box || !isCategory(box)) {
+    return null;
+  }
+  return repost
+    ? `記事のカテゴリは${link.category}のままです`
+    : `保存するとカテゴリが${box}に変わります`;
+};
 
 interface MenuItem {
   label: string;
@@ -206,7 +220,14 @@ const LinkRow = ({
   hot = false,
   suggested = false,
   registered,
+  repost = false,
+  firstPublishedOn,
+  converted = false,
+  unavailable = false,
+  hidden = false,
+  note,
   handle,
+  action,
   menu,
   onEdit,
 }: {
@@ -214,9 +235,17 @@ const LinkRow = ({
   hot?: boolean;
   suggested?: boolean;
   registered: boolean;
+  repost?: boolean;
+  firstPublishedOn?: string;
+  converted?: boolean;
+  unavailable?: boolean;
+  hidden?: boolean;
+  note?: string | null;
   handle?: ReactNode;
+  action?: ReactNode;
   menu: MenuItem[];
-  onEdit: (next: LinkEdit) => Rejected | null;
+  // 再掲載は元の記事を書き換えないので、渡さず「編集」を出さない
+  onEdit?: (next: LinkEdit) => Rejected | null;
 }) => {
   const [editing, setEditing] = useState(false);
   const host = new URL(link.url).hostname;
@@ -228,7 +257,11 @@ const LinkRow = ({
   });
   const untitled = link.title.trim() === "";
   return (
-    <div className={styles.row} data-registered={registered ? "" : undefined}>
+    <div
+      className={styles.row}
+      data-private={hidden || link.unpublished === true ? "" : undefined}
+      data-rejected={registered || unavailable ? "" : undefined}
+    >
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
       <span className={styles.text}>
@@ -252,20 +285,37 @@ const LinkRow = ({
           )}
         </AriaLink>
         {card}
-        <LinkMeta host={host} registered={registered} suggested={suggested} untitled={untitled} />
+        <LinkMeta
+          categoryNote={note}
+          converted={converted}
+          firstPublishedOn={firstPublishedOn}
+          hidden={hidden}
+          host={host}
+          registered={registered}
+          repost={repost}
+          suggested={suggested}
+          unavailable={unavailable}
+          unpublished={link.unpublished === true}
+          untitled={untitled}
+        />
       </span>
+      {action}
       <Menu
         items={[
-          {
-            label: "編集",
-            onSelect: () => {
-              setEditing(true);
-            },
-          },
+          ...(onEdit === undefined
+            ? []
+            : [
+                {
+                  label: "編集",
+                  onSelect: () => {
+                    setEditing(true);
+                  },
+                },
+              ]),
           ...menu,
         ]}
       />
-      {editing && (
+      {editing && onEdit !== undefined && (
         <EditDialog
           link={link}
           onClose={() => {
@@ -312,6 +362,8 @@ export const DraftCard = ({
   box: BoxId;
   actions: CardActions;
 }) => {
+  const reasonId = useId();
+  const [showVisibilityReason, setShowVisibilityReason] = useState(false);
   const { ref, handleRef, isDragging } = useSortable({
     id: draft.id,
     index,
@@ -320,54 +372,118 @@ export const DraftCard = ({
     data: { title: draft.title === "" ? new URL(draft.url).hostname : draft.title, box },
   });
   const last = draft.children.length - 1;
+  const remove = {
+    label: "削除",
+    onSelect: () => {
+      actions.remove(draft.id, draft.children.length);
+    },
+  };
   return (
     <li ref={ref} className={styles.card} data-dragging={isDragging ? "" : undefined}>
       <LinkRow
+        action={
+          (draft.hidden === true || draft.unpublished === true) && (
+            <span className={styles.visibilityAction}>
+              <Button
+                className={styles.button}
+                isDisabled={draft.repost !== undefined || draft.unpublished === true}
+                onPress={() => {
+                  actions.unhide(draft.id);
+                }}
+              >
+                表示に戻す
+              </Button>
+              {draft.repost !== undefined && (
+                <>
+                  <Button
+                    aria-describedby={reasonId}
+                    aria-label="表示に戻せない理由"
+                    className={styles.visibilityHelp}
+                    onBlur={() => {
+                      setShowVisibilityReason(false);
+                    }}
+                    onPress={() => {
+                      setShowVisibilityReason((shown) => !shown);
+                    }}
+                  >
+                    ?
+                  </Button>
+                  <span
+                    className={styles.visibilityReason}
+                    data-open={showVisibilityReason ? "" : undefined}
+                    id={reasonId}
+                    role="tooltip"
+                  >
+                    再掲載なので表示を切り替えられません
+                  </span>
+                </>
+              )}
+            </span>
+          )
+        }
+        converted={actions.converted.has(draft.url)}
+        firstPublishedOn={draft.repost?.firstPublishedOn}
         handle={
           <button ref={handleRef} aria-label="並べ替え" className={styles.handle} type="button">
             <Grip />
           </button>
         }
+        hidden={draft.hidden === true}
         hot={draft.hot}
         link={draft}
-        menu={[
-          {
-            label: draft.hot ? "ホットを外す" : "ホットにする",
-            onSelect: () => {
-              actions.toggleHot(draft.id);
-            },
-          },
-          {
-            label: "上の記事の関連記事にする",
-            disabled: !actions.canMakeChild(draft.id),
-            onSelect: () => {
-              actions.makeChild(draft.id);
-            },
-          },
-          {
-            label: "変更を戻す",
-            onSelect: () => {
-              actions.revert(draft.id);
-            },
-          },
-          {
-            label: "削除",
-            onSelect: () => {
-              actions.remove(draft.id, draft.children.length);
-            },
-          },
-        ]}
+        menu={
+          draft.repost === undefined
+            ? [
+                {
+                  label: draft.hot ? "ホットを外す" : "ホットにする",
+                  onSelect: () => {
+                    actions.toggleHot(draft.id);
+                  },
+                },
+                {
+                  label: "上の記事の関連記事にする",
+                  disabled: !actions.canMakeChild(draft.id),
+                  onSelect: () => {
+                    actions.makeChild(draft.id);
+                  },
+                },
+                {
+                  label: "変更を戻す",
+                  onSelect: () => {
+                    actions.revert(draft.id);
+                  },
+                },
+                remove,
+              ]
+            : [remove]
+        }
+        note={categoryNote(draft, box, draft.repost !== undefined)}
         registered={actions.registered.has(draft.url)}
+        repost={draft.repost !== undefined}
         suggested={draft.suggested}
-        onEdit={(next) => actions.edit(draft.id, next)}
+        unavailable={actions.unavailable.has(draft.url)}
+        onEdit={draft.repost === undefined ? (next) => actions.edit(draft.id, next) : undefined}
       />
       {draft.children.length > 0 && (
         <ul className={styles.children}>
           {draft.children.map((child, i) => (
             <li key={child.id}>
               <LinkRow
+                hidden={child.hidden === true}
+                hot={!draft.hot && child.hot}
                 link={child}
                 menu={[
+                  // 親が HOT なら子もまとめて HOT なので、子だけを切り替えさせない (specs/018 FR-016)
+                  ...(draft.hot
+                    ? []
+                    : [
+                        {
+                          label: child.hot ? "ホットを外す" : "ホットにする",
+                          onSelect: () => {
+                            actions.toggleHot(child.id);
+                          },
+                        },
+                      ]),
                   {
                     label: "上へ",
                     disabled: i === 0,
@@ -382,19 +498,24 @@ export const DraftCard = ({
                       actions.moveChild(draft.id, child.id, 1);
                     },
                   },
-                  {
-                    label: "関連記事から外す",
-                    disabled: actions.atLimit,
-                    onSelect: () => {
-                      actions.unmakeChild(draft.id, child.id);
-                    },
-                  },
-                  {
-                    label: "変更を戻す",
-                    onSelect: () => {
-                      actions.revert(child.id);
-                    },
-                  },
+                  // 再掲載の子は記事の親を書き換えないので、親から外せない
+                  ...(child.repostChild === true
+                    ? []
+                    : [
+                        {
+                          label: "関連記事から外す",
+                          disabled: actions.atLimit,
+                          onSelect: () => {
+                            actions.unmakeChild(draft.id, child.id);
+                          },
+                        },
+                        {
+                          label: "変更を戻す",
+                          onSelect: () => {
+                            actions.revert(child.id);
+                          },
+                        },
+                      ]),
                   {
                     label: "削除",
                     onSelect: () => {
@@ -402,8 +523,12 @@ export const DraftCard = ({
                     },
                   },
                 ]}
+                note={categoryNote(child, box, child.repostChild === true)}
                 registered={actions.registered.has(child.url)}
-                onEdit={(next) => actions.edit(child.id, next)}
+                repost={child.repostChild === true}
+                onEdit={
+                  child.repostChild === true ? undefined : (next) => actions.edit(child.id, next)
+                }
               />
             </li>
           ))}
