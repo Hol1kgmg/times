@@ -83,7 +83,7 @@ FR-005・FR-006 の判定の対象は「登録済みで、この Digest に載�
 | 登録済みの URL を普通の親として入れ、前の日付の公開済み Digest に掲載がない | 断る | `/problems/url-already-registered` (`duplicateUrls`) |
 | 登録済みの URL を普通の親として入れ、前の日付の公開済み Digest に掲載がある | 断る | `/problems/url-already-registered` (`duplicateUrls` と `repostable`) |
 | 再掲載として入れたが、記事がない、または前の日付の公開済み Digest に掲載がない | 断る | `/problems/repost-unavailable` (`duplicateUrls`) |
-| 再掲載として入れ、子がなく、カテゴリが記事と違う | 断る | `/problems/validation-failed` (画面で選べないので、文言は出し分けない) |
+| 再掲載として入れ、子がなく、カテゴリが記事と違う (別のタブで元のカテゴリを変えた) | 保存。送られたカテゴリは使わず、記事のカテゴリで出す | なし |
 | 再掲載として入れ、上のどれにも当たらない | 保存。記事の行は書き換えず、掲載だけ作る | なし |
 
 - 断る理由が両方あるときは `url-already-registered` を先に返す (行の切り替えが先に要るため)

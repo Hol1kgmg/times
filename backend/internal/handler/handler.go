@@ -421,9 +421,6 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 		switch {
 		case e.repost && !repostAvailable(e.url):
 			unavailable = append(unavailable, e.url)
-		case e.repost && len(e.children) == 0 && string(e.category) != r.Category:
-			// 画面は子のない再掲載のカテゴリを選ばせないので、文言は出し分けない
-			invalid = append(invalid, e.url)
 		case !e.repost && !original(e.url):
 			duplicates = append(duplicates, e.url)
 			if r.FirstPublishedOn != nil {
@@ -437,7 +434,7 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 	case len(unavailable) > 0:
 		return apperr.RepostUnavailable(unavailable)
 	case len(invalid) > 0:
-		return apperr.ValidationFailed(fmt.Sprintf("%d reposts must keep the category and parent of the article", len(invalid)))
+		return apperr.ValidationFailed(fmt.Sprintf("%d reposts must keep the parent of the article", len(invalid)))
 	}
 	return nil
 }

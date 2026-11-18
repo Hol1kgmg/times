@@ -267,7 +267,8 @@ func TestCheckEntries(t *testing.T) {
 		{"registered parent without an earlier published placement", []entry{{url: "https://draft.example"}}, "/problems/url-already-registered"},
 		{"repost of an unknown article", []entry{{url: "https://none.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
 		{"repost of an article only on drafts", []entry{{url: "https://draft.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
-		{"repost without children changing the category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT}}, "/problems/validation-failed"},
+		// 子のない再掲載は記事のカテゴリで出すので、別のタブで元のカテゴリが変わっても断らない
+		{"repost without children sent in another category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT}}, ""},
 		{"repost with a child in another category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT, children: newChild}}, ""},
 		{"repost without children", []entry{{url: "https://old.example", repost: true, category: api.CategorySecurity}}, ""},
 		{"article already in this digest", []entry{{url: "https://here.example", title: "edited"}}, ""},
