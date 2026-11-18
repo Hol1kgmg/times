@@ -81,6 +81,7 @@ func TestRouter(t *testing.T) {
 		{"GET", "/digests", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/articles/domains", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/articles/domains/all", "", http.StatusUnauthorized, api.Problemsunauthorized},
+		{"GET", "/articles/search?q=go", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/published", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/2026-10-17", "", http.StatusUnauthorized, api.Problemsunauthorized},
 		{"GET", "/digests/not-a-date", "", http.StatusUnauthorized, api.Problemsunauthorized}, // 認証が検証より先
@@ -180,6 +181,7 @@ func TestBearerAuth(t *testing.T) {
 		{"DELETE", "/auth/sessions/current", "Bearer valid", 204, true},
 		{"POST", "/digests", "Bearer valid", 400, true},                  // 認証後に body 検証 (空 body)
 		{"GET", "/articles/domains?limit=51", "Bearer valid", 400, true}, // 認証後に query 検証
+		{"GET", "/articles/search?q=", "Bearer valid", 400, true},
 		{"GET", "/health", "Bearer valid", 200, false},
 	}
 	for _, tt := range tests {

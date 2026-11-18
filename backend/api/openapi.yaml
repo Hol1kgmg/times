@@ -217,6 +217,36 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /articles/search:
+    get:
+      operationId: searchArticles
+      description: 公開の Digest に載った記事を、タイトルか URL の部分一致で全期間から探し、記事ごとに初掲載日の新しい順で最大 50 件返す。隠した記事は出さない。管理者専用 (specs/020)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: タイトルか URL に含まれる文字列。大文字小文字を区別しない
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleSearchResult"
+        "400":
+          description: 形式違反 (validation-failed)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /feed:
     get:
       operationId: getFeed
@@ -452,6 +482,42 @@ components:
         count:
           type: integer
           minimum: 1
+    ArticleSearchResult:
+      type: object
+      required: [articles]
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArticleSearchHit"
+    ArticleSearchHit:
+      type: object
+      required: [id, url, title, category, firstPublishedOn, repostedOn]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        parentUrl:
+          type: string
+          format: uri
+          description: 子のときだけ入る
+        firstPublishedOn:
+          type: string
+          format: date
+          description: 公開の掲載のうちいちばん古い日付
+        repostedOn:
+          type: array
+          description: それ以外の公開の掲載の日付。古い順
+          items:
+            type: string
+            format: date
     DigestStatus:
       type: string
       enum: [draft, published, private]

@@ -7,6 +7,9 @@ package db
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 const listArticleDomains = `-- name: ListArticleDomains :many
@@ -46,6 +49,58 @@ func (q *Queries) ListArticleDomains(ctx context.Context, arg ListArticleDomains
 	for rows.Next() {
 		var i ListArticleDomainsRow
 		if err := rows.Scan(&i.Host, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchArticles = `-- name: SearchArticles :many
+SELECT a.id, a.url, a.title, a.category, p.url AS parent_url,
+  -- 公開の掲載だけを JOIN するので、下書き・非公開にしか載っていない記事は出ない (specs/018 FR-005)
+  array_agg(d.entry_date ORDER BY d.entry_date)::date[] AS published_on
+FROM articles a
+JOIN digest_articles da ON da.article_id = a.id
+JOIN digests d ON d.id = da.digest_id AND d.status = 'published'
+LEFT JOIN articles p ON p.id = a.parent_id
+WHERE NOT a.hidden
+  AND (strpos(lower(a.title), lower($1)) > 0 OR strpos(lower(a.url), lower($1)) > 0)
+GROUP BY a.id, p.url
+ORDER BY min(d.entry_date) DESC, a.id
+LIMIT 50
+`
+
+type SearchArticlesRow struct {
+	ID          uuid.UUID
+	Url         string
+	Title       string
+	Category    string
+	ParentUrl   *string
+	PublishedOn []time.Time
+}
+
+// ponytail: 記事は数千件に届かないので全件を strpos で見る。遅くなったら pg_trgm の索引を足す
+func (q *Queries) SearchArticles(ctx context.Context, q_ string) ([]SearchArticlesRow, error) {
+	rows, err := q.db.Query(ctx, searchArticles, q_)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchArticlesRow
+	for rows.Next() {
+		var i SearchArticlesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Title,
+			&i.Category,
+			&i.ParentUrl,
+			&i.PublishedOn,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

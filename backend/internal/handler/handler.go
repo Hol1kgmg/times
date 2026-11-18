@@ -116,6 +116,25 @@ func (s *Server) ListAllArticleDomains(ctx context.Context, req api.ListAllArtic
 	return api.ListAllArticleDomains200JSONResponse{Domains: domains}, nil
 }
 
+// ponytail: ログインできるのは管理者だけなので bearerAuth で足りる。一般ユーザーを足したら管理者の判定を足す
+func (s *Server) SearchArticles(ctx context.Context, req api.SearchArticlesRequestObject) (api.SearchArticlesResponseObject, error) {
+	rows, err := s.q.SearchArticles(ctx, req.Params.Q)
+	if err != nil {
+		return nil, err
+	}
+	hits := make([]api.ArticleSearchHit, 0, len(rows))
+	for _, r := range rows {
+		// 公開の掲載を INNER JOIN して集めるので、PublishedOn は 1 件以上ある
+		reposted := make([]openapi_types.Date, 0, len(r.PublishedOn)-1)
+		for _, d := range r.PublishedOn[1:] {
+			reposted = append(reposted, openapi_types.Date{Time: d})
+		}
+		hits = append(hits, api.ArticleSearchHit{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
+			ParentUrl: r.ParentUrl, FirstPublishedOn: openapi_types.Date{Time: r.PublishedOn[0]}, RepostedOn: reposted})
+	}
+	return api.SearchArticles200JSONResponse{Articles: hits}, nil
+}
+
 func (s *Server) articleDomains(ctx context.Context, q *string, limit *int, publishedOnly bool) ([]api.DomainCount, error) {
 	// openapi.yaml の default は oapi-codegen が埋めないので、同じ値をここで使う
 	lim := 20
