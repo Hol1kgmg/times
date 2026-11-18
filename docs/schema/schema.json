@@ -628,12 +628,6 @@
           "type": "boolean",
           "nullable": false,
           "default": "false"
-        },
-        {
-          "name": "is_repost",
-          "type": "boolean",
-          "nullable": false,
-          "default": "false"
         }
       ],
       "indexes": [
@@ -653,14 +647,6 @@
           "columns": [
             "digest_id",
             "position"
-          ]
-        },
-        {
-          "name": "digest_articles_original_key",
-          "def": "CREATE UNIQUE INDEX digest_articles_original_key ON public.digest_articles USING btree (article_id) WHERE (NOT is_repost)",
-          "table": "public.digest_articles",
-          "columns": [
-            "article_id"
           ]
         },
         {
@@ -695,18 +681,6 @@
           ]
         },
         {
-          "name": "digest_articles_check1",
-          "type": "CHECK",
-          "def": "CHECK (((NOT is_repost) OR ((parent_id IS NULL) AND (NOT is_hot))))",
-          "table": "public.digest_articles",
-          "referenced_table": "",
-          "columns": [
-            "is_repost",
-            "parent_id",
-            "is_hot"
-          ]
-        },
-        {
           "name": "digest_articles_digest_id_not_null",
           "type": "n",
           "def": "NOT NULL digest_id",
@@ -724,16 +698,6 @@
           "referenced_table": "",
           "columns": [
             "is_hot"
-          ]
-        },
-        {
-          "name": "digest_articles_is_repost_not_null",
-          "type": "n",
-          "def": "NOT NULL is_repost",
-          "table": "public.digest_articles",
-          "referenced_table": "",
-          "columns": [
-            "is_repost"
           ]
         },
         {

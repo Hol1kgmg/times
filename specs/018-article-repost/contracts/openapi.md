@@ -10,14 +10,16 @@ Article:
   properties:
     repost:
       type: boolean
-      description: 元の記事を参照する再掲載の掲載か。true なら hot は常に false
+      description: 再掲載の掲載か (この記事のもっと前の日付の掲載があるか。下書き・非公開を含む)。保存せずに導く。true なら hot は常に false。編集画面の行のロックに使う
     category:
       description: 再掲載で子があれば子のカテゴリ。それ以外は記事のカテゴリ
     firstPublishedOn:
       type: string
       format: date
-      description: 再掲載のときだけ入る。この記事が載っている公開済み Digest のうち、この Digest より前でいちばん古い日付
+      description: この記事が載っている公開の Digest のうち、この Digest より前でいちばん古い日付。下書き・非公開は数えない。公開ページの「再掲載」の印と細い行はこれがあるときだけ出す
 ```
+
+Revision 2 (research R14) で形は変えず、`repost` と `firstPublishedOn` を保存した列ではなく掲載の日付と公開状態から導く。`repost` が true で `firstPublishedOn` がないのは、前の掲載が下書き・非公開にしかないとき。
 
 ## ChildArticle / NewChildArticle (変更)
 

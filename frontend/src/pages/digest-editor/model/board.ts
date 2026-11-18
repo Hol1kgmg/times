@@ -32,8 +32,8 @@ export interface LinkEdit {
 export interface Draft extends Link {
   suggested: boolean;
   children: Link[];
-  // category は子がない間に戻す元の記事のカテゴリ。子付きで保存した再掲載は backend が返さないので持たない
-  repost?: { category?: Category; firstPublishedOn?: string };
+  // category は子がない間に戻す元の記事のカテゴリ
+  repost?: { category: Category; firstPublishedOn?: string };
 }
 
 export type Board = Record<BoxId, Draft[]>;
@@ -182,8 +182,17 @@ export const settleCategory = (board: Board, id: string, suggested: Category | n
   };
 };
 
+// 親が HOT の子は保存時に HOT にそろい、読み直すと子自身の HOT が消えるので、編集中も先に外す (specs/018 FR-016)
+const settleChildHot = (d: Draft): Draft =>
+  d.hot && d.children.some((c) => c.hot)
+    ? { ...d, children: d.children.map((c) => ({ ...c, hot: false })) }
+    : d;
+
 export const toggleHot = (board: Board, id: string): Board =>
-  mapLink(board, id, (l) => ({ ...l, hot: !l.hot }));
+  mapDrafts(
+    mapLink(board, id, (l) => ({ ...l, hot: !l.hot })),
+    (d) => (d.id === id ? settleChildHot(d) : d),
+  );
 
 const hasLink = (board: Board, id: string) => links(board).some((l) => l.id === id);
 
@@ -194,20 +203,25 @@ export const describeBoard = (board: Board): string =>
     .flatMap((box) => [
       `${box} (${board[box].length} 件)`,
       ...board[box].flatMap((d) => [
-        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}`,
+        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}${d.repost === undefined ? "" : " [再掲載]"}`,
         ...d.children.map((c) => `  - 子記事 ${linkLine(c)}${c.hot ? " [hot]" : ""}`),
       ]),
     ])
     .join("\n");
 
-export type UpdateRejected = "missing" | "child";
+export type UpdateRejected = "missing" | "child" | "repost";
 
 export const rejectUpdate = (
   board: Board,
-  { id, category: box, hot }: DraftUpdate & { id: string },
+  { id, title, category: box, hot }: DraftUpdate & { id: string },
 ): UpdateRejected | null => {
-  if (locate(board, id) !== null) {
-    return null;
+  const at = locate(board, id);
+  if (at !== null) {
+    const d = board[at.box][at.index];
+    // 再掲載は送るときにタイトル・HOT を持たないので、変えても保存で黙って消える (specs/018 FR-008)
+    const fixed =
+      title !== undefined || hot !== undefined || (box !== undefined && d?.children.length === 0);
+    return d?.repost !== undefined && fixed ? "repost" : null;
   }
   if (!hasLink(board, id)) {
     return "missing";
@@ -291,7 +305,10 @@ export const makeChild = (board: Board, id: string): Board => {
   const { url, title, initial, translated } = draft;
   items[at.index - 1] = {
     ...parent,
-    children: [...parent.children, { id, url, title, initial, translated, hot: false }],
+    children: [
+      ...parent.children,
+      { id, url, title, initial, translated, hot: draft.hot && !parent.hot },
+    ],
   };
   return replaceBox(board, at.box, items);
 };
@@ -375,7 +392,9 @@ export const updateDraft = (
       : mapDrafts(moveToBoxEnd(titled, id, box), (d) =>
           d.id === id ? { ...d, suggested: true } : d,
         );
-  return hot === undefined ? moved : mapDrafts(moved, (d) => (d.id === id ? { ...d, hot } : d));
+  return hot === undefined
+    ? moved
+    : mapDrafts(moved, (d) => (d.id === id ? settleChildHot({ ...d, hot }) : d));
 };
 
 export const toIds = (board: Board): Record<BoxId, string[]> =>
@@ -433,7 +452,7 @@ export const fromDigest = (digest: Digest): Board => {
       children: a.children.map((c) => savedLink({ ...c, hot: c.hot && !a.hot })),
       ...(a.repost && {
         repost: {
-          ...(a.originalCategory !== undefined && { category: a.originalCategory }),
+          category: a.originalCategory ?? a.category,
           ...(a.firstPublishedOn !== undefined && { firstPublishedOn: a.firstPublishedOn }),
         },
       }),

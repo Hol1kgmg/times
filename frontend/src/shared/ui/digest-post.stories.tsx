@@ -75,6 +75,7 @@ const repostDigest = {
       category: "面白そうなツール・サービス" as const,
       hot: false,
       repost: true,
+      firstPublishedOn: "2026-10-03",
       title:
         "ビルドツールの紹介と、設定ファイルを書かずに始めるための最初の一歩を丁寧に解説する長い記事",
       url: "https://example.com/build-tool",
@@ -107,9 +108,22 @@ const repostDigest = {
       category: "セキュリティ" as const,
       hot: false,
       repost: true,
+      firstPublishedOn: "2026-10-03",
       title: "パスキーの仕組みをちゃんと理解する",
       url: "https://example.com/passkey",
       children: [],
+    },
+    {
+      id: id(),
+      category: "セキュリティ" as const,
+      hot: false,
+      // 前の掲載が非公開にしかないので、閲覧者には普通の行で見せる (specs/018 FR-010)
+      repost: true,
+      title: "前の Digest を非公開にした再掲載",
+      url: "https://example.com/withdrawn",
+      children: [
+        { id: id(), hot: false, title: "その続報", url: "https://example.com/withdrawn-next" },
+      ],
     },
     {
       id: id(),
@@ -174,6 +188,7 @@ const hotPatternsDigest = {
       category: "IT系" as const,
       hot: false,
       repost: true,
+      firstPublishedOn: "2026-10-03",
       title: "再掲載の親 (HOT にできない)",
       url: "https://example.com/hot-repost",
       children: [

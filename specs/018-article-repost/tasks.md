@@ -163,6 +163,57 @@ Phase 1〜6 は初版の方針で完了した。spec の Revision (research R10�
 
 ---
 
+## 見直し 2 (2026-11-18): 再掲載を保存せず、掲載の日付と公開状態から導く
+
+spec の Revision 2 (research R14、adr/backend/0008) で、`is_repost` を消す。Phase 8 の T047 (制約)・T049 (`is_repost` の列)・T050 (`checkEntries` の判定) を置き換える。API の形は変えないので、生成型と `schemas.ts` は触らない。あわせて specs/018 のレビューで出た実装のずれを直す。
+
+## Phase 11: backend (再掲載を導く)
+
+- [X] T064 backend/db/migrations/000013_split_digest_articles.up.sql から `is_repost`・その CHECK・`digest_articles_original_key` と、それぞれのコメントを消す。down.sql の `ORDER BY` から `da.is_repost` を外し、いちばん古い日付の掲載を戻す形にする (000013 は main に未マージなので書き換える)
+- [X] T065 backend/db/queries/digests.sql:
+  - `ListRegisteredArticles`: `placed_original` / `placed_repost` を、この Digest に載っているかの `placed` 1 つにする。もっと前の日付の掲載 (状態を問わない) があるかを `has_earlier` で足す。`first_published_on` の副問い合わせの上に、前の日付・公開に限る理由 (FR-005・FR-010) を 1 行で戻す
+  - `ListArticlesByDigest`: `da.is_repost` を、もっと前の日付の掲載があるかの `is_repost` (導いた値) に替える。`first_published_on` の `LEFT JOIN` から `da.is_repost` の条件を外す
+  - `CreateDigestArticle` から `is_repost` を消す
+  - `just be-gen`
+- [X] T066 backend/internal/handler/handler.go:
+  - `checkEntries` を data-model の業務ルールの 2 つの表にする。親・子を普通に送ってよいのは、登録されていないか `placed && !has_earlier` の記事だけ。それ以外は `duplicates` に入れ、親で `first_published_on` があれば `repostable` にも入れる。再掲載として送った記事は、`placed` なら通し、そうでなければ `first_published_on` がなければ `unavailable` にする。子のないカテゴリ違いは今のまま
+  - `place` から `repost` を外す
+  - `toDigest` で再掲載の HOT を false にする
+  - 「同じ形で載っている」と書いたコメントを、新しい判定の理由に直す
+- [X] T067 [P] handler_test.go: `checkEntries` を表の行ごとに 1 件ずつに直す。足すのは、元の掲載を再掲載として送って通る、日付の変更で前に掲載が来た記事を普通の親で送って断られる、の 2 件。`toDigest` に再掲載の HOT が false になる 1 件
+- [X] T068 [P] backend/cmd/seed/main.go: `tx.Query` の err を確かめる。消す掲載を seeder の Digest (`created_by = seeder.ID`) に絞り、ほかの利用者の記事を孤立の削除に回さない。`digest_articles_original_key` に触れたコメントを消す
+- [X] T069 `just be-gen` (差分なし)、`just lint && just test`
+
+## Phase 12: frontend (印の条件と編集画面のずれ)
+
+- [X] T070 frontend/src/shared/ui/digest-post.tsx: 「再掲載」の印と細い行の条件を `firstPublishedOn !== undefined` にする (contracts/ui.md の DigestPost)。HOT を出さない条件は `repost` のまま。digest-post.stories.tsx に `repost: true` で `firstPublishedOn` のない行 (普通の行で出る) を 1 つ足す
+- [X] T071 frontend/src/pages/digest-editor/model/board.ts:
+  - `toggleHot` で親を HOT にしたら、子の HOT を外す
+  - `makeChild` は、親が HOT でなければ子にする行の HOT を残す
+  - `fromDigest` の子の HOT の扱いと揃える
+  - `Draft.repost.category` は省略できない型にし、事実と違うコメント (35 行目) と `!== undefined` の分岐を消す
+  - board.test.ts に、親を HOT にすると子の HOT が外れる 1 件
+- [X] T072 frontend/src/pages/digest-editor/ui/digest-editor-page.tsx と board-drag-drop.tsx: `pinReposts` を reducer から外し、ドラッグの終わり・子を外す/消す・エージェントの更新の後にだけ掛ける。dragover の途中で箱を戻さない
+- [X] T073 frontend/src/pages/digest-editor/model/article-tools.ts:
+  - `update_articles` で、再掲載の行のタイトル・HOT の変更と、子のない再掲載のカテゴリの変更を断り、理由を返す
+  - 返す盤面は `pinReposts` を通した後のものにする
+  - `describeBoard` (board.ts) に再掲載の印 (` [再掲載]`) を足す
+- [X] T074 digest-editor-page.tsx の断られたときの処理: `registered` / `converted` / `unavailable` を入れ替えるのは `url-already-registered` と `repost-unavailable` のときだけにする。`digest-already-exists`・`future-publish` などでは前の印を残す
+- [X] T075 frontend/src/pages/home/model/digest-markdown.ts: Markdown のコピーを公開ページと同じにする (2026-11-18 決定)。`firstPublishedOn` のある親に「再掲載」を付け、再掲載の HOT は出さず、HOT でない親の下の HOT の子は、何の続報か分かるよう親ごとホットトピックに入れる。digest-markdown のテストに 1 件
+- [X] T076 `just fe-typecheck`、`just fe-test`
+
+## Phase 13: Polish
+
+- [X] T077 [P] packages/project/.apm/instructions/frontend-ui-design.instructions.md の「Digest の投稿」の再掲載の項に、印と細い行は前の日付の公開の Digest に載っているときだけ出すことを足す (一般の閲覧者が見られない掲載を根拠にしないため)
+- [X] T078 [P] quickstart.md に次の 3 つを足す
+  - 元の Digest を非公開にすると、トップで普通の行になり、公開に戻すと印が戻る (US2 の 6・7)
+  - 元の掲載を外すと、次に古い掲載の行でタイトルを編集できる
+  - 日付を変えて前後が入れ替わると、元の掲載も入れ替わる
+- [X] T079 quality.md の完了の判定を通す: `just be-gen` (差分なし)、`just lint && just test`、`just fe-typecheck`、`just fe-test-e2e digest-repost digest-new digest-edit`。手元の DB は 000013 を書き換えたので、`times` と `times_e2e` を作り直してから回す
+- [X] T080 quickstart.md を手で確かめる
+
+---
+
 ## Dependencies & Execution Order
 
 - **Phase 1 (デモ)**: 依存なし。**承認がゲート**
@@ -175,6 +226,9 @@ Phase 1〜6 は初版の方針で完了した。spec の Revision (research R10�
 - **Phase 8 (backend)**: Phase 7 の承認の後
 - **Phase 9 (frontend)**: Phase 8 の後 (生成型が要る)
 - **Phase 10**: すべての後
+- **Phase 11 (見直し 2 の backend)**: 依存なし。T064 → T065 → T066 の順。T067・T068 は T066 の後に並行
+- **Phase 12 (見直し 2 の frontend)**: API の形は変わらないので Phase 11 と並行できる。T070・T071・T074 は別ファイルで並行。T072・T073 は T071 の後 (`pinReposts` と `describeBoard` が board.ts にある)
+- **Phase 13**: Phase 11・12 の後
 
 ### Parallel Opportunities
 

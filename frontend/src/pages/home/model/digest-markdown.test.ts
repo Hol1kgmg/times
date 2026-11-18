@@ -39,6 +39,30 @@ describe(digestMarkdown, () => {
     );
   });
 
+  it("marks a visible repost and gathers a parent with a hot child into the hot topics", () => {
+    const digest = make([
+      {
+        category: "IT系",
+        repost: true,
+        firstPublishedOn: "2026-10-03",
+        title: "a",
+        url: "https://x.example/a",
+        children: [{ id: id(), hot: true, title: "a1", url: "https://x.example/a1" }],
+      },
+      { category: "IT系", repost: true, title: "b", url: "https://x.example/b", children: [] },
+    ]);
+    expect(digestMarkdown(digest)).toBe(
+      [
+        "ホットトピック",
+        "- 再掲載 [a](https://x.example/a)",
+        "  - [a1](https://x.example/a1)",
+        "",
+        "IT系",
+        "- [b](https://x.example/b)",
+      ].join("\n"),
+    );
+  });
+
   it("escapes brackets in titles and falls back to the URL for a blank title", () => {
     const digest = make([
       { category: "その他", title: "[PR] x", url: "https://x.example/a", children: [] },

@@ -28,8 +28,8 @@ interface LinkMetaProps {
   untitled: boolean;
   suggested: boolean;
   registered: boolean;
-  firstPublishedOn?: string; // 再掲載の行だけ。「再掲載 · 10月3日(土)に初掲載」を faint で出す
-  repost: boolean; // 日付がないときは「再掲載」だけを faint で出す
+  firstPublishedOn?: string; // 再掲載の行で、前の公開の掲載があるときだけ。「再掲載 · 10月3日(土)に初掲載」を faint で出す
+  repost: boolean; // 日付がない (前の掲載が下書き・非公開だけ) ときは「再掲載」だけを faint で出す
   converted: boolean; // 断られて再掲載に切り替えた行。「再掲載にしました」を accent で出す
   unavailable: boolean; // 「この記事は再掲載できません」を danger で出す
 }
@@ -38,6 +38,7 @@ interface LinkMetaProps {
 ## DigestPost (公開ページ・プレビューの投稿)
 
 - 記事の型は生成型の `Article` (`repost`・子の `hot`) をそのまま使う。下書きの型は `repost` と子の `hot` を持つ
+- 「再掲載」の印と細い行は `firstPublishedOn` があるときだけ出す (FR-010)。`repost` が true でも `firstPublishedOn` がなければ普通の行にし、HOT だけ付けない
 - 子のある再掲載の親の行は細い形にする (子がなければ普通の大きさで、印だけ付ける): favicon を小さく、「再掲載」の印 (`.t-meta` の faint) をタイトルの前に置き、タイトルは `.t-body` の `--color-text-muted` で、1 行に収めて末尾を「…」で省略する (AI のアイコンは省略の外に残す)。リンク・記事カード・AI のアイコンは普通の行と同じ。HOT は付かない
 - HOT の印は、HOT の親の行と、HOT でない親の下の HOT の子の行に付ける (FR-017)
 

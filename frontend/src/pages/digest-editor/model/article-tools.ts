@@ -8,6 +8,7 @@ import type { Suggested } from "./add-url";
 import {
   addUntitled,
   describeBoard,
+  pinReposts,
   fillTitle,
   MAX_DRAFTS,
   rejectUpdate,
@@ -56,6 +57,8 @@ const suggestedText = (suggested: Suggested) => {
 const updateRejectedText: Record<UpdateRejected, string> = {
   missing: "その id の記事は画面の Digest にありません",
   child: "子記事はカテゴリとホットを持てません (title だけ直せます)",
+  repost:
+    "再掲載の記事はタイトルとホットを変えられず、子記事がなければカテゴリも元の記事のままです",
 };
 
 interface Props {
@@ -141,7 +144,7 @@ export const useArticleTools = ({ board, setBoard, setSuggesting, setAdding }: P
               rejected === null ? [] : [`- ${a.id}: ${updateRejectedText[rejected]}`],
             ),
             "",
-            describeBoard(apply(latest.current.board)),
+            describeBoard(pinReposts(apply(latest.current.board))),
           ].join("\n");
         },
       }),

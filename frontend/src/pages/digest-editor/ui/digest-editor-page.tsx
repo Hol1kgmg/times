@@ -123,10 +123,13 @@ const DigestForm = <S extends DigestStatus>({
   const defaultDate = useSyncExternalStore(subscribeNever, today, () => "");
   const [editedDate, setEditedDate] = useState<string>();
   const entryDate = editedDate ?? initialDate ?? defaultDate;
-  // ドラッグ・削除・エージェントのどれで動いても、子のない再掲載を元のカテゴリに留める
+  // ドラッグ・削除・エージェントのどれで動いても、子のない再掲載を元のカテゴリに留める。
+  // ドラッグの途中で戻すと dnd-kit の並びとずれるので、途中の並びだけはそのまま置き、終わりで戻す
   const [board, setBoard] = useReducer(
-    (b: Board, next: SetStateAction<Board>) =>
-      pinReposts(typeof next === "function" ? next(b) : next),
+    (b: Board, next: SetStateAction<Board> | { dragging: Board }) =>
+      typeof next !== "function" && "dragging" in next
+        ? next.dragging
+        : pinReposts(typeof next === "function" ? next(b) : next),
     initialBoard,
   );
   // URL を続けて足すと推定が重なるので、件数で持つ
@@ -225,20 +228,24 @@ const DigestForm = <S extends DigestStatus>({
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が遷移する
       const rejected = await save(entry, status);
-      const repostable = rejected.reason === "url-already-registered" ? rejected.repostable : [];
-      const urls = "duplicateUrls" in rejected ? rejected.duplicateUrls : [];
-      const repostableUrls = new Set(repostable.map((r) => r.url));
-      setRowRejection({
-        registered: new Set(
-          rejected.reason === "url-already-registered"
-            ? urls.filter((u) => !repostableUrls.has(u))
-            : [],
-        ),
-        converted: repostableUrls,
-        unavailable: new Set(rejected.reason === "repost-unavailable" ? urls : []),
-      });
-      // 自動では保存し直さず、切り替えた行を見てから保存してもらう
-      setBoard((b) => convertToReposts(b, repostable));
+      // 日付で断られたときは URL を確かめる前に止まっているので、前の行の印を残す
+      if ("duplicateUrls" in rejected) {
+        const repostable = rejected.reason === "url-already-registered" ? rejected.repostable : [];
+        const repostableUrls = new Set(repostable.map((r) => r.url));
+        setRowRejection({
+          registered: new Set(
+            rejected.reason === "url-already-registered"
+              ? rejected.duplicateUrls.filter((u) => !repostableUrls.has(u))
+              : [],
+          ),
+          converted: repostableUrls,
+          unavailable: new Set(
+            rejected.reason === "repost-unavailable" ? rejected.duplicateUrls : [],
+          ),
+        });
+        // 自動では保存し直さず、切り替えた行を見てから保存してもらう
+        setBoard((b) => convertToReposts(b, repostable));
+      }
       if (rejected.reason === "digest-already-exists" || rejected.reason === "future-publish") {
         setDateRejection({ entryDate: entry.entryDate, reason: rejected.reason });
       }
@@ -327,7 +334,13 @@ const DigestForm = <S extends DigestStatus>({
           }}
         />
       )}
-      <BoardDragDrop board={board} onChange={setBoard}>
+      <BoardDragDrop
+        board={board}
+        onChange={setBoard}
+        onDrag={(dragging) => {
+          setBoard({ dragging });
+        }}
+      >
         <div className={styles.collect}>
           <UrlAddForm
             adding={adding}

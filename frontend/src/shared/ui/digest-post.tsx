@@ -124,36 +124,40 @@ const Entry = ({
   loadPreview: LoadPreview;
   open?: Open;
   ai?: Ai;
-}) => (
-  <>
-    <ArticleLink
-      ai={ai}
-      article={article}
-      hot={!article.repost && article.hot}
-      loadPreview={loadPreview}
-      open={open}
-      repost={article.repost}
-      // 子がなければ再掲載の行そのものを読ませるので、普通の大きさのままにする
-      thin={article.repost && article.children.length > 0}
-    />
-    {article.children.length > 0 && (
-      <ul className={styles.children}>
-        {article.children.map((c) => (
-          <li key={c.url}>
-            {/* 親が HOT なら印は親の行だけで話題全体を示す (specs/018 FR-017) */}
-            <ArticleLink
-              ai={ai}
-              article={c}
-              hot={c.hot && !article.hot}
-              loadPreview={loadPreview}
-              open={open}
-            />
-          </li>
-        ))}
-      </ul>
-    )}
-  </>
-);
+}) => {
+  // 前の掲載が下書き・非公開にしかないと閲覧者は元の記事を見つけられないので、印を出さない (specs/018 FR-010)
+  const marked = article.firstPublishedOn !== undefined;
+  return (
+    <>
+      <ArticleLink
+        ai={ai}
+        article={article}
+        hot={!article.repost && article.hot}
+        loadPreview={loadPreview}
+        open={open}
+        repost={marked}
+        // 子がなければ再掲載の行そのものを読ませるので、普通の大きさのままにする
+        thin={marked && article.children.length > 0}
+      />
+      {article.children.length > 0 && (
+        <ul className={styles.children}>
+          {article.children.map((c) => (
+            <li key={c.url}>
+              {/* 親が HOT なら印は親の行だけで話題全体を示す (specs/018 FR-017) */}
+              <ArticleLink
+                ai={ai}
+                article={c}
+                hot={c.hot && !article.hot}
+                loadPreview={loadPreview}
+                open={open}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+};
 
 type DigestPostProps = {
   loadPreview: LoadPreview;

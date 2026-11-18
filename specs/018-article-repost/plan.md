@@ -8,6 +8,15 @@
 
 `articles` を記事そのものに絞り、Digest への載り方 (並び・HOT・親子) を新しい `digest_articles` に移す。`article_links` は `digest_articles.parent_id` に吸収して消す (research R1・R2・R3、adr/backend/0008)。再掲載は同じ記事の 2 つ目の掲載で、保存時に「この Digest にまだ載っていない登録済みの記事」だけを純粋関数 `classifyReposts` で振り分ける。親で、新規の子があり、ほかの公開済み Digest に載っていれば通し、それ以外は今の `url-already-registered` か新しい `repost-needs-child` で断る (R4)。保存のレスポンスは `SavedDigest` (`repostedUrls` 付き) にし、再掲載があればサーバー関数が編集画面へ `?reposted=` 付きで戻して、記事行に「再掲載として登録しました」を出す (R6)。「〜に掲載」の日付は保存せず、読むクエリで導いて `Article.firstPublishedOn` として返す (R5)。公開ページではタイトルの下のメタ行に「再掲載」だけを、編集画面では `LinkMeta` に日付付きで出し、見た目は Storybook の story で確かめる (R7、contracts/ui.md)。
 
+### Revision 2 (2026-11-18、research R14)
+
+`digest_articles.is_repost` と、その CHECK・部分 UNIQUE (`digest_articles_original_key`) を 000013 から消し、再掲載を保存せずに導く。API の形 (`RepostArticle`、`Article.repost`・`firstPublishedOn`、`repostable`、`repost-unavailable`) は変えない。
+
+- **SQL**: 掲載を読むクエリ (`ListArticlesByDigest`、`ListRegisteredArticles`) で、同じ記事のもっと前の日付の掲載 (状態を問わない) があるかを `is_repost` として導く。`first_published_on` は再掲載の行に限らず引く (元の掲載では前の掲載がないので NULL)。`placed_original` / `placed_repost` の 2 つの EXISTS は `placed` 1 つにする
+- **handler**: `checkEntries` は、登録されていないか「この Digest に載っていて、前の掲載がない」記事だけを普通の親・子として通す。再掲載として送られた記事は、この Digest に載っていれば通し、載っていなければ `first_published_on` で FR-005 を確かめる。`toDigest` は再掲載の HOT を false にする。`CreateDigestArticle` から `is_repost` を消す
+- **frontend**: 公開ページ (`DigestPost`) の印と細い行の条件を `repost` から `firstPublishedOn` の有無に替える。編集画面の行のロックは `repost` のまま
+- **あわせて直すもの** (specs/018 のレビュー): 編集画面の子の HOT (親を HOT にしたら子の HOT を外す)、子のない再掲載のカテゴリ固定をドラッグの最中に掛けない、WebMCP のツールで再掲載を変えさせない、断られた理由で行の印を消し分ける、seed の 2 件、事実と違うコメント
+
 ## Technical Context
 
 **Language/Version**: Go (backend)、TypeScript strict / React 19 (frontend)
@@ -21,6 +30,7 @@
 - Vitest: `rejection-of.ts` の `repost-needs-child`、編集 route の `reposted` の search の検証
 - Playwright: `e2e/digest-repost.spec.ts` を 1 本 (公開済みの記事を親に、新しい記事を子にして保存 → 編集画面の案内 → トップで親子と印が出る)。DB を通る新しいつながりなので足す (quality.md)
 - Storybook: contracts/ui.md の 6 story (見た目のデモ。自動テストではない)
+- Revision 2: go test は `checkEntries` の表 (data-model の業務ルールの 2 つの表の行ごと) と `toDigest` の再掲載の HOT。Vitest は `board.ts` の子の HOT とカテゴリの固定、`DigestPost` の印の条件は純粋関数に切り出さず型と story で押さえる。e2e は `digest-repost` を回し直すだけで足さない (DB を通る経路は同じ)
 
 **Target Platform**: Cloud Run (backend)、Cloudflare Workers (frontend)
 
@@ -43,6 +53,8 @@
 | V. テストとスキーマ | ✅ | 親子の同一 Digest は DB の複合 FK、記事の一意性は DB の unique、再掲載の振り分けは go test、拒否の変換は Vitest、DB を通るつながりは e2e 1 本 |
 
 Phase 1 の設計の後も違反なし。
+
+Revision 2: 再掲載の掲載の形 (親だけ・HOT なし・登録済みの URL を普通の親にしない) を DB の制約で守らなくなる (quality.md の「DB は整合性の最終防衛線」から外れる)。別の行の日付と比べる条件は CHECK・部分 UNIQUE で書けず、守るには状態を保存する必要があり、それが元の掲載のない記事を生んでいた (adr/backend/0008)。handler の判定と go test で守る。並行する保存は `LockDigestDates` で直列なので、判定と書き込みの間に他の保存は入らない。
 
 ## Project Structure
 
@@ -92,4 +104,6 @@ packages/project/.apm/instructions/frontend-ui-design.instructions.md   # Digest
 
 ## Complexity Tracking
 
-違反なし。
+| 違反 | 必要な理由 | 退けた単純な案 |
+|---|---|---|
+| 再掲載の掲載の形を DB で縛らない (Revision 2) | 元の掲載かどうかは別の行の日付で決まり、CHECK・部分 UNIQUE で書けない | `is_repost` を保存して縛る: 元の掲載を外す・日付を変える・非公開にすると、元の掲載のない記事や元より前の再掲載が残る (research R14) |

@@ -285,8 +285,8 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 		return nil, err
 	}
 	var pos int32
-	place := func(articleID uuid.UUID, parent *uuid.UUID, hot, repost bool) error {
-		err := q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: d.ID, ArticleID: articleID, ParentID: parent, Position: pos, IsHot: hot, IsRepost: repost})
+	place := func(articleID uuid.UUID, parent *uuid.UUID, hot bool) error {
+		err := q.CreateDigestArticle(ctx, db.CreateDigestArticleParams{DigestID: d.ID, ArticleID: articleID, ParentID: parent, Position: pos, IsHot: hot})
 		pos++
 		return constraintViolation(err)
 	}
@@ -301,7 +301,7 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 				return nil, err
 			}
 		}
-		if err := place(id, nil, e.hot, e.repost); err != nil {
+		if err := place(id, nil, e.hot); err != nil {
 			return nil, err
 		}
 		for _, c := range e.children {
@@ -310,7 +310,7 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 				return nil, err
 			}
 			// 親が HOT なら子も HOT として持ち、親 HOT・子は HOT でない組み合わせを作らない (specs/018 FR-016)
-			if err := place(cid, &id, e.hot || (c.Hot != nil && *c.Hot), false); err != nil {
+			if err := place(cid, &id, e.hot || (c.Hot != nil && *c.Hot)); err != nil {
 				return nil, err
 			}
 		}
@@ -321,24 +321,30 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 	return q.ListArticlesByDigest(ctx, d.ID)
 }
 
-// 判定しないのはこの Digest に同じ形 (再掲載か否か) で載っている記事だけ (specs/018 FR-009)。表は data-model.md の業務ルール
+// 前の掲載がある記事を普通の親・子で通すと、再掲載で記事を書き換えられる。表は data-model.md の業務ルール
 func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticlesRow) error {
 	var duplicates, unavailable []string
 	var repostable []apperr.Repostable
 	mismatch := false
+	// 新しい記事と、この Digest が元の掲載の記事だけが、タイトル・カテゴリを書き換えてよい
+	original := func(url string) bool {
+		r, ok := registered[url]
+		return !ok || r.Placed && !r.HasEarlier
+	}
 	for _, e := range entries {
 		for _, c := range e.children {
-			if r, ok := registered[c.Url]; ok && !r.PlacedOriginal {
+			if !original(c.Url) {
 				duplicates = append(duplicates, c.Url)
 			}
 		}
-		r, ok := registered[e.url]
+		r := registered[e.url]
 		switch {
-		case e.repost && !r.PlacedRepost && r.FirstPublishedOn == nil:
+		// この Digest に載っている記事は FR-005 を確かめ直さない (specs/018 FR-009)
+		case e.repost && !r.Placed && r.FirstPublishedOn == nil:
 			unavailable = append(unavailable, e.url)
 		case e.repost:
 			mismatch = mismatch || len(e.children) == 0 && string(e.category) != r.Category
-		case ok && !r.PlacedOriginal:
+		case !original(e.url):
 			duplicates = append(duplicates, e.url)
 			if r.FirstPublishedOn != nil {
 				repostable = append(repostable, apperr.Repostable{URL: r.Url, Title: r.Title, Category: r.Category, FirstPublishedOn: *r.FirstPublishedOn})
@@ -404,7 +410,8 @@ func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow) api.Digest {
 		if r.FirstPublishedOn != nil {
 			first = &openapi_types.Date{Time: *r.FirstPublishedOn}
 		}
-		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot, Repost: r.IsRepost, Title: r.Title, Url: r.Url, Description: r.Description, FirstPublishedOn: first})
+		// 日付の変更で再掲載になった掲載は、元の掲載だったときの HOT を持ったまま (specs/018 Edge Cases)
+		articles = append(articles, api.Article{Id: r.ID, Category: api.Category(r.Category), Hot: r.IsHot && !r.IsRepost, Repost: r.IsRepost, Title: r.Title, Url: r.Url, Description: r.Description, FirstPublishedOn: first})
 	}
 	for i := range articles {
 		a := &articles[i]

@@ -276,6 +276,11 @@ describe("保存済みの Digest を開く", () => {
     expect(toggleHot(b, uuid(1)).その他[0]?.children[0]?.hot).toBeFalsy();
   });
 
+  it("drops the children's own hot flags once their parent is marked hot", () => {
+    const b = toggleHot(board({ IT系: [draft("p", { children: [link("c")] })] }), "c");
+    expect(toggleHot(toggleHot(b, "p"), "p").IT系[0]?.children[0]?.hot).toBeFalsy();
+  });
+
   it("moves a saved repost back to the article category once its children are removed", () => {
     const b = fromDigest(
       digest.parse({
@@ -297,7 +302,12 @@ describe("保存済みの Digest を開く", () => {
 
   it("sends a repost as a reference to the article, keeping the hot flags of its children", () => {
     const b = board({
-      IT系: [draft("a", { repost: { firstPublishedOn: "2026-10-03" }, children: [link("c")] })],
+      IT系: [
+        draft("a", {
+          repost: { category: "AI系", firstPublishedOn: "2026-10-03" },
+          children: [link("c")],
+        }),
+      ],
     });
     const hot = toggleHot(b, "c");
     expect(toNewDigest(hot, "2026-10-20").articles).toStrictEqual([
@@ -407,6 +417,16 @@ describe("エージェントの更新", () => {
     expect(rejectUpdate(b, { id: "c", category: "その他" })).toBe("child");
     expect(rejectUpdate(b, { id: "c", title: "直す" })).toBeNull();
     expect(rejectUpdate(b, { id: "x", title: "直す" })).toBe("missing");
+  });
+
+  it("rejects changing a repost except the category of one with children", () => {
+    const repost = { category: "AI系", firstPublishedOn: "2026-10-03" } as const;
+    const b = board({
+      AI系: [draft("a", { repost }), draft("b", { repost, children: [link("c")] })],
+    });
+    expect(rejectUpdate(b, { id: "a", title: "直す" })).toBe("repost");
+    expect(rejectUpdate(b, { id: "a", category: "その他" })).toBe("repost");
+    expect(rejectUpdate(b, { id: "b", category: "その他" })).toBeNull();
   });
 
   it("keeps a title entered while the fetch was in flight", () => {

@@ -39,18 +39,26 @@ just fe-dev          # 別のターミナル
 | 操作 | 期待 |
 |---|---|
 | A を別の記事の子として登録 | A の行に「既に登録済みです」 |
-| 下書きの Digest にだけ載っている記事を親にして登録 | その行に「既に登録済みです」(再掲載には切り替わらない) |
+| 下書きか非公開の Digest にだけ載っている記事を親にして登録 | その行に「既に登録済みです」(再掲載には切り替わらない) |
 | 再掲載に切り替えた後、別のタブで元の Digest を非公開にしてから登録し直す | A の行に「この記事は再掲載できません」 |
 
-## 6. Storybook のデモ
+## 6. 元の Digest の状態を変える (Revision 2)
+
+1. 3 のあと、元の日の Digest を非公開にする。トップの当日の Digest で A が印のない普通の大きさの行になり、編集画面の A の行は「再掲載」だけ (日付なし) でロックされたままであることを確かめる
+2. 元の日の Digest を公開に戻し、トップで A が細い「再掲載」の行に戻ることを確かめる
+3. 元の日の Digest から A を外して保存する。当日の Digest の編集画面で、A の行が普通の記事の行になり、タイトルを編集できることを確かめる (当日が元の掲載になる)
+4. 元の日の Digest に A の URL を入れて保存すると、「既に登録済みです」で断られることを確かめる (前の日付の公開の掲載がないので再掲載にも切り替わらない)
+5. 当日の Digest の日付を元の日より前に変えて保存し、元の日の Digest で A の行が再掲載になることを確かめる (元の掲載が入れ替わる)
+
+## 7. Storybook のデモ
 
 ```sh
 just fe-storybook
 ```
 
-`shared/ui/DigestPost` の `Repost` / `RepostWithAskAi` / `HotPatterns` と、`pages/digest-editor/ui/LinkMeta` の `Repost` / `RepostConverted` / `RepostUnavailable` / `Registered` を開く (contracts/ui.md)。ライトとダークの両方で確かめる。
+`shared/ui/DigestPost` の `Repost` (前の Digest を非公開にした再掲載は普通の行) / `RepostWithAskAi` / `HotPatterns` と、`pages/digest-editor/ui/LinkMeta` の `Repost` / `RepostConverted` / `RepostUnavailable` / `Registered` を開く (contracts/ui.md)。ライトとダークの両方で確かめる。
 
-## 7. 自動テスト
+## 8. 自動テスト
 
 ```sh
 just be-gen

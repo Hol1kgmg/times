@@ -1,4 +1,4 @@
--- 記事 1 つにつき掲載 1 つの形に戻すので、再掲載でない掲載 (なければいちばん古い再掲載) だけを残し、ほかの再掲載は捨てる
+-- 記事 1 つにつき掲載 1 つの形に戻すので、いちばん古い日付の掲載 (元の掲載) だけを残し、再掲載は捨てる
 ALTER TABLE articles
     ADD COLUMN digest_id uuid REFERENCES digests (id) ON DELETE CASCADE,
     ADD COLUMN position integer,
@@ -7,7 +7,7 @@ ALTER TABLE articles
 CREATE TEMP TABLE first_placements AS
 SELECT DISTINCT ON (da.article_id) da.*
 FROM digest_articles da JOIN digests d ON d.id = da.digest_id
-ORDER BY da.article_id, da.is_repost, d.entry_date, d.created_at;
+ORDER BY da.article_id, d.entry_date, d.created_at;
 
 UPDATE articles a SET digest_id = f.digest_id, position = f.position, is_hot = f.is_hot
 FROM first_placements f WHERE f.article_id = a.id;

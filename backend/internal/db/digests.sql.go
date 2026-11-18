@@ -39,7 +39,7 @@ func (q *Queries) CreateDigest(ctx context.Context, arg CreateDigestParams) (Dig
 }
 
 const createDigestArticle = `-- name: CreateDigestArticle :exec
-INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot, is_repost) VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO digest_articles (digest_id, article_id, parent_id, position, is_hot) VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateDigestArticleParams struct {
@@ -48,7 +48,6 @@ type CreateDigestArticleParams struct {
 	ParentID  *uuid.UUID
 	Position  int32
 	IsHot     bool
-	IsRepost  bool
 }
 
 func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArticleParams) error {
@@ -58,7 +57,6 @@ func (q *Queries) CreateDigestArticle(ctx context.Context, arg CreateDigestArtic
 		arg.ParentID,
 		arg.Position,
 		arg.IsHot,
-		arg.IsRepost,
 	)
 	return err
 }
@@ -159,9 +157,13 @@ func (q *Queries) GetLatestDigest(ctx context.Context) (Digest, error) {
 }
 
 const listArticlesByDigest = `-- name: ListArticlesByDigest :many
-SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot, da.is_repost, f.entry_date AS first_published_on
+SELECT a.id, a.category, a.title, a.url, a.description, da.parent_id, da.is_hot,
+  -- 下書き・非公開も数える。編集の範囲を決めるので、閲覧者に見えるかは問わない (specs/018 FR-019)
+  EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+    WHERE o.article_id = a.id AND d.entry_date < cur.entry_date) AS is_repost,
+  f.entry_date AS first_published_on
 FROM digest_articles da JOIN articles a ON a.id = da.article_id JOIN digests cur ON cur.id = da.digest_id
-LEFT JOIN digests f ON da.is_repost AND f.id = (
+LEFT JOIN digests f ON f.id = (
   SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
   -- 後の日付の掲載を数えると、前の日の Digest に後から再掲載の印が付く (specs/018 FR-010)
   WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
@@ -322,15 +324,18 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 
 const listRegisteredArticles = `-- name: ListRegisteredArticles :many
 SELECT a.id, a.url, a.title, a.category,
-  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $1 AND NOT da.is_repost) AS placed_original,
-  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = $1 AND da.is_repost) AS placed_repost,
+  EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = cur.id) AS placed,
+  -- 下書き・非公開も数える。前に掲載があれば、この Digest の掲載は再掲載になる (specs/018 FR-019)
+  EXISTS (SELECT 1 FROM digest_articles o JOIN digests d ON d.id = o.digest_id
+    WHERE o.article_id = a.id AND d.entry_date < cur.entry_date) AS has_earlier,
   -- sqlc はサブクエリの列を NULL なしと推論するので、テーブルの LEFT JOIN で NULL を許す型にする
   f.entry_date AS first_published_on
 FROM articles a
+JOIN digests cur ON cur.id = $1
 LEFT JOIN digests f ON f.id = (
   SELECT d.id FROM digest_articles o JOIN digests d ON d.id = o.digest_id
-  WHERE o.article_id = a.id AND d.status = 'published'
-    AND d.entry_date < (SELECT cur.entry_date FROM digests cur WHERE cur.id = $1)
+  -- 閲覧者に見えない下書き・非公開と、後の日付の掲載は再掲載の根拠にしない (specs/018 FR-005・FR-010)
+  WHERE o.article_id = a.id AND d.status = 'published' AND d.entry_date < cur.entry_date
   ORDER BY d.entry_date LIMIT 1
 )
 WHERE a.created_by = $2 AND a.url = ANY($3::text[])
@@ -347,8 +352,8 @@ type ListRegisteredArticlesRow struct {
 	Url              string
 	Title            string
 	Category         string
-	PlacedOriginal   bool
-	PlacedRepost     bool
+	Placed           bool
+	HasEarlier       bool
 	FirstPublishedOn *time.Time
 }
 
@@ -367,8 +372,8 @@ func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegistered
 			&i.Url,
 			&i.Title,
 			&i.Category,
-			&i.PlacedOriginal,
-			&i.PlacedRepost,
+			&i.Placed,
+			&i.HasEarlier,
 			&i.FirstPublishedOn,
 		); err != nil {
 			return nil, err
