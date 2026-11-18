@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { LinkMeta } from "./link-meta";
 
-// DraftCard はサーバー関数を読み込み、TanStack Start を外した Storybook では動かないので、メタ行だけを載せる
 const meta = {
   component: LinkMeta,
   args: {
@@ -28,3 +27,5 @@ export const RepostConverted: Story = {
 export const RepostUnavailable: Story = {
   args: { repost: true, firstPublishedOn: "2026-10-03", unavailable: true },
 };
+export const RepostUnpublished: Story = { args: { repost: true, unpublished: true } };
+export const Hidden: Story = { args: { hidden: true } };

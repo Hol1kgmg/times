@@ -59,7 +59,7 @@ just fe-dev          # 別のターミナル
 just fe-storybook
 ```
 
-`shared/ui/DigestPost` の `Repost` (前の Digest を非公開にした再掲載は普通の行) / `RepostWithAskAi` / `HotPatterns` と、`pages/digest-editor/ui/LinkMeta` の `Repost` / `RepostConverted` / `RepostUnavailable` / `Registered` を開く (contracts/ui.md)。ライトとダークの両方で確かめる。
+`shared/ui/DigestPost` の `Repost` (前の Digest を非公開にした再掲載は普通の行) / `RepostWithAskAi` / `HotPatterns` と、`pages/digest-editor/ui/LinkMeta` の `Repost` / `RepostConverted` / `RepostUnavailable` / `RepostUnpublished` / `Hidden` / `Registered`、`pages/digest-editor/ui/DraftCard` の `Repost` / `RepostUnpublished` / `Hidden` を開く (contracts/ui.md)。ライトとダークの両方で確かめる。
 
 ## 8. 自動テスト
 

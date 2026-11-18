@@ -52,6 +52,9 @@ interface LinkMetaProps {
 | `pages/digest-editor/ui/link-meta.stories.tsx` | `Repost` | 保存済みの再掲載 (印と日付) |
 | `pages/digest-editor/ui/link-meta.stories.tsx` | `RepostConverted` | 断られて切り替えた直後 (印 + 「再掲載にしました」) |
 | `pages/digest-editor/ui/link-meta.stories.tsx` | `RepostUnavailable` | 再掲載できないと断られた行 |
+| `pages/digest-editor/ui/link-meta.stories.tsx` | `RepostUnpublished` | 元の Digest が公開されていない再掲載の行 |
+| `pages/digest-editor/ui/link-meta.stories.tsx` | `Hidden` | 子がほかの日にいて外す代わりに隠した行 |
+| `pages/digest-editor/ui/draft-card.stories.tsx` | `Repost` / `RepostUnpublished` / `Hidden` | 枠の中の記事カード (子付きの再掲載、元の Digest が公開されていない再掲載、「表示に戻す」付きの隠した行) |
 | `pages/digest-editor/ui/link-meta.stories.tsx` | `Registered` | 今の「既に登録済みです」(比べるため) |
 
 `DraftCard` はサーバー関数を読み込むので Storybook に載せられない (`link-meta.stories.tsx` の既存コメント)。メニューとカテゴリの固定はデモに出さず、Phase 9 で編集画面を開いて確かめる。
