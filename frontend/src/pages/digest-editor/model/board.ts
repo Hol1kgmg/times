@@ -542,22 +542,36 @@ export const convertToReposts = (board: Board, repostable: readonly Repostable[]
   );
 };
 
-// 外したのに消せなかった親を、隠した行として元の枠の末尾に戻す
-export const restoreHidden = (board: Board, hideable: readonly Hideable[]): Board => {
+// 外したのに消せなかった親を、隠した行として戻す。外す前の行があれば、その枠・位置・HOT のまま戻す
+export const restoreHidden = (
+  board: Board,
+  hideable: readonly Hideable[],
+  before: Board,
+): Board => {
   let next = board;
   for (const h of hideable) {
     if (findDuplicate(next, h.url)) {
       next = mapDrafts(next, (d) => (d.url === h.url ? { ...d, hidden: true } : d));
       continue;
     }
+    const box = boxIds.find((b) => before[b].some((d) => d.url === h.url)) ?? h.category;
+    const index = before[box].findIndex((d) => d.url === h.url);
+    const old = before[box][index];
     const draft: Draft = {
-      ...savedLink({ id: `hidden:${h.url}`, url: h.url, title: h.title, hot: false }),
-      suggested: false,
-      category: h.category,
+      ...(old ?? {
+        ...savedLink({ id: `hidden:${h.url}`, url: h.url, title: h.title, hot: false }),
+        suggested: false,
+        category: h.category,
+      }),
+      // 子はこの保存で外したか、ほかの日に載っているので連れ戻さない
       children: [],
       hidden: true,
     };
-    next = replaceBox(next, h.category, [...next[h.category], draft]);
+    next = replaceBox(
+      next,
+      box,
+      next[box].toSpliced(index === -1 ? next[box].length : index, 0, draft),
+    );
   }
   return next;
 };

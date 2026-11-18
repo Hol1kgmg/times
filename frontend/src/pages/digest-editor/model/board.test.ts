@@ -388,7 +388,7 @@ describe("外せない親を隠す", () => {
   const hideable = { url: "https://example.com/p", title: "親", category: "IT系" } as const;
 
   it("brings a removed parent back as a hidden row and sends it hidden until shown again", () => {
-    const b = restoreHidden(board({ IT系: [draft("a")] }), [hideable]);
+    const b = restoreHidden(board({ IT系: [draft("a")] }), [hideable], emptyBoard());
     expect(b.IT系.map((d) => [d.url, d.hidden])).toStrictEqual([
       ["https://example.com/a", undefined],
       ["https://example.com/p", true],
@@ -396,6 +396,15 @@ describe("外せない親を隠す", () => {
     expect(toNewDigest(b, "2026-10-20").articles[1]).toMatchObject({ hidden: true });
     const shown = unhide(b, b.IT系[1]?.id ?? "");
     expect(toNewDigest(shown, "2026-10-20").articles[1]).toMatchObject({ hidden: false });
+  });
+
+  it("brings a removed parent back to its place and keeps its hot mark", () => {
+    const before = board({ IT系: [draft("p", { hot: true }), draft("a")] });
+    const b = restoreHidden(board({ IT系: [draft("a")] }), [hideable], before);
+    expect(b.IT系.map((d) => [d.url, d.hot, d.hidden])).toStrictEqual([
+      ["https://example.com/p", true, true],
+      ["https://example.com/a", false, undefined],
+    ]);
   });
 
   it("previews a hidden row like the public page, keeping only the place of its children", () => {

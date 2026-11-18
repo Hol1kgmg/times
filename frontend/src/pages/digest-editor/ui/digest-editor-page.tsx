@@ -258,7 +258,7 @@ const DigestForm = <S extends DigestStatus>({
       }
       if (rejected.reason === "parent-has-children") {
         // 自動では保存し直さず、戻した行を見てから保存してもらう
-        setBoard((b) => restoreHidden(b, rejected.hideable));
+        setBoard((b) => restoreHidden(b, rejected.hideable, initialBoard));
         setRestored(rejected.hideable.length);
       }
       if (rejected.reason === "digest-already-exists" || rejected.reason === "future-publish") {
