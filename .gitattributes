@@ -1,0 +1,4 @@
+# GitHub の差分で生成物を畳む (oapi-codegen / sqlc / tbls)
+backend/internal/api/gen.go linguist-generated
+backend/internal/db/*.go linguist-generated
+docs/schema/** linguist-generated
