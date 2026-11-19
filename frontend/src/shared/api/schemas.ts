@@ -111,6 +111,19 @@ export const articleSearchResult = z.object({
   articles: articleSearchHit.array(),
 }) satisfies z.ZodType<Schemas["ArticleSearchResult"]>;
 
+export const repostCandidate = z.object({
+  id: articleId,
+  url: z.url(),
+  title: z.string(),
+  category,
+  parent: z.object({ id: articleId, url: z.url(), title: z.string() }).optional(),
+  firstPublishedOn: z.iso.date(),
+}) satisfies z.ZodType<Schemas["RepostCandidate"]>;
+
+export const repostCandidateList = z.object({
+  articles: repostCandidate.array(),
+}) satisfies z.ZodType<Schemas["RepostCandidateList"]>;
+
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
 // href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
 const articleUrl = z.url({ protocol: /^https?$/u }).max(2000);

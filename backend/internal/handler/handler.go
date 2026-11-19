@@ -141,6 +141,29 @@ func (s *Server) SearchArticles(ctx context.Context, req api.SearchArticlesReque
 	return api.SearchArticles200JSONResponse{Articles: hits}, nil
 }
 
+// ponytail: ログインできるのは管理者だけなので bearerAuth で足りる。一般ユーザーを足したら管理者の判定を足す
+func (s *Server) ListRepostCandidates(ctx context.Context, req api.ListRepostCandidatesRequestObject) (api.ListRepostCandidatesResponseObject, error) {
+	p, ok := auth.PrincipalFrom(ctx)
+	if !ok {
+		return nil, apperr.Unauthorized("no session in context")
+	}
+	rows, err := s.q.ListRepostCandidates(ctx, db.ListRepostCandidatesParams{CreatedBy: p.UserID, Q: req.Params.Q, EncodedQ: encodedQuery(req.Params.Q)})
+	if err != nil {
+		return nil, err
+	}
+	candidates := make([]api.RepostCandidate, 0, len(rows))
+	for _, r := range rows {
+		var parent *api.RepostCandidateParent
+		// id・url・title は同じ LEFT JOIN の行から来るので、一部だけ入ることはない
+		if r.ParentID != nil && r.ParentUrl != nil && r.ParentTitle != nil {
+			parent = &api.RepostCandidateParent{Id: *r.ParentID, Url: *r.ParentUrl, Title: *r.ParentTitle}
+		}
+		candidates = append(candidates, api.RepostCandidate{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
+			Parent: parent, FirstPublishedOn: openapi_types.Date{Time: r.FirstPublishedOn}})
+	}
+	return api.ListRepostCandidates200JSONResponse{Articles: candidates}, nil
+}
+
 // 公開の掲載を INNER JOIN して古い順に集めるので、dates は 1 件以上ある
 func splitPublishedOn(dates []time.Time) (openapi_types.Date, []openapi_types.Date) {
 	return openapi_types.Date{Time: dates[0]}, toDates(dates[1:])

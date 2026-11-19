@@ -32,3 +32,18 @@ WHERE a.created_by = sqlc.arg(created_by) AND NOT a.hidden
 GROUP BY a.id, p.url, p.title
 ORDER BY min(d.entry_date) DESC, a.id
 LIMIT 50;
+
+-- name: ListRepostCandidates :many
+-- 候補の条件は SearchArticles と同じ。選ぶのに要らない掲載日の配列と HOT は集めない
+SELECT a.id, a.url, a.title, a.category, p.id AS parent_id, p.url AS parent_url, p.title AS parent_title,
+  min(d.entry_date)::date AS first_published_on
+FROM articles a
+JOIN digest_articles da ON da.article_id = a.id
+JOIN digests d ON d.id = da.digest_id AND d.status = 'published'
+LEFT JOIN articles p ON p.id = a.parent_id AND NOT p.hidden
+WHERE a.created_by = sqlc.arg(created_by) AND NOT a.hidden
+  AND (strpos(lower(a.title), lower(sqlc.arg(q))) > 0 OR strpos(lower(a.url), lower(sqlc.arg(q))) > 0
+    OR strpos(lower(a.url), lower(sqlc.arg(encoded_q))) > 0)
+GROUP BY a.id, p.id
+ORDER BY min(d.entry_date) DESC, a.id
+LIMIT 50;
