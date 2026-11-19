@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/Hol1kgmg/times/backend/internal/api"
@@ -114,6 +115,52 @@ func (s *Server) ListAllArticleDomains(ctx context.Context, req api.ListAllArtic
 		return nil, err
 	}
 	return api.ListAllArticleDomains200JSONResponse{Domains: domains}, nil
+}
+
+// ponytail: ログインできるのは管理者だけなので bearerAuth で足りる。一般ユーザーを足したら管理者の判定を足す
+func (s *Server) SearchArticles(ctx context.Context, req api.SearchArticlesRequestObject) (api.SearchArticlesResponseObject, error) {
+	p, ok := auth.PrincipalFrom(ctx)
+	if !ok {
+		return nil, apperr.Unauthorized("no session in context")
+	}
+	rows, err := s.q.SearchArticles(ctx, db.SearchArticlesParams{CreatedBy: p.UserID, Q: req.Params.Q, EncodedQ: encodedQuery(req.Params.Q)})
+	if err != nil {
+		return nil, err
+	}
+	hits := make([]api.ArticleSearchHit, 0, len(rows))
+	for _, r := range rows {
+		first, reposted := splitPublishedOn(r.PublishedOn)
+		var parent *api.ArticleSearchParent
+		// url と title は同じ LEFT JOIN の行から来るので、片方だけ入ることはない
+		if r.ParentUrl != nil && r.ParentTitle != nil {
+			parent = &api.ArticleSearchParent{Url: *r.ParentUrl, Title: *r.ParentTitle}
+		}
+		hits = append(hits, api.ArticleSearchHit{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
+			Parent: parent, FirstPublishedOn: first, RepostedOn: reposted, HotOn: toDates(r.HotOn)})
+	}
+	return api.SearchArticles200JSONResponse{Articles: hits}, nil
+}
+
+// 公開の掲載を INNER JOIN して古い順に集めるので、dates は 1 件以上ある
+func splitPublishedOn(dates []time.Time) (openapi_types.Date, []openapi_types.Date) {
+	return openapi_types.Date{Time: dates[0]}, toDates(dates[1:])
+}
+
+func toDates(dates []time.Time) []openapi_types.Date {
+	out := make([]openapi_types.Date, 0, len(dates))
+	for _, d := range dates {
+		out = append(out, openapi_types.Date{Time: d})
+	}
+	return out
+}
+
+// 保存した URL はパーセントエンコードされているので、ブラウザのアドレス欄から貼った日本語の URL でも当たるようにする
+func encodedQuery(q string) string {
+	u, err := url.Parse(q)
+	if err != nil {
+		return q
+	}
+	return u.String()
 }
 
 func (s *Server) articleDomains(ctx context.Context, q *string, limit *int, publishedOnly bool) ([]api.DomainCount, error) {

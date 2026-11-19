@@ -1,0 +1,273 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  font-family: var(--font-dynamic);
+}
+
+.heading {
+  composes: t-date from global;
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.input {
+  composes: t-body from global;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input:user-invalid {
+  border-color: var(--color-danger);
+}
+
+.submit {
+  composes: t-body button from global;
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+}
+
+.empty {
+  composes: t-body from global;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* アイコンと日付の列を一覧全体でそろえ、HOT や再掲載のない行でも位置を変えない */
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto) auto auto;
+  column-gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.item,
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* タイトルの列が縮み続けないよう、アイコンと日付をタイトルの下の行へ送る */
+@media (--narrow) {
+  .list {
+    grid-template-columns: repeat(4, auto) minmax(0, 1fr) auto;
+    row-gap: var(--space-1);
+  }
+
+  .main {
+    grid-column: 1 / -1;
+  }
+
+  .menu {
+    grid-column: -2;
+  }
+}
+
+.row {
+  align-items: center;
+  padding: var(--space-3) var(--space-2);
+}
+
+.menu {
+  composes: icon-button from global;
+}
+
+/* Popover は body へ出るので、ページの font-dynamic を受け継がない */
+.menuPopover {
+  padding: var(--space-half);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+  font-family: var(--font-dynamic);
+}
+
+.menuList {
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.menuItem {
+  composes: t-body from global;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menuItem:is([data-hovered], [data-focused]) {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* 親子はタイムラインの記事行と同じく、親を上に細く出し、子を左の線で下げる */
+.parent {
+  composes: t-body from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--color-text-muted);
+}
+
+.parentFavicon {
+  width: var(--space-2);
+  height: var(--space-2);
+}
+
+.parentTitle,
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.child {
+  margin-left: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--color-border);
+}
+
+/* 記事が並ぶ面でオレンジが散らばらないよう、タイムラインと同じく下線なしでホバー中だけ色を付ける */
+.title {
+  composes: t-title from global;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.title:is([data-hovered], [data-focus-visible]) {
+  color: var(--color-accent);
+}
+
+.badge {
+  composes: t-meta from global;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-half);
+  color: var(--color-text-muted);
+
+  & svg {
+    color: var(--color-brand);
+  }
+}
+
+.zero,
+.zero svg {
+  color: var(--color-text-faint);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.date {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.modal {
+  composes: modal from global;
+  width: 400px;
+  padding: var(--space-4);
+}
+
+/* ModalDialog は中身を内側の Dialog に入れるので、.modal の gap は子に届かない */
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modalTitle {
+  composes: t-title from global;
+  margin: 0;
+  /* 日付の行の文字と左端をそろえる */
+  padding-inline: var(--space-2);
+}
+
+.dates {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.dateLink {
+  composes: t-body from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.dateLink[data-hovered] {
+  background: var(--color-selected);
+  color: var(--color-accent);
+}
+
+.edit {
+  margin-left: auto;
+  color: var(--color-accent);
+}
+
+/* ホバーできない環境では行き先が分からなくなるので、出したままにする */
+@media (--hover) {
+  .dateLink:not([data-hovered], [data-focus-visible]) .edit {
+    visibility: hidden;
+  }
+}
+
+.button {
+  composes: t-body button from global;
+  align-self: flex-end;
+  padding: var(--space-1) var(--space-3);
+}

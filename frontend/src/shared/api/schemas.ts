@@ -93,6 +93,24 @@ export const domainList = z.object({
   domains: domainCount.array(),
 }) satisfies z.ZodType<Schemas["DomainList"]>;
 
+export const articleSearchHit = z.object({
+  id: articleId,
+  url: z.url(),
+  title: z.string(),
+  category,
+  parent: z.object({ url: z.url(), title: z.string() }).optional(),
+  firstPublishedOn: z.iso.date(),
+  repostedOn: z.iso.date().array(),
+  hotOn: z.iso.date().array(),
+}) satisfies z.ZodType<Schemas["ArticleSearchHit"]>;
+
+// articles.sql の SearchArticles の LIMIT と同じ
+export const ARTICLE_SEARCH_LIMIT = 50;
+
+export const articleSearchResult = z.object({
+  articles: articleSearchHit.array(),
+}) satisfies z.ZodType<Schemas["ArticleSearchResult"]>;
+
 // 登録フォームの入力。境界値は openapi.yaml の NewDigest / NewArticle と同じにする
 // href にそのまま出るので javascript: 等を弾く (openapi.yaml の pattern と同じ)
 const articleUrl = z.url({ protocol: /^https?$/u }).max(2000);

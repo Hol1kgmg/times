@@ -9,6 +9,7 @@ const descriptions: Record<ChannelPath, string> = {
   "/timeline": "過去の Digest を古い順に読む",
   "/admin/digests/new": "新しい Digest を登録する",
   "/admin/digests": "登録済みの Digest を日付から選んで編集する",
+  "/admin/articles/search": "過去の記事をタイトルと URL から探す",
 };
 
 const line = (channel: Channel) => `- ${channel.to}: ${descriptions[channel.to]}`;

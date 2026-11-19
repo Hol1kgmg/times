@@ -339,3 +339,25 @@ func TestPublishable(t *testing.T) {
 		}
 	}
 }
+
+// 初掲載は最も古い 1 件だけで、残りは古い順に再掲載になる
+func TestSplitPublishedOnSeparatesFirstFromReposts(t *testing.T) {
+	day := func(d int) time.Time { return time.Date(2026, 1, d, 0, 0, 0, 0, time.UTC) }
+	first, reposted := splitPublishedOn([]time.Time{day(1), day(5), day(9)})
+	if !first.Time.Equal(day(1)) || len(reposted) != 2 || !reposted[0].Time.Equal(day(5)) || !reposted[1].Time.Equal(day(9)) {
+		t.Errorf("got %v, %v", first, reposted)
+	}
+	if _, reposted := splitPublishedOn([]time.Time{day(1)}); len(reposted) != 0 {
+		t.Errorf("single: got %v", reposted)
+	}
+}
+
+// アドレス欄から貼った日本語の URL も、保存したエンコード済みの URL に当たる
+func TestEncodedQueryMatchesStoredPercentEncoding(t *testing.T) {
+	if got := encodedQuery("https://ja.wikipedia.org/wiki/日本"); got != "https://ja.wikipedia.org/wiki/%E6%97%A5%E6%9C%AC" {
+		t.Errorf("got %q", got)
+	}
+	if got := encodedQuery("%zz"); got != "%zz" {
+		t.Errorf("unparsable: got %q", got)
+	}
+}
