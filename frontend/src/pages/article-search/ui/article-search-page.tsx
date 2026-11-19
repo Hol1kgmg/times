@@ -2,6 +2,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { Button, Dialog, DialogTrigger, Popover } from "react-aria-components";
 import type { z } from "zod";
 import type { articleSearchHit } from "#/shared/api";
+import { ARTICLE_SEARCH_LIMIT } from "#/shared/api";
 import { formatEntryDate } from "#/shared/lib/entry-date";
 import styles from "./article-search-page.module.css";
 
@@ -25,17 +26,31 @@ const Reposts = ({ hit }: { hit: z.infer<typeof articleSearchHit> }) => (
 export const ArticleSearchPage = () => {
   const { q } = route.useSearch();
   const result = route.useLoaderData();
+  const navigate = route.useNavigate();
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>記事を検索</h1>
-      <form className={styles.form} method="get">
+      <form
+        className={styles.form}
+        method="get"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const value = new FormData(e.currentTarget).get("q");
+          if (typeof value === "string") {
+            void navigate({ search: { q: value } });
+          }
+        }}
+      >
         <input
+          key={q}
           aria-label="タイトルか URL"
           className={styles.input}
           defaultValue={q}
           maxLength={100}
           name="q"
+          pattern=".*\S.*"
           required
+          title="空白だけでは探せないです"
           type="search"
         />
         <button className={styles.submit} type="submit">
@@ -64,6 +79,11 @@ export const ArticleSearchPage = () => {
             ))}
           </ul>
         ))}
+      {result !== undefined && result.articles.length >= ARTICLE_SEARCH_LIMIT && (
+        <p className={styles.empty}>
+          新しい {ARTICLE_SEARCH_LIMIT} 件だけ出してます。言葉を足すと古い記事まで届きます
+        </p>
+      )}
     </div>
   );
 };

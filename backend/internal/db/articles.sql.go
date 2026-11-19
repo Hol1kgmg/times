@@ -66,13 +66,20 @@ SELECT a.id, a.url, a.title, a.category, p.url AS parent_url,
 FROM articles a
 JOIN digest_articles da ON da.article_id = a.id
 JOIN digests d ON d.id = da.digest_id AND d.status = 'published'
-LEFT JOIN articles p ON p.id = a.parent_id
-WHERE NOT a.hidden
-  AND (strpos(lower(a.title), lower($1)) > 0 OR strpos(lower(a.url), lower($1)) > 0)
+LEFT JOIN articles p ON p.id = a.parent_id AND NOT p.hidden
+WHERE a.created_by = $1 AND NOT a.hidden
+  AND (strpos(lower(a.title), lower($2)) > 0 OR strpos(lower(a.url), lower($2)) > 0
+    OR strpos(lower(a.url), lower($3)) > 0)
 GROUP BY a.id, p.url
 ORDER BY min(d.entry_date) DESC, a.id
 LIMIT 50
 `
+
+type SearchArticlesParams struct {
+	CreatedBy int64
+	Q         string
+	EncodedQ  string
+}
 
 type SearchArticlesRow struct {
 	ID          uuid.UUID
@@ -84,8 +91,10 @@ type SearchArticlesRow struct {
 }
 
 // ponytail: 記事は数千件に届かないので全件を strpos で見る。遅くなったら pg_trgm の索引を足す
-func (q *Queries) SearchArticles(ctx context.Context, q_ string) ([]SearchArticlesRow, error) {
-	rows, err := q.db.Query(ctx, searchArticles, q_)
+// 再掲載は自分の記事を upsert するので、ほかの利用者の記事は出さない
+// 隠した親は再掲載の候補に出さないので、子にも親として示さない
+func (q *Queries) SearchArticles(ctx context.Context, arg SearchArticlesParams) ([]SearchArticlesRow, error) {
+	rows, err := q.db.Query(ctx, searchArticles, arg.CreatedBy, arg.Q, arg.EncodedQ)
 	if err != nil {
 		return nil, err
 	}

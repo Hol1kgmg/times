@@ -8,7 +8,7 @@ export { listPublishedDigests } from "./list-published-digests";
 export { loadAnyLinkPreview } from "./load-any-link-preview";
 export { reportArticleOpen, reportPageView } from "./report";
 export * from "./schemas";
-export { articleSearchQuery, searchArticles } from "./search-articles";
+export { ARTICLE_SEARCH_LIMIT, articleSearchQuery, searchArticles } from "./search-articles";
 export { suggestCategory } from "./suggest-category";
 export { autoTranslateTitle, translateTitle } from "./translate-title";
 // backend/api/openapi.yaml から生成 (just be-gen / lefthook)。手で編集しない

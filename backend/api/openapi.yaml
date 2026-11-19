@@ -227,11 +227,13 @@ paths:
         - name: q
           in: query
           required: true
-          description: タイトルか URL に含まれる文字列。大文字小文字を区別しない
+          description: タイトルか URL に含まれる文字列。大文字小文字を区別せず、URL はパーセントエンコードした形とも照らす
           schema:
             type: string
             minLength: 1
             maxLength: 100
+            # 空白だけの語は strpos でほぼ全件に当たる
+            pattern: '\S'
       responses:
         "200":
           description: OK

@@ -181,7 +181,7 @@ func TestBearerAuth(t *testing.T) {
 		{"DELETE", "/auth/sessions/current", "Bearer valid", 204, true},
 		{"POST", "/digests", "Bearer valid", 400, true},                  // 認証後に body 検証 (空 body)
 		{"GET", "/articles/domains?limit=51", "Bearer valid", 400, true}, // 認証後に query 検証
-		{"GET", "/articles/search?q=", "Bearer valid", 400, true},
+		{"GET", "/articles/search?q=%20", "Bearer valid", 400, true},
 		{"GET", "/health", "Bearer valid", 200, false},
 	}
 	for _, tt := range tests {

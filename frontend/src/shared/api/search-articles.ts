@@ -4,7 +4,11 @@ import { requireAdminToken } from "#/shared/auth/index.server";
 import { backendFetch, unwrapBackend } from "./backend.server";
 import { articleSearchResult } from "./schemas";
 
-export const articleSearchQuery = z.object({ q: z.string().min(1).max(100) });
+// 空白だけの語は strpos でほぼ全件に当たる
+export const articleSearchQuery = z.object({ q: z.string().trim().min(1).max(100) });
+
+// articles.sql の SearchArticles の LIMIT と同じ
+export const ARTICLE_SEARCH_LIMIT = 50;
 
 // 登録したばかりの記事も確かめられるよう、キャッシュを通さない
 export const searchArticles = createServerFn({ method: "GET" })
