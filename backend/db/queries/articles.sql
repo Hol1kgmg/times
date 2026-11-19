@@ -35,7 +35,7 @@ ORDER BY min(d.entry_date) DESC, a.id
 LIMIT 50;
 
 -- name: ListRepostCandidates :many
--- #171 で候補を選ぶのに要るのは初掲載日だけで、調査用の集計は重い。絞り込みは SearchArticles と同じに保つ
+-- 登録・編集画面で再掲載の候補を選ぶのに要るのは初掲載日だけで、調査用の集計は重い。絞り込みは SearchArticles と同じに保つ
 SELECT a.id, a.url, a.title, a.category, p.id AS parent_id, p.url AS parent_url, p.title AS parent_title,
   min(d.entry_date)::date AS first_published_on
 FROM articles a

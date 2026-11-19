@@ -91,7 +91,7 @@ type ListRepostCandidatesRow struct {
 	FirstPublishedOn time.Time
 }
 
-// #171 で候補を選ぶのに要るのは初掲載日だけで、調査用の集計は重い。絞り込みは SearchArticles と同じに保つ
+// 登録・編集画面で再掲載の候補を選ぶのに要るのは初掲載日だけで、調査用の集計は重い。絞り込みは SearchArticles と同じに保つ
 func (q *Queries) ListRepostCandidates(ctx context.Context, arg ListRepostCandidatesParams) ([]ListRepostCandidatesRow, error) {
 	rows, err := q.db.Query(ctx, listRepostCandidates, arg.CreatedBy, arg.Q, arg.EncodedQ)
 	if err != nil {
