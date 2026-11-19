@@ -40,9 +40,10 @@ const Count = ({
 const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void }) => {
   const CategoryIcon = categoryIcons[hit.category];
   const navigate = useNavigate();
+  const title = hit.title === "" ? new URL(hit.url).hostname : hit.title;
   const { show, dismissed, card } = useLinkPreview({
     url: hit.url,
-    title: hit.title,
+    title,
     className: styles.preview,
     load: loadAnyLinkPreview,
   });
@@ -61,8 +62,6 @@ const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void })
           className={
             hit.parent === undefined ? styles.titleLine : `${styles.titleLine} ${styles.child}`
           }
-          // RAC の Link は title を受け取らない
-          title={hit.title}
         >
           <Favicon url={hit.url} />
           <Link
@@ -74,7 +73,8 @@ const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void })
             onFocus={show}
             onHoverStart={show}
           >
-            {hit.title}
+            {/* カードの上でネイティブのツールチップまで重ならないよう、title は文字にだけ付ける */}
+            <span title={title}>{title}</span>
           </Link>
           {card}
         </span>
@@ -91,7 +91,7 @@ const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void })
       </Count>
       <span className={styles.date}>{formatEntryDate(hit.firstPublishedOn)}</span>
       <MenuTrigger>
-        <Button aria-label={`${hit.title} の操作`} className={styles.menu}>
+        <Button aria-label={`${title} の操作`} className={styles.menu}>
           <Ellipsis role="none" size={16} />
         </Button>
         <Popover className={styles.menuPopover} placement="bottom end">

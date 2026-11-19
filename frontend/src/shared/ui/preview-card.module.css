@@ -70,3 +70,39 @@
   align-items: center;
   justify-content: center;
 }
+
+/* リンクの下に浮かせる型。呼び出し側は display で出し分け、リンクに anchor-name: --preview を付けて行ごとに anchor-scope で閉じる */
+.floating {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  margin-top: var(--space-half);
+  /* 一覧の上を通り過ぎただけで出さないよう待つ */
+  transition:
+    opacity 0.15s ease-out 0.3s,
+    visibility 0s 0.3s;
+
+  @starting-style {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@supports (position-area: bottom span-right) {
+  .floating {
+    position: fixed;
+    inset: auto;
+    position-anchor: --preview;
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 待ちは動きではなく通り過ぎたときに出さないためのものなので、フェードだけ止める */
+  .floating {
+    transition: visibility 0s 0.3s;
+  }
+}

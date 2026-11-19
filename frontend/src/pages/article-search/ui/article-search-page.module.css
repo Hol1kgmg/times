@@ -88,7 +88,7 @@
 }
 
 .row {
-  anchor-scope: --search-hit;
+  anchor-scope: --preview;
   align-items: center;
   padding: var(--space-3) var(--space-2);
 }
@@ -157,6 +157,7 @@
 }
 
 .titleLine {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -181,38 +182,16 @@
 }
 
 .preview {
-  display: none;
+  composes: floating from "../../../shared/ui/preview-card.module.css";
 }
 
 @media (--hover) {
   .title {
-    anchor-name: --search-hit;
+    anchor-name: --preview;
   }
 
-  /* 一覧の上を通り過ぎただけで出さないよう待つ */
   .title:not([data-dismissed]):is([data-hovered], [data-focus-visible]) + .preview {
-    position: fixed;
-    inset: auto;
-    z-index: 1;
     display: flex;
-    margin-top: var(--space-half);
-    position-anchor: --search-hit;
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-block;
-    transition:
-      opacity 0.15s ease-out 0.3s,
-      visibility 0s 0.3s;
-
-    @starting-style {
-      opacity: 0;
-      visibility: hidden;
-    }
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .preview {
-    transition: none !important;
   }
 }
 
