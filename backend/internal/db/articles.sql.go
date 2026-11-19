@@ -60,9 +60,11 @@ func (q *Queries) ListArticleDomains(ctx context.Context, arg ListArticleDomains
 }
 
 const searchArticles = `-- name: SearchArticles :many
-SELECT a.id, a.url, a.title, a.category, p.url AS parent_url,
+SELECT a.id, a.url, a.title, a.category, p.url AS parent_url, p.title AS parent_title,
   -- 公開の掲載だけを JOIN するので、下書き・非公開にしか載っていない記事は出ない (specs/018 FR-005)
-  array_agg(d.entry_date ORDER BY d.entry_date)::date[] AS published_on
+  array_agg(d.entry_date ORDER BY d.entry_date)::date[] AS published_on,
+  -- HOT は掲載ごとに付くので、同じ記事でも日付で違う
+  coalesce(array_agg(d.entry_date ORDER BY d.entry_date) FILTER (WHERE da.is_hot), '{}')::date[] AS hot_on
 FROM articles a
 JOIN digest_articles da ON da.article_id = a.id
 JOIN digests d ON d.id = da.digest_id AND d.status = 'published'
@@ -70,7 +72,7 @@ LEFT JOIN articles p ON p.id = a.parent_id AND NOT p.hidden
 WHERE a.created_by = $1 AND NOT a.hidden
   AND (strpos(lower(a.title), lower($2)) > 0 OR strpos(lower(a.url), lower($2)) > 0
     OR strpos(lower(a.url), lower($3)) > 0)
-GROUP BY a.id, p.url
+GROUP BY a.id, p.url, p.title
 ORDER BY min(d.entry_date) DESC, a.id
 LIMIT 50
 `
@@ -87,7 +89,9 @@ type SearchArticlesRow struct {
 	Title       string
 	Category    string
 	ParentUrl   *string
+	ParentTitle *string
 	PublishedOn []time.Time
+	HotOn       []time.Time
 }
 
 // ponytail: 記事は数千件に届かないので全件を strpos で見る。遅くなったら pg_trgm の索引を足す
@@ -108,7 +112,9 @@ func (q *Queries) SearchArticles(ctx context.Context, arg SearchArticlesParams) 
 			&i.Title,
 			&i.Category,
 			&i.ParentUrl,
+			&i.ParentTitle,
 			&i.PublishedOn,
+			&i.HotOn,
 		); err != nil {
 			return nil, err
 		}

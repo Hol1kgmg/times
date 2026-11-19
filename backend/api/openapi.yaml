@@ -492,9 +492,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ArticleSearchHit"
+    ArticleSearchParent:
+      type: object
+      required: [url, title]
+      description: 子のときだけ入る
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
     ArticleSearchHit:
       type: object
-      required: [id, url, title, category, firstPublishedOn, repostedOn]
+      required: [id, url, title, category, firstPublishedOn, repostedOn, hotOn]
       properties:
         id:
           type: string
@@ -506,10 +516,8 @@ components:
           type: string
         category:
           $ref: "#/components/schemas/Category"
-        parentUrl:
-          type: string
-          format: uri
-          description: 子のときだけ入る
+        parent:
+          $ref: "#/components/schemas/ArticleSearchParent"
         firstPublishedOn:
           type: string
           format: date
@@ -517,6 +525,12 @@ components:
         repostedOn:
           type: array
           description: それ以外の公開の掲載の日付。古い順
+          items:
+            type: string
+            format: date
+        hotOn:
+          type: array
+          description: 公開の掲載のうち HOT だった日付。古い順
           items:
             type: string
             format: date

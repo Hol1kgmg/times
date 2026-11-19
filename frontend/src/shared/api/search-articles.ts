@@ -7,9 +7,6 @@ import { articleSearchResult } from "./schemas";
 // 空白だけの語は strpos でほぼ全件に当たる
 export const articleSearchQuery = z.object({ q: z.string().trim().min(1).max(100) });
 
-// articles.sql の SearchArticles の LIMIT と同じ
-export const ARTICLE_SEARCH_LIMIT = 50;
-
 // 登録したばかりの記事も確かめられるよう、キャッシュを通さない
 export const searchArticles = createServerFn({ method: "GET" })
   .validator(articleSearchQuery)

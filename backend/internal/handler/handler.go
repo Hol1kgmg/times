@@ -130,19 +130,28 @@ func (s *Server) SearchArticles(ctx context.Context, req api.SearchArticlesReque
 	hits := make([]api.ArticleSearchHit, 0, len(rows))
 	for _, r := range rows {
 		first, reposted := splitPublishedOn(r.PublishedOn)
+		var parent *api.ArticleSearchParent
+		// url と title は同じ LEFT JOIN の行から来るので、片方だけ入ることはない
+		if r.ParentUrl != nil && r.ParentTitle != nil {
+			parent = &api.ArticleSearchParent{Url: *r.ParentUrl, Title: *r.ParentTitle}
+		}
 		hits = append(hits, api.ArticleSearchHit{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
-			ParentUrl: r.ParentUrl, FirstPublishedOn: first, RepostedOn: reposted})
+			Parent: parent, FirstPublishedOn: first, RepostedOn: reposted, HotOn: toDates(r.HotOn)})
 	}
 	return api.SearchArticles200JSONResponse{Articles: hits}, nil
 }
 
 // 公開の掲載を INNER JOIN して古い順に集めるので、dates は 1 件以上ある
 func splitPublishedOn(dates []time.Time) (openapi_types.Date, []openapi_types.Date) {
-	reposted := make([]openapi_types.Date, 0, len(dates)-1)
-	for _, d := range dates[1:] {
-		reposted = append(reposted, openapi_types.Date{Time: d})
+	return openapi_types.Date{Time: dates[0]}, toDates(dates[1:])
+}
+
+func toDates(dates []time.Time) []openapi_types.Date {
+	out := make([]openapi_types.Date, 0, len(dates))
+	for _, d := range dates {
+		out = append(out, openapi_types.Date{Time: d})
 	}
-	return openapi_types.Date{Time: dates[0]}, reposted
+	return out
 }
 
 // 保存した URL はパーセントエンコードされているので、ブラウザのアドレス欄から貼った日本語の URL でも当たるようにする

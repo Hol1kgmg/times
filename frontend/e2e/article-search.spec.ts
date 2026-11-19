@@ -5,7 +5,7 @@ import { boardOf, fillDate, loggedInState } from "./admin";
 const dayFrom = (n: number) =>
   new Date(Date.UTC(1600, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 
-test("公開して登録した記事をタイトルの一部で検索すると、初掲載日とともに 1 件出る", async ({
+test("公開して登録した記事をタイトルの一部で検索すると 1 件出て、掲載した日の編集画面へ進める", async ({
   browser,
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
@@ -31,8 +31,13 @@ test("公開して登録した記事をタイトルの一部で検索すると�
   await page.getByRole("button", { name: "検索" }).click();
   const rows = page.getByRole("listitem").filter({ hasText: title });
   await expect(rows).toHaveCount(1);
-  await expect(rows.getByRole("link", { name: title })).toBeVisible();
-  await expect(rows).toContainText(
-    `${Number(date.slice(0, 4))}年${Number(date.slice(5, 7))}月${Number(date.slice(8))}日`,
-  );
+  await rows.getByRole("button", { name: `${title} の操作` }).click();
+  await page.getByRole("menuitem", { name: "掲載履歴を見る" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("link", {
+      name: `${Number(date.slice(0, 4))}年${Number(date.slice(5, 7))}月${Number(date.slice(8))}日`,
+    })
+    .click();
+  await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
 });

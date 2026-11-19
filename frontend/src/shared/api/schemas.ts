@@ -98,10 +98,14 @@ export const articleSearchHit = z.object({
   url: z.url(),
   title: z.string(),
   category,
-  parentUrl: z.url().optional(),
+  parent: z.object({ url: z.url(), title: z.string() }).optional(),
   firstPublishedOn: z.iso.date(),
   repostedOn: z.iso.date().array(),
+  hotOn: z.iso.date().array(),
 }) satisfies z.ZodType<Schemas["ArticleSearchHit"]>;
+
+// articles.sql の SearchArticles の LIMIT と同じ
+export const ARTICLE_SEARCH_LIMIT = 50;
 
 export const articleSearchResult = z.object({
   articles: articleSearchHit.array(),
