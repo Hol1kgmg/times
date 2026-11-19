@@ -6,6 +6,7 @@ const channelPaths = [
   "/timeline",
   "/admin/digests/new",
   "/admin/digests",
+  "/admin/articles/search",
 ] as const satisfies readonly RoutePath[];
 export type ChannelPath = (typeof channelPaths)[number];
 
@@ -25,6 +26,7 @@ export const publicChannels = ({ admin }: Viewer): Channel[] => (admin ? [timeli
 export const adminChannels = (_admin: AdminUser): Channel[] => [
   { to: "/admin/digests/new", label: "記事を登録", mark: "+" },
   { to: "/admin/digests", label: "記事を編集", mark: "#" },
+  { to: "/admin/articles/search", label: "記事を検索", mark: "#" },
 ];
 
 // トップ自身とログアウトは含めない。管理者向けは照合済みの viewer.admin があるときだけ (adr/frontend/0013, 0014)
