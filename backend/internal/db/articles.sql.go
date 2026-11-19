@@ -91,7 +91,7 @@ type ListRepostCandidatesRow struct {
 	FirstPublishedOn time.Time
 }
 
-// 候補の条件は SearchArticles と同じ。選ぶのに要らない掲載日の配列と HOT は集めない
+// #171 で候補を選ぶのに要るのは初掲載日だけで、調査用の集計は重い。絞り込みは SearchArticles と同じに保つ
 func (q *Queries) ListRepostCandidates(ctx context.Context, arg ListRepostCandidatesParams) ([]ListRepostCandidatesRow, error) {
 	rows, err := q.db.Query(ctx, listRepostCandidates, arg.CreatedBy, arg.Q, arg.EncodedQ)
 	if err != nil {
@@ -156,6 +156,7 @@ type SearchArticlesRow struct {
 	HotOn       []time.Time
 }
 
+// 調査用で掲載日と HOT の履歴まで集める。絞り込みを変えるときは ListRepostCandidates も同じに直す
 // ponytail: 記事は数千件に届かないので全件を strpos で見る。遅くなったら pg_trgm の索引を足す
 // 再掲載は自分の記事を upsert するので、ほかの利用者の記事は出さない
 // 隠した親は再掲載の候補に出さないので、子にも親として示さない
