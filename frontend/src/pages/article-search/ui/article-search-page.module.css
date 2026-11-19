@@ -191,6 +191,11 @@
   }
 }
 
+.zero,
+.zero svg {
+  color: var(--color-text-faint);
+}
+
 .srOnly {
   position: absolute;
   width: 1px;

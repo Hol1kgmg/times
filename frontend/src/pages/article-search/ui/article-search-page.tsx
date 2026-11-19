@@ -19,17 +19,22 @@ const route = getRouteApi("/_shell/admin/articles/search");
 
 type Hit = z.infer<typeof articleSearchHit>;
 
-const Count = ({ label, count, children }: { label: string; count: number; children: ReactNode }) =>
-  // 0 回でも列は残し、ほかの行とアイコンの位置をそろえる
-  count === 0 ? (
-    <span />
-  ) : (
-    <span className={styles.badge}>
-      {children}
-      <span aria-hidden>{count}</span>
-      <span className={styles.srOnly}>{` ${label} ${count} 回`}</span>
-    </span>
-  );
+const Count = ({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: ReactNode;
+}) => (
+  // 0 回を空けると列に穴が空いて見えるので、薄くして出す
+  <span className={count === 0 ? `${styles.badge} ${styles.zero}` : styles.badge}>
+    {children}
+    <span aria-hidden>{count}</span>
+    <span className={styles.srOnly}>{` ${label} ${count} 回`}</span>
+  </span>
+);
 
 const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void }) => {
   const CategoryIcon = categoryIcons[hit.category];
