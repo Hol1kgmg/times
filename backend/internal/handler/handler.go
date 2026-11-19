@@ -155,7 +155,7 @@ func (s *Server) ListRepostCandidates(ctx context.Context, req api.ListRepostCan
 	for _, r := range rows {
 		var parent *api.RepostCandidateParent
 		// id・url・title は同じ LEFT JOIN の行から来るので、一部だけ入ることはない
-		if r.ParentID != nil && r.ParentUrl != nil && r.ParentTitle != nil {
+		if r.ParentID != nil {
 			parent = &api.RepostCandidateParent{Id: *r.ParentID, Url: *r.ParentUrl, Title: *r.ParentTitle}
 		}
 		candidates = append(candidates, api.RepostCandidate{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),

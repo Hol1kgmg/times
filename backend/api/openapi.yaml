@@ -243,7 +243,7 @@ paths:
   /articles/repost-candidates:
     get:
       operationId: listRepostCandidates
-      description: 再掲載の候補を searchArticles と同じ条件で探し、初掲載日の新しい順で最大 50 件返す。再掲載の日付と HOT の履歴は返さない。選べるかは保存時に判定する。管理者専用 (specs/021)
+      description: 再掲載の候補を searchArticles と同じ条件で探し、初掲載日の新しい順で最大 50 件返す。再掲載の日付と HOT の履歴は返さない。選べるかは画面で判定し、保存時に repost-unavailable で再検証する。管理者専用 (specs/021)
       security:
         - bearerAuth: []
       parameters:
