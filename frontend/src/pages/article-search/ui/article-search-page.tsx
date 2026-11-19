@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Button, Link, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import type { z } from "zod";
 import type { articleSearchHit, articleSearchResult } from "#/shared/api";
-import { ARTICLE_SEARCH_LIMIT } from "#/shared/api";
+import { ARTICLE_SEARCH_LIMIT, loadAnyLinkPreview } from "#/shared/api";
 import { formatEntryDate } from "#/shared/lib/entry-date";
 import { categoryIcons } from "#/shared/ui/category-icons";
 import { Favicon } from "#/shared/ui/favicon";
@@ -13,6 +13,7 @@ import { Flame } from "#/shared/ui/icons/flame";
 import { Repeat } from "#/shared/ui/icons/repeat";
 import { ModalDialog } from "#/shared/ui/modal";
 import { RouterLink } from "#/shared/ui/router-link";
+import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import styles from "./article-search-page.module.css";
 
 const route = getRouteApi("/_shell/admin/articles/search");
@@ -39,6 +40,13 @@ const Count = ({
 const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void }) => {
   const CategoryIcon = categoryIcons[hit.category];
   const navigate = useNavigate();
+  const title = hit.title === "" ? new URL(hit.url).hostname : hit.title;
+  const { show, dismissed, card } = useLinkPreview({
+    url: hit.url,
+    title,
+    className: styles.preview,
+    load: loadAnyLinkPreview,
+  });
   return (
     <div className={styles.row}>
       <span className={styles.main}>
@@ -54,13 +62,21 @@ const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void })
           className={
             hit.parent === undefined ? styles.titleLine : `${styles.titleLine} ${styles.child}`
           }
-          // RAC の Link は title を受け取らない
-          title={hit.title}
         >
           <Favicon url={hit.url} />
-          <Link className={styles.title} href={hit.url} rel="noopener noreferrer" target="_blank">
-            {hit.title}
+          <Link
+            className={styles.title}
+            data-dismissed={dismissed ? "" : undefined}
+            href={hit.url}
+            rel="noopener noreferrer"
+            target="_blank"
+            onFocus={show}
+            onHoverStart={show}
+          >
+            {/* カードの上でネイティブのツールチップまで重ならないよう、title は文字にだけ付ける */}
+            <span title={title}>{title}</span>
           </Link>
+          {card}
         </span>
       </span>
       <span className={styles.badge} title={hit.category}>
@@ -75,7 +91,7 @@ const HitRow = ({ hit, onOpenHistory }: { hit: Hit; onOpenHistory: () => void })
       </Count>
       <span className={styles.date}>{formatEntryDate(hit.firstPublishedOn)}</span>
       <MenuTrigger>
-        <Button aria-label={`${hit.title} の操作`} className={styles.menu}>
+        <Button aria-label={`${title} の操作`} className={styles.menu}>
           <Ellipsis role="none" size={16} />
         </Button>
         <Popover className={styles.menuPopover} placement="bottom end">

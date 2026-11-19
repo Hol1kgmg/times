@@ -88,6 +88,7 @@
 }
 
 .row {
+  anchor-scope: --preview;
   align-items: center;
   padding: var(--space-3) var(--space-2);
 }
@@ -156,6 +157,7 @@
 }
 
 .titleLine {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -177,6 +179,20 @@
 
 .title:is([data-hovered], [data-focus-visible]) {
   color: var(--color-accent);
+}
+
+.preview {
+  composes: floating from "../../../shared/ui/preview-card.module.css";
+}
+
+@media (--hover) {
+  .title {
+    anchor-name: --preview;
+  }
+
+  .title:not([data-dismissed]):is([data-hovered], [data-focus-visible]) + .preview {
+    display: flex;
+  }
 }
 
 .badge {

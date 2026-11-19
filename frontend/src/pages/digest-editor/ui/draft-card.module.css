@@ -19,7 +19,7 @@
   align-items: center;
   gap: var(--space-1);
   /* プレビューの位置を各行に結ぶ。名前を行内に閉じないと最後の行に寄る */
-  anchor-scope: --link;
+  anchor-scope: --preview;
 }
 
 .row[data-private] {
@@ -93,6 +93,7 @@
 }
 
 .text {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -125,33 +126,18 @@
 
 /* ホバーできる環境 (PC) でだけ出す */
 .preview {
-  display: none;
+  composes: floating from "../../../shared/ui/preview-card.module.css";
 }
 
 @media (--hover) {
   .title {
-    anchor-name: --link;
+    anchor-name: --preview;
   }
 
-  /* 一覧の上を通り過ぎただけで出さないよう待つ。ドラッグ中は並べ替えの邪魔になるので出さない */
+  /* ドラッグ中は並べ替えの邪魔になるので出さない */
   .card:not([data-dragging]) .text > a:not([data-dismissed])[data-hovered] + .preview,
   .card:not([data-dragging]) .text > a:not([data-dismissed]):focus-visible + .preview {
-    position: fixed;
-    inset: auto;
-    z-index: 1;
     display: flex;
-    margin-top: var(--space-half);
-    position-anchor: --link;
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-block;
-    transition:
-      opacity 0.15s ease-out 0.3s,
-      visibility 0s 0.3s;
-
-    @starting-style {
-      opacity: 0;
-      visibility: hidden;
-    }
   }
 }
 
