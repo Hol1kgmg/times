@@ -3,5 +3,6 @@ import { fn } from "storybook/test";
 
 export * from "#/shared/api/schemas";
 
+export const listRepostCandidates = fn().mockResolvedValue({ articles: [] });
 export const loadAnyLinkPreview = fn().mockResolvedValue(null);
 export const translateTitle = fn().mockResolvedValue(null);
