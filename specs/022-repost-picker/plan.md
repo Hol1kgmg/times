@@ -19,7 +19,7 @@ backend と保存の形は変えない。specs/021 の `GET /articles/repost-can
 
 ## モーダル (`pages/digest-editor/ui/repost-picker.tsx`)
 
-- `ModalDialog` を使う。入力を持つので外側のクリックでは閉じない。
+- `ModalDialog` を使う。UI ルールのとおり外側のクリックでも閉じる。
 - 検索欄は素の `<input type="search">` に `required` と `maxLength={100}` を付けた `<form>` にし、送信で検索する。打つたびには呼ばない。空白だけの語はサーバー関数の zod で断られるので、そのときは語を入れるよう出す。
 - 結果は React Aria Components の `ListBox` に並べ、選べない候補は `disabledKeys` に入れる。押すと `addRepost` して閉じる。
   - 行の中身はタイトル (favicon 付き)・URL のドメイン・カテゴリ・「〜に初掲載」。子なら親のタイトルを上に小さく出す。調査用の検索ページ (`article-search-page.tsx`) の行と似るが、選択の部品と中身が違うので共有しない (constitution IV)。

@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { Button, ListBox, ListBoxItem } from "react-aria-components";
 import { listRepostCandidates } from "#/shared/api";
 import { formatEntryDate } from "#/shared/lib/entry-date";
+import { Chevron } from "#/shared/ui/chevron";
 import { Favicon } from "#/shared/ui/favicon";
 import { ModalDialog } from "#/shared/ui/modal";
 import { repostBlock } from "../model/board";
@@ -76,10 +77,9 @@ const RepostPicker = ({
     <ModalDialog className={styles.modal} labelledBy={headingId} onClose={onClose}>
       {({ close }) => (
         <div className={styles.body}>
-          <h2 className={styles.heading} id={headingId}>
+          <h2 className={styles.srOnly} id={headingId}>
             過去の記事から追加
           </h2>
-          {/* ModalDialog は DOM 順で最初の要素にフォーカスするので、検索欄を先に置く */}
           <form
             className={styles.form}
             onSubmit={(e) => {
@@ -90,8 +90,14 @@ const RepostPicker = ({
               }
             }}
           >
+            {/* 下に置くと候補の数で位置が動き、多いとスクロールの先に隠れる */}
+            <Button aria-label="閉じる" className={styles.back} onPress={close}>
+              <Chevron className={styles.backIcon} size={20} />
+            </Button>
             <input
               aria-label="タイトルか URL"
+              // ModalDialog は先頭の要素 (閉じる) にフォーカスするので、開いてすぐ打てるよう検索欄に置く
+              autoFocus
               className={styles.input}
               maxLength={100}
               name="q"
@@ -133,9 +139,6 @@ const RepostPicker = ({
               }}
             </ListBox>
           )}
-          <Button className={`${styles.button} ${styles.close}`} onPress={close}>
-            閉じる
-          </Button>
         </div>
       )}
     </ModalDialog>

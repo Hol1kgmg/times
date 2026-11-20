@@ -6,7 +6,10 @@
   "specs": {
     ".tsx": "@markuplint/react-spec"
   },
-  "pretenders": [{ "selector": "Dialog", "as": "dialog" }],
+  "pretenders": [
+    { "selector": "Dialog", "as": "dialog" },
+    { "selector": "ModalDialog", "as": "dialog" }
+  ],
   "rules": {
     "case-sensitive-attr-name": false,
     "security/no-event-handler-attr": false,
