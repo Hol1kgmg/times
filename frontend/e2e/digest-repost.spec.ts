@@ -147,7 +147,7 @@ test("子がほかの日に載っている親を元の日から外して保存�
   await save.click();
   // 自動では保存し直さないので、戻した行を見せたまま同じ画面に留まる
   const hidden = page.getByRole("listitem").filter({ hasText: parent }).first();
-  await expect(hidden).toContainText("外す代わりに隠してます");
+  await expect(hidden).toContainText("この記事は隠してます");
   await expect(hidden.getByRole("button", { name: "表示に戻す" })).toBeVisible();
   await save.click();
   await page.waitForURL((url) => url.pathname === "/admin/digests");
