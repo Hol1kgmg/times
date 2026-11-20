@@ -24,4 +24,4 @@ const meta = {
 export default meta;
 
 export const Default: StoryObj<typeof meta> = {};
-export const CloseOnOutside: StoryObj<typeof meta> = { args: { closeOnOutside: true } };
+export const KeepOnOutside: StoryObj<typeof meta> = { args: { closeOnOutside: false } };

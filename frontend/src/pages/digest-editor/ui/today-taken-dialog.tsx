@@ -7,7 +7,7 @@ import styles from "./today-taken-dialog.module.css";
 export const TodayTakenDialog = ({ date, onClose }: { date: string; onClose: () => void }) => {
   const headingId = useId();
   return (
-    <ModalDialog className={styles.dialog} closeOnOutside labelledBy={headingId} onClose={onClose}>
+    <ModalDialog className={styles.dialog} labelledBy={headingId} onClose={onClose}>
       {({ close }) => (
         <>
           <p className={styles.text} id={headingId}>

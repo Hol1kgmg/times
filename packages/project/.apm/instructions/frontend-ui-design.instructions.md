@@ -34,7 +34,7 @@
 - **選択の型**: 選択中とホバーは同じ地 (`--color-selected`) と `--color-accent` の文字にし、選択中だけ文字を 600 にして見分ける (サイドバー、日付)。
 - **選べない理由**: 見た目は小さな印 (`--color-brand` のドットなど) だけにし、理由の言葉は読み上げ用のラベルに入れる。一覧の中に説明文を並べない。ラベルを部品が作るとき (React Aria Components の `Calendar`) は、部品の「選べない」の読み上げで代える。
 - **アイコン**: animate-ui の単色アイコン (`--color-brand`)。例外は言語やフレームワーク、外部の AI サービスを示すロゴで、汎用のアイコンでは見分けられないので、その形を `--color-brand` の単色で描く。言語とフレームワークは simple-icons (`icons/brand.tsx`)、AI サービスは simple-icons にない社があるので LobeHub の icons (`icons/ai-brand.tsx`) から写す。ブランド色は使わない。
-- **モーダル**: `shared/ui/modal` の `ModalDialog` (React Aria Components の `ModalOverlay` + `Modal` + `Dialog`)。本体は浮かせたカードの型 (`global.css` の `.modal` を `composes` する)、背景は `--backdrop-floating` でぼかすだけで暗くしない。外側のクリックでは閉じず、ボタンと Esc で閉じる。入力の途中で誤って消えないようにするため。例外は入力を持たないモーダル (日付ピッカー、プレビュー) で、外側のクリックでも閉じる (`closeOnOutside`)。日付ピッカーは `<dialog>` の `showModal()` と `useModal` のまま (adr/frontend/0009) で、閉じるボタンも置かない。
+- **モーダル**: `shared/ui/modal` の `ModalDialog` (React Aria Components の `ModalOverlay` + `Modal` + `Dialog`)。本体は浮かせたカードの型 (`global.css` の `.modal` を `composes` する)、背景は `--backdrop-floating` でぼかすだけで暗くしない。ボタンと Esc に加え、外側のクリックでも閉じる (`ModalDialog` と `useModal` の既定)。例外は打ちかけの入力を失うと困るモーダル (記事の編集) で、`closeOnOutside={false}` で外側のクリックでは閉じない。誤って閉じて直した中身が消えないようにするため。検索語のように打ち直せば済む入力は、失って困るものに数えない。日付ピッカーは `<dialog>` の `showModal()` と `useModal` のまま (adr/frontend/0009) で、閉じるボタンも置かない。
 - **長い一覧の折りたたみ**: 内部スクロールは使わない (入れ子のスクロールは操作しづらい)。高さで切って下端をフェードさせ、展開ボタンを出す。
 - **ホバー前提の補助**: ホバーで出るもの (プレビュー、その案内) を置くか、隠しておくものを最初から出すかは `@media (--hover)` で決める。出すきっかけは `[data-hovered]` (原則のホバーの見た目と同じ) で見る。`any-hover` は主な入力がタッチの端末でも一致し、静止画で出すべきものが隠れたままになるので使わない。
 

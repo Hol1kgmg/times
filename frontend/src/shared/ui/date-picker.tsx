@@ -206,7 +206,7 @@ export const DatePickerDialog = ({
   onPick: (date: string) => void;
   onClose: () => void;
 }) => {
-  const { ref: dialogRef, dialogProps, close } = useModal(onClose, { closeOnOutside: true });
+  const { ref: dialogRef, dialogProps, close } = useModal(onClose);
   const today = Temporal.Now.plainDateISO();
   const [view, setView] = useState<View>("month");
   const [focused, setFocused] = useState(() =>

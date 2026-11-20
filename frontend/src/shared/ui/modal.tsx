@@ -27,7 +27,7 @@ const closeOnBackdrop = (e: PointerEvent<HTMLDialogElement>) => {
   }
 };
 
-export const useModal = (onClose: () => void, { closeOnOutside = false } = {}) => {
+export const useModal = (onClose: () => void, { closeOnOutside = true } = {}) => {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     ref.current?.showModal();
@@ -48,7 +48,7 @@ export const useModal = (onClose: () => void, { closeOnOutside = false } = {}) =
 export const ModalDialog = ({
   className,
   labelledBy,
-  closeOnOutside = false,
+  closeOnOutside = true,
   onClose,
   children,
 }: {

@@ -15,7 +15,7 @@ export const PreviewDialog = ({
 }) => {
   const headingId = useId();
   return (
-    <ModalDialog className={styles.dialog} closeOnOutside labelledBy={headingId} onClose={onClose}>
+    <ModalDialog className={styles.dialog} labelledBy={headingId} onClose={onClose}>
       {({ close }) => (
         <>
           <div className={styles.dialogHeader}>

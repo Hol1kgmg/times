@@ -40,12 +40,12 @@ dependencies:
     .agents/skills/speckit-specify/SKILL.md: sha256:42fe016b9183bb8fa7ce7c65e04ea8d382f7f2abfc94849aeead999247675886
     .agents/skills/speckit-tasks/SKILL.md: sha256:acfcac20cdf9af065fff3497fb7a2eebe75acbb6bba02abbac7631e0a2d33346
     .agents/skills/speckit-taskstoissues/SKILL.md: sha256:76a6ec1fcc2d4f2f4ae4d1a70e59eca034fd9a3f97c5454094b023ed3da65151
-    .claude/rules/frontend-ui-design.md: sha256:2e5a0baee7f79b068dc34009cc1dbfb6f91cccced3e75aa276b28005739d69bd
+    .claude/rules/frontend-ui-design.md: sha256:4d1bba6c1693be1ff8361bacd02f95ed79939207bf0ac7ef469a7a266a0844aa
     .claude/rules/quality.md: sha256:c0cae9a158492dd4774e8200b8b31055f2f2f3ad37583708b06600efb3e7c9d2
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:9f2d71832057c691070ad7ff76cd2fb79b70869d020c53271e89b2d92374a3f0
+  content_hash: sha256:49a39dec6f58a6e373efce9d9088a4d51cd7741f0809ab40d25e636b7558a842
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -2903,7 +2903,7 @@ deployments:
   owners:
   - ./packages/project
   active_owner: ./packages/project
-  content_hash: sha256:2e5a0baee7f79b068dc34009cc1dbfb6f91cccced3e75aa276b28005739d69bd
+  content_hash: sha256:4d1bba6c1693be1ff8361bacd02f95ed79939207bf0ac7ef469a7a266a0844aa
 - kind: project-relative
   target: claude
   value: .claude/rules/orca-worktree.md
