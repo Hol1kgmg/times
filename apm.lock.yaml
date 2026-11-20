@@ -1,5 +1,5 @@
 lockfile_version: '1'
-apm_version: 0.35.0
+apm_version: 0.34.0
 dependencies:
 - repo_url: _local/project
   name: project-local
@@ -45,7 +45,6 @@ dependencies:
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:9f2d71832057c691070ad7ff76cd2fb79b70869d020c53271e89b2d92374a3f0
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -63,7 +62,6 @@ dependencies:
     .agents/skills/template-sync-review/SKILL.md: sha256:deda8f9dfa60bd112fd51e50192cf049ab10f95bd0871adcd3bf2681a747c47a
   source: local
   local_path: ./packages/template
-  content_hash: sha256:20bb8c95e9bc282a0def2bc61dfed53870a416f48de995938f2d3f8562e2f403
 - repo_url: addyosmani/web-quality-skills
   name: accessibility
   host: github.com
@@ -194,7 +192,7 @@ dependencies:
 - repo_url: anthropics/skills
   name: skill-creator
   host: github.com
-  resolved_commit: 1780c5e5a552fd4d1c9d6a7b0cab26b0c2bef064
+  resolved_commit: e4bb5d960d87126ff3b3a8af1a104b7db67560ba
   resolved_ref: main
   version: unknown
   virtual_path: skills/skill-creator
