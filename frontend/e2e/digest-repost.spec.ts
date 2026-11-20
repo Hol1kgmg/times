@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { boardOf, fillDate, loggedInState } from "./admin";
 
-// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。digest-edit.spec.ts (1900 年から) とぶつからないよう 1700 年から数え、1 回の実行で 6 日使うので 1900 年に届かない幅で回す
+// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。digest-edit.spec.ts (1900 年から) とぶつからないよう 1700 年から数え、1 回の実行で 8 日使うので 1900 年に届かない幅で回す
 const dayFrom = (n: number) =>
   new Date(Date.UTC(1700, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -12,7 +12,7 @@ test("公開済みの記事を親、新しい記事を子にして別の日に�
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 12_000) * 6;
+  const base = (Math.floor(run / 1000) % 9000) * 8;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -66,7 +66,7 @@ test("公開済みの記事を親、新しい記事を子にして別の日に�
 // 親と子を公開した日のあと、子だけを別の日に入れ、断られて切り替わった再掲載のまま公開する
 const repostChildElsewhere = async (page: Page, offset: number) => {
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 12_000) * 6 + offset;
+  const base = (Math.floor(run / 1000) % 9000) * 8 + offset;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -158,5 +158,53 @@ test("子がほかの日に載っている親を元の日から外して保存�
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("link")).toHaveText([child]);
   await expect(dialog).toContainText("非公開記事");
+  await context.close();
+});
+
+test("公開した記事を別の日の登録画面でタイトルから探して選ぶと、再掲載の行として入り、公開して開き直しても再掲載のまま並ぶ", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ storageState: await loggedInState(browser) });
+  const page = await context.newPage();
+  const run = Date.now();
+  const base = (Math.floor(run / 1000) % 9000) * 8 + 6;
+  const first = dayFrom(base);
+  const repost = dayFrom(base + 1);
+  const { dragFirstUnsortedTo, collect } = boardOf(page);
+  const publish = page.getByRole("button", { name: "公開して登録" });
+  const title = `拾う記事 ${run}`;
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, first);
+  await collect(`https://e2e.example/repost/${run}/picked`, title);
+  await dragFirstUnsortedTo("UI系");
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await publish.click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, repost);
+  await page.getByRole("button", { name: "過去の記事から追加" }).click();
+  const picker = page.getByRole("dialog");
+  await picker.getByRole("searchbox", { name: "タイトルか URL" }).fill(title);
+  await picker.getByRole("button", { name: "検索" }).click();
+  await picker.getByRole("option", { name: title }).click();
+  await expect(picker).toBeHidden();
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await publish.click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  await page.goto(`/admin/digests/${repost}/edit`);
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "プレビュー" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("link")).toHaveText([title]);
+  await expect(dialog.getByRole("listitem").filter({ hasText: title }).first()).toContainText(
+    "再掲載",
+  );
   await context.close();
 });

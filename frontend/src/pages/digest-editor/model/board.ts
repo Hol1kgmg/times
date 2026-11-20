@@ -1,5 +1,13 @@
 import { category } from "#/shared/api";
-import type { Category, ChildEntry, Digest, DigestContent, DigestEntry } from "#/shared/api";
+import type {
+  Category,
+  ChildEntry,
+  Digest,
+  DigestContent,
+  DigestEntry,
+  repostCandidate,
+} from "#/shared/api";
+import type { z } from "zod";
 import type { Hideable, Repostable } from "../api/rejection-of";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import type { DraftDigest } from "#/shared/ui/digest-post";
@@ -45,6 +53,7 @@ export interface Draft extends Link {
 }
 
 export type Board = Record<BoxId, Draft[]>;
+export type RepostCandidate = z.infer<typeof repostCandidate>;
 export type Rejected = "duplicate" | "limit";
 
 export type Blocker =
@@ -523,6 +532,39 @@ export const pinReposts = (board: Board): Board => {
     }
   }
   return next;
+};
+
+// firstPublishedOn は公開の掲載のいちばん古い日なので、日付より前でなければ前の公開の掲載もない (specs/018 FR-005)
+export const repostBlock = (
+  board: Board,
+  candidate: RepostCandidate,
+  entryDate: string,
+): "not-before" | "on-board" | null => {
+  if (candidate.firstPublishedOn >= entryDate) {
+    return "not-before";
+  }
+  return findDuplicate(board, candidate.url) ? "on-board" : null;
+};
+
+// 子の候補も単独の行にする。保存後に読むと元の親が呼び出される (specs/018 FR-004)
+export const addRepost = (
+  board: Board,
+  candidate: RepostCandidate,
+  id: string,
+): Board | Rejected => {
+  const rejected = rejectAdd(board, candidate.url);
+  if (rejected !== null) {
+    return rejected;
+  }
+  const { url, title, category: c, firstPublishedOn } = candidate;
+  const draft: Draft = {
+    ...savedLink({ id, url, title, hot: false }),
+    suggested: false,
+    category: c,
+    children: [],
+    repost: { category: c, firstPublishedOn },
+  };
+  return replaceBox(board, c, [...board[c], draft]);
 };
 
 export const convertToReposts = (board: Board, repostable: readonly Repostable[]): Board => {

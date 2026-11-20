@@ -1,0 +1,145 @@
+.modal {
+  composes: modal from global;
+  width: 560px;
+}
+
+/* ModalDialog は中身を内側の Dialog に入れるので、.modal の gap は子に届かない */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.heading {
+  composes: t-label from global;
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.input {
+  composes: t-body from global;
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input:user-invalid {
+  border-color: var(--color-danger);
+}
+
+.button {
+  composes: t-body button from global;
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+}
+
+.close {
+  align-self: flex-end;
+}
+
+.message {
+  composes: t-body from global;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
+  outline: none;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.item:not(.blocked):is([data-hovered], [data-focus-visible]) {
+  background-color: var(--color-selected);
+  color: var(--color-accent);
+}
+
+.blocked {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.parent {
+  composes: t-body from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--color-text-muted);
+}
+
+.parentFavicon {
+  width: var(--space-2);
+  height: var(--space-2);
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ellipsis,
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title {
+  composes: t-title from global;
+}
+
+.dot {
+  flex-shrink: 0;
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: 50%;
+  background-color: var(--color-brand);
+}
+
+.meta {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
+}
+
+.blocked .meta,
+.blocked .parent {
+  color: var(--color-text-faint);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

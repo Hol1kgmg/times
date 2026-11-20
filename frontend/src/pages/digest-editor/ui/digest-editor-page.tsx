@@ -9,6 +9,7 @@ import { createDigest } from "../api/create-digest";
 import type { Rejection } from "../api/rejection-of";
 import { updateDigest } from "../api/update-digest";
 import {
+  addRepost,
   blockers,
   canMakeChild,
   convertToReposts,
@@ -40,6 +41,7 @@ import { DateField } from "./date-field";
 import { DraftCard } from "./draft-card";
 import type { CardActions } from "./draft-card";
 import { PreviewDialog } from "./preview-dialog";
+import { RepostAdd } from "./repost-picker";
 import { SaveSplitButton } from "./save-split-button";
 import { TodayTakenDialog } from "./today-taken-dialog";
 import type { SaveAction } from "./save-split-button";
@@ -368,6 +370,14 @@ const DigestForm = <S extends DigestStatus>({
             setAdding={setAddingCount}
             setBoard={setBoard}
             setSuggesting={setSuggesting}
+          />
+          <RepostAdd
+            atLimit={actions.atLimit}
+            board={board}
+            entryDate={entryDate}
+            onPick={(c) => {
+              apply(addRepost(board, c, crypto.randomUUID()));
+            }}
           />
           {renderBox(UNSORTED)}
         </div>

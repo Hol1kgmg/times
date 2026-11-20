@@ -1,0 +1,181 @@
+import { isNotFound } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useId, useState } from "react";
+import { Button, ListBox, ListBoxItem } from "react-aria-components";
+import { listRepostCandidates } from "#/shared/api";
+import { formatEntryDate } from "#/shared/lib/entry-date";
+import { Favicon } from "#/shared/ui/favicon";
+import { ModalDialog } from "#/shared/ui/modal";
+import { repostBlock } from "../model/board";
+import type { Board, RepostCandidate } from "../model/board";
+import styles from "./repost-picker.module.css";
+
+const blockText = {
+  "not-before": "この日より前に公開されてないので選べません",
+  "on-board": "もう載ってるので選べません",
+} as const;
+
+const Candidate = ({ c, block }: { c: RepostCandidate; block: keyof typeof blockText | null }) => (
+  <>
+    {c.parent !== undefined && (
+      <span className={styles.parent}>
+        <Favicon className={styles.parentFavicon} url={c.parent.url} />
+        <span className={styles.ellipsis}>{c.parent.title}</span>
+      </span>
+    )}
+    <span className={styles.titleLine}>
+      <Favicon url={c.url} />
+      <span className={styles.title}>{c.title === "" ? new URL(c.url).hostname : c.title}</span>
+      {block !== null && (
+        <>
+          <span aria-hidden className={styles.dot} />
+          <span className={styles.srOnly}>{blockText[block]}</span>
+        </>
+      )}
+    </span>
+    <span className={styles.meta}>
+      {`${new URL(c.url).hostname} · ${c.category} · ${formatEntryDate(c.firstPublishedOn)}に初掲載`}
+    </span>
+  </>
+);
+
+const RepostPicker = ({
+  board,
+  entryDate,
+  onPick,
+  onClose,
+}: {
+  board: Board;
+  entryDate: string;
+  onPick: (candidate: RepostCandidate) => void;
+  onClose: () => void;
+}) => {
+  const headingId = useId();
+  const list = useServerFn(listRepostCandidates);
+  const [candidates, setCandidates] = useState<RepostCandidate[]>();
+  const [error, setError] = useState<string>();
+  const [searching, setSearching] = useState(false);
+
+  const onSearch = async (q: string) => {
+    setSearching(true);
+    setError(undefined);
+    try {
+      const result = await list({ data: { q } });
+      setCandidates(result.articles);
+    } catch (error_) {
+      setError(
+        isNotFound(error_)
+          ? "ログインが切れました。別のタブでログインし直してから、もう一度検索してください"
+          : "検索できませんでした。時間をおいてもう一度試してください",
+      );
+    }
+    setSearching(false);
+  };
+
+  return (
+    <ModalDialog className={styles.modal} labelledBy={headingId} onClose={onClose}>
+      {({ close }) => (
+        <div className={styles.body}>
+          <h2 className={styles.heading} id={headingId}>
+            過去の記事から追加
+          </h2>
+          {/* ModalDialog は DOM 順で最初の要素にフォーカスするので、検索欄を先に置く */}
+          <form
+            className={styles.form}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = new FormData(e.currentTarget).get("q");
+              if (typeof q === "string") {
+                void onSearch(q);
+              }
+            }}
+          >
+            <input
+              aria-label="タイトルか URL"
+              className={styles.input}
+              maxLength={100}
+              name="q"
+              pattern=".*\S.*"
+              required
+              title="空白だけでは探せないです"
+              type="search"
+            />
+            <Button className={styles.button} isDisabled={searching} type="submit">
+              {searching ? "検索中" : "検索"}
+            </Button>
+          </form>
+          {error !== undefined && <p className={styles.message}>{error}</p>}
+          {candidates?.length === 0 && <p className={styles.message}>見つからなかったです</p>}
+          {candidates !== undefined && candidates.length > 0 && (
+            // disabledKeys は矢印キーでも飛ばされるので使わず、選べない行は押しても何もしない (adr/frontend/0008)
+            <ListBox
+              aria-label="候補"
+              className={styles.list}
+              items={candidates}
+              onAction={(key) => {
+                const c = candidates.find((x) => x.id === key);
+                if (c !== undefined && repostBlock(board, c, entryDate) === null) {
+                  onPick(c);
+                  close();
+                }
+              }}
+            >
+              {(c) => {
+                const block = repostBlock(board, c, entryDate);
+                return (
+                  <ListBoxItem
+                    className={block === null ? styles.item : `${styles.item} ${styles.blocked}`}
+                    textValue={c.title}
+                  >
+                    <Candidate block={block} c={c} />
+                  </ListBoxItem>
+                );
+              }}
+            </ListBox>
+          )}
+          <Button className={`${styles.button} ${styles.close}`} onPress={close}>
+            閉じる
+          </Button>
+        </div>
+      )}
+    </ModalDialog>
+  );
+};
+
+export const RepostAdd = ({
+  board,
+  entryDate,
+  atLimit,
+  onPick,
+}: {
+  board: Board;
+  entryDate: string;
+  atLimit: boolean;
+  onPick: (candidate: RepostCandidate) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {/* 選べるかの判定に日付が要る (specs/022 FR-002) */}
+      <Button
+        className={styles.button}
+        isDisabled={entryDate === "" || atLimit}
+        onPress={() => {
+          setOpen(true);
+        }}
+      >
+        過去の記事から追加
+      </Button>
+      {open && (
+        <RepostPicker
+          board={board}
+          entryDate={entryDate}
+          onClose={() => {
+            setOpen(false);
+          }}
+          onPick={onPick}
+        />
+      )}
+    </>
+  );
+};
