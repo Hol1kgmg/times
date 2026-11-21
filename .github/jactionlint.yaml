@@ -1,0 +1,5 @@
+profile: default
+rules:
+  # 派生側の template-sync（土曜 09:00）までに、テンプレートの Dependabot PR をその週のうちに処理するため
+  dependabot-cooldown:
+    days: 2

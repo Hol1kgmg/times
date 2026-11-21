@@ -112,6 +112,11 @@ _sync-pr-open:
             --body "**Create a merge commit** でマージする（squash / rebase は共通祖先を壊す。adr/from-template/0001）" ;;
     esac
 
+# Lint workflows and dependabot.yml, and verify actions.lock against GitHub
+lint-actions:
+    jactionlint
+    gh-actions-lock --verify
+
 # Scan working tree for secrets
 scan:
     gitleaks dir --verbose

@@ -2,18 +2,26 @@ name: template-dependabot-close
 
 on: pull_request
 
-permissions:
-  contents: write
-  pull-requests: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   close:
     # テンプレート由来の更新は template-sync の取り込み PR で届くため、派生側の Dependabot PR は重複になる（adr/from-template/0006）
     if: github.repository != 'Hol1kgmg/claude-temp' && github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       # 書き込み権限を持つため PR のコードは checkout しない。変更ファイルと flake.lock は API で読む
-      - env:
+      # pipefail がないと raw の失敗が yq の空の出力に隠れ、派生側の依存を見落として PR を閉じる
+      - shell: bash
+        env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           BASE: ${{ github.event.pull_request.base.sha }}
@@ -61,6 +69,7 @@ jobs:
             else
               # 同じ workflow ファイルでも派生側が足した action はテンプレートからは更新されない
               patch=$(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" -q ".[] | select(.filename == \"$f\") | .patch")
+              # shellcheck disable=SC2013 # action 名は空白を含まない
               for a in $(grep -oE '^\+.*uses: *[^@ ]+@' <<<"$patch" | sed -E 's/.*uses: *//'); do
                 if ! grep -qF "$a" <<<"$tpl"; then
                   echo "テンプレートが使っていない action を含むため残す: $f $a"

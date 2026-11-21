@@ -60,6 +60,7 @@ just be-dev    # backend:  http://localhost:8080
 | markserv | `just docs` で Markdown を http://docs.<リポジトリ名>.localhost:1355 に配信する |
 | claude / codex | コーディングエージェント（`AGENTS.md` と `.agents/` を共有して参照する） |
 | go / gopls / sqlc / oapi-codegen | backend 開発（[docs/tech-stack.md](docs/tech-stack.md)）。Postgres と golang-migrate は Docker Compose で動かす |
+| jactionlint / gh-actions-lock | workflow と `dependabot.yml` の検査、`actions.lock` の生成と検証（下の「GitHub Actions の lockfile」） |
 
 エージェント用のスキルとルールは [APM](https://github.com/microsoft/apm) で管理し、`apm.yml` の宣言から devShell 起動時に
 スキルは `.agents/skills`、ルールは `.claude/rules` へ同期されます（`just apm` / `just apm-list`）。
@@ -84,6 +85,16 @@ skill / rule の取得元の更新は Dependabot（`apm` ecosystem）が取得�
 Dependabot が使う apm（0.34.0）は手元と CI の apm（0.35.0）より古く、lock の書き方がずれます。PR の lock からローカルパッケージ（`./packages/template`、`./packages/project`）の `content_hash` が消え、CI の `apm install --frozen` が失敗します。マージ前に `just apm-fix-lock <PR 番号>` を実行すると、PR のブランチで `apm install` をやり直した lock を push します。[dependabot-core#16792](https://github.com/dependabot/dependabot-core/pull/16792) がマージされれば、この手順は不要になります。
 
 `just apm-fix-lock` で commit を足した PR は、Dependabot が rebase しなくなります。apm の PR が複数あるときは 1 件ずつマージし、そのたびに残りの PR に `@dependabot recreate` とコメントしてから、作り直された PR で `just apm-fix-lock` をやり直してください。
+
+### GitHub Actions の lockfile
+
+workflow の `uses:` はタグで書き、実行するコミットは [`.github/workflows/actions.lock`](.github/workflows/actions.lock) に固定します（[workflow dependency lockfiles](https://docs.github.com/en/actions/concepts/security/workflow-dependency-lockfiles)）。CI の `check` は `just lint-actions` で次の 2 つを実行します。
+
+- `jactionlint`: workflow、`dependabot.yml`、`actions.lock` を検査する（設定は [.github/jactionlint.yaml](.github/jactionlint.yaml)）
+- `gh-actions-lock --verify`: lockfile が workflow と一致し、固定したコミットが GitHub 上で正しいかを確かめる
+
+workflow の `uses:` を追加・変更したら、`gh-actions-lock` を実行して lockfile を更新し、workflow と一緒にコミットしてください。SHA で書いた `uses:` は、実行時点のコミットを指すタグに書き換えられます。
+CI が `is not in .github/workflows/actions.lock` や `listed ... but the workflow does not use it` で落ちたときも、同じく `gh-actions-lock` を実行して差分をコミットします。手元で検証するときは `just lint-actions` を使います。
 
 ## 環境変数
 
@@ -145,6 +156,7 @@ just update    # flake.lock を更新して検証する
 - テンプレート元に open の Dependabot PR が残っていると、`just sync` / `just sync-pr` は止まります。処理が終わってから実行するか、`SYNC_IGNORE_OPEN_PRS=1` を付けて実行してください
 - `flake.lock` の衝突は、テンプレートの input をテンプレート側、`flake = false` の project inputs を派生先側の値で解消します
 - `apm.lock.yaml` の衝突は、テンプレート側の lock に派生先だけの依存を派生先側の版で書き戻し、`apm install` で解消します
+- `.github/workflows/actions.lock` の衝突は、テンプレート側の lock に派生先だけの workflow と action を書き戻して解消します
 - それ以外の衝突では止まるので、手で解消してください
 - テンプレートの input や workflow だけを更新する Dependabot PR は、取り込み PR と重複するため `template-dependabot-close` workflow が閉じます
 - draft PR の作成には、リポジトリ設定の **Allow GitHub Actions to create and approve pull requests** が必要です（`init-from-template` スキルが有効にします）

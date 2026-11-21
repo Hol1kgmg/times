@@ -6,17 +6,19 @@ on:
     - cron: "0 0 * * 6"
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   draft-pr:
     # 差分は人が just sync-pr で入れる。GITHUB_TOKEN では workflow ファイルの変更を push できないため（adr/from-template/0006）
     if: github.repository != 'Hol1kgmg/claude-temp'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@v5.1.0
         with:
           fetch-depth: 0
       - env:
@@ -36,6 +38,7 @@ jobs:
 
           if base=$(git merge-base HEAD FETCH_HEAD); then
             compare="https://github.com/Hol1kgmg/claude-temp/compare/$base...$upstream"
+            # shellcheck disable=SC2016 # バッククォートは Markdown のコード表記として出力する
             files=$(git diff --name-only "$base" FETCH_HEAD | head -n 100 | sed 's/^/- `/; s/$/`/')
           else
             compare="https://github.com/Hol1kgmg/claude-temp/tree/$upstream"
