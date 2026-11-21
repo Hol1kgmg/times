@@ -34,6 +34,11 @@
             nix-claude-code.packages.${system}.claude-minimal
             pkgs.codex
             nixpkgs-unstable.legacyPackages.${system}.apm-cli
+            # devenv-nixpkgs の jactionlint と gh-actions-lock は古い
+            nixpkgs-unstable.legacyPackages.${system}.jactionlint
+            nixpkgs-unstable.legacyPackages.${system}.gh-actions-lock
+            # 無いと jactionlint は run: のスクリプトを検査せずに通す
+            pkgs.shellcheck
             # yomiyasu スキルのスクリプトが使う
             pkgs.python3
           ];

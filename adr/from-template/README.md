@@ -24,5 +24,6 @@ ADR は決定そのものと、その背景・帰結を記録する。コード�
 | 0007 | [skill / rules を Nix から APM に移す](0007-manage-skills-and-rules-with-apm.md) | superseded by 0008 |
 | 0008 | [skill / rules の取得元を flake input に戻す](0008-revert-skill-sources-to-flake-inputs.md) | superseded by 0009 |
 | 0009 | [skill / rules の取得元をすべてルートの apm.yml に直接書き、区画で分ける](0009-declare-all-skill-sources-in-root-apm-yml.md) | accepted |
+| 0010 | [GitHub Actions の依存を workflow lockfile で固定し、jactionlint で検査する](0010-pin-actions-with-lockfile.md) | accepted |
 
 lockfile 自動更新のセットアップ手順は [docs/lockfile-automation.md](../../docs/lockfile-automation.md) にある。

@@ -6,7 +6,7 @@ if [ -z "$conflicted" ]; then
     echo "衝突ではない理由でマージが失敗した。上の git merge の出力を確認する" >&2
     exit 1
 fi
-others=$(grep -vxE 'flake\.lock|apm\.lock\.yaml' <<<"$conflicted" || true)
+others=$(grep -vxE 'flake\.lock|apm\.lock\.yaml|\.github/workflows/actions\.lock' <<<"$conflicted" || true)
 if [ -n "$others" ]; then
     printf 'lock 以外も衝突しているため手で解消する:\n%s\n' "$others" >&2
     exit 1
@@ -61,5 +61,22 @@ resolve_apm_lock() {
     git add apm.lock.yaml
 }
 
+resolve_actions_lock() {
+    local f=.github/workflows/actions.lock
+    stages "$f"
+    for s in base ours theirs; do yq -p yaml -o json "$tmp/$s" > "$tmp/$s.json"; done
+    # base はテンプレートの前回の版なので、ours から base を引いた残りが派生側の追加になる
+    jq -n --slurpfile b "$tmp/base.json" --slurpfile o "$tmp/ours.json" --slurpfile t "$tmp/theirs.json" '
+      $b[0] as $b | $o[0] as $o | $t[0] as $t
+      | $t
+      | .workflows = reduce ($o.workflows | to_entries[]) as $w (.workflows;
+          .[$w.key] = ((.[$w.key] // []) + ($w.value - (($b.workflows // {})[$w.key] // [])) | unique))
+      | .dependencies += ($o.dependencies | with_entries(select(
+          $t.dependencies[.key] == null and ($b.dependencies // {})[.key] == null)))
+    ' | yq -p json -o yaml -I4 > "$f"
+    git add "$f"
+}
+
 if grep -qx flake.lock <<<"$conflicted"; then resolve_flake_lock; fi
 if grep -qx apm.lock.yaml <<<"$conflicted"; then resolve_apm_lock; fi
+if grep -qx .github/workflows/actions.lock <<<"$conflicted"; then resolve_actions_lock; fi
