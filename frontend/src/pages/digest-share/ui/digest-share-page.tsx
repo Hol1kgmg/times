@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { SITE_URL } from "#/shared/config/site";
 import { formatEntryDateWithoutYear } from "#/shared/lib/entry-date";
 import styles from "./digest-share-page.module.css";
@@ -21,9 +20,16 @@ export const digestShareHead = (date: string) => {
   };
 };
 
-// 人は meta refresh ですぐトップへ移る。refresh を止めている人のためにリンクだけ置く
+// refresh を止めている人には移動が起きないので、案内の中にリンクを置く
+// RouterLink だと refresh の読み込み中に押されたとき、SPA 遷移の後に文書ごと / へ置き換わって page_view が二重になる
 export const DigestSharePage = () => (
   <main className={styles.page}>
-    <Link to="/">トップへ</Link>
+    <span aria-hidden="true" className={styles.spinner} />
+    <p className={styles.message}>
+      トップへ移動してます。移らないときは
+      <a className={styles.link} href="/">
+        トップへ
+      </a>
+    </p>
   </main>
 );
