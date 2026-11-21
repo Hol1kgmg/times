@@ -1,6 +1,5 @@
 import { SITE_URL } from "#/shared/config/site";
 import { formatEntryDateWithoutYear } from "#/shared/lib/entry-date";
-import { RouterLink } from "#/shared/ui/router-link";
 import styles from "./digest-share-page.module.css";
 
 // 題名はフィードの item と同じ形にする。fixed-chars の対象外に置き、表示しない字でトップのサブセットを太らせない
@@ -22,14 +21,15 @@ export const digestShareHead = (date: string) => {
 };
 
 // refresh を止めている人には移動が起きないので、案内の中にリンクを置く
+// RouterLink だと refresh の読み込み中に押されたとき、SPA 遷移の後に文書ごと / へ置き換わって page_view が二重になる
 export const DigestSharePage = () => (
   <main className={styles.page}>
     <span aria-hidden="true" className={styles.spinner} />
-    <p>
+    <p className={styles.message}>
       トップへ移動してます。移らないときは
-      <RouterLink className={styles.link} to="/">
-        こちら
-      </RouterLink>
+      <a className={styles.link} href="/">
+        トップへ
+      </a>
     </p>
   </main>
 );
