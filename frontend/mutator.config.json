@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/@mizchi/mutator/schema/mutator.config.schema.json",
+  "include": ["src/shared/lib/*.ts", "src/pages/*/model/*.ts", "src/pages/*/lib/*.ts"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.gen.ts",
+    "src/**/*.d.ts",
+    "src/**/index.ts",
+    "src/shared/lib/narrow.ts",
+    "src/shared/lib/reduced-motion.ts",
+    "src/shared/lib/use-hovered.ts",
+    "src/pages/*/model/*-tool.ts",
+    "src/pages/*/model/*-tools.ts",
+    "src/pages/digest-editor/model/add-url.ts",
+    "src/pages/not-found/lib/load-favicon.ts"
+  ]
+}

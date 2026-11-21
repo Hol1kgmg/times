@@ -12,6 +12,8 @@ __unconfig*
 todos.json
 playwright-report/
 test-results/
+# mutator のキャッシュとレポート
+.mutator/
 
 # TanStack Router の生成物。dev/build と generate-routes で再生成する
 src/app/routeTree.gen.ts
