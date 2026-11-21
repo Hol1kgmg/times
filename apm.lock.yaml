@@ -358,7 +358,7 @@ dependencies:
 - repo_url: google/skills
   name: cloud-run-basics
   host: github.com
-  resolved_commit: 1e285f9d77ab260fd50944b49c3e2269b459474c
+  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/cloud-run-basics
@@ -389,7 +389,7 @@ dependencies:
 - repo_url: google/skills
   name: cloud-sql-basics
   host: github.com
-  resolved_commit: 1e285f9d77ab260fd50944b49c3e2269b459474c
+  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/cloud-sql-basics
@@ -420,7 +420,7 @@ dependencies:
 - repo_url: google/skills
   name: gcloud
   host: github.com
-  resolved_commit: 1e285f9d77ab260fd50944b49c3e2269b459474c
+  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/gcloud
@@ -441,7 +441,7 @@ dependencies:
 - repo_url: google/skills
   name: google-cloud-recipe-auth
   host: github.com
-  resolved_commit: 1e285f9d77ab260fd50944b49c3e2269b459474c
+  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/google-cloud-recipe-auth
@@ -452,14 +452,14 @@ dependencies:
   - .agents/skills/google-cloud-recipe-auth/SKILL.md
   - .agents/skills/google-cloud-recipe-auth/references/attribution.md
   deployed_file_hashes:
-    .agents/skills/google-cloud-recipe-auth/SKILL.md: sha256:3415b14510b1b32a25a04233d2e81b2c8f4a923e4a40486f5b6fe5a4439afa54
+    .agents/skills/google-cloud-recipe-auth/SKILL.md: sha256:ecc4a5a8b52de9962633abda668b38dcf88036058b7d89e582db5bee650d0a28
     .agents/skills/google-cloud-recipe-auth/references/attribution.md: sha256:088a215373cfef7827688fc5f1e99c902d24616614cb978c0b0abf172480fb86
-  content_hash: sha256:b5e13edec8b9c17a07a49fd88a735ea84d21a48fd09b4c6d7f258aafcc9c1633
+  content_hash: sha256:629c53c381539c2306b968db858522407aadb0156870570b2ce18963237f27c5
 - repo_url: googlechromelabs/webmcp-tools
   materialization_repo_url: GoogleChromeLabs/webmcp-tools
   name: build-webmcp-tools
   host: github.com
-  resolved_commit: a9d4cf1d34e94afc703a8988ace35cfb8904c4ee
+  resolved_commit: 596af768f84748da165879e2452fb39add447f0d
   resolved_ref: main
   version: unknown
   virtual_path: webmcp-skills/skills/build-webmcp-tools
@@ -501,40 +501,40 @@ dependencies:
   - .agents/skills/build-webmcp-tools/references/use-case-template.md
   - .agents/skills/build-webmcp-tools/references/vanilla-patterns.md
   deployed_file_hashes:
-    .agents/skills/build-webmcp-tools/SKILL.md: sha256:2ef4db0bd1b3b8b319f8e042d03fa2e957eacd98f8b2d004aabb65921a3b3784
-    .agents/skills/build-webmcp-tools/evals/evals.json: sha256:2ff1235af34cb2e04c6790ab91d78eb0dd958948d7caac0e7cc37b59c6571d59
+    .agents/skills/build-webmcp-tools/SKILL.md: sha256:40a1832abeef575044f28f18b7fed008d4d93812560fe0a9c7a1802da37caa7d
+    .agents/skills/build-webmcp-tools/evals/evals.json: sha256:4e2569a71cc96e0d2b93b3704fba4143bfbca9deb25d9e22727ed4ecd1a3efd4
     .agents/skills/build-webmcp-tools/evals/fixtures/hotel-app/schema.json: sha256:abf3695392ea4130bb8ff28a3f9803bdee9781ee286993edb4099b1eea5f14f7
     .agents/skills/build-webmcp-tools/evals/fixtures/project-app/roleplay-triage.md: sha256:8d04d0dea5a72e8cb4118e4b2869c5dfab4094c20564f0f734789879d7fe7acb
     .agents/skills/build-webmcp-tools/evals/fixtures/project-app/src/tools/project-tools.ts: sha256:708be727e1cf6140af18efb0fc519951e4561d7f37508529583190d2f2922814
     .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/package.json: sha256:c3442e2452f2d610433366590eebf1dc81627526af2da2618e14894afc29e358
     .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/App.tsx: sha256:dbe89736591ee831fa71a6378b2540121d0646ec561a0b42d175f5527f020224
     .agents/skills/build-webmcp-tools/evals/fixtures/recipe-app/src/store.ts: sha256:f746cab969e9d3b4d7266964e2358f7bd820d173a68e1b2a62253a388d55774b
-    .agents/skills/build-webmcp-tools/evals/suites/auditing-readiness.json: sha256:6c013a9b690880fb27a4d953bdcd74002875fbec3102fafa7bfa8a14ff7794a6
-    .agents/skills/build-webmcp-tools/evals/suites/core-principles.json: sha256:763f1d55e91cdc1fae1f829c5c7dad1c75beca6d5bff8d4c03ef1811125ea539
+    .agents/skills/build-webmcp-tools/evals/suites/auditing-readiness.json: sha256:9f8bf1c1f4eb083fc403d567c1133b2738cdf9f37f1880de7a0773abcd5f0dc3
+    .agents/skills/build-webmcp-tools/evals/suites/core-principles.json: sha256:515ad6506f35d6825dcf9f0ea87fc9b299ce280cfaa09b80285c84da8ce834ab
     .agents/skills/build-webmcp-tools/evals/suites/stage-0-router.json: sha256:a7872abdce15cf0ff618abe9aaf755600b91eab1bd973c046c422d369c8d4100
     .agents/skills/build-webmcp-tools/evals/suites/stage-1-ideation.json: sha256:7374f8b26c6e446a39b83c931135b25eef8e8744abfb5bb882cf58d917f69e2b
     .agents/skills/build-webmcp-tools/evals/suites/stage-2-context.json: sha256:1d5699995f207761a07b8d93b0785d3c5909c53b9ac9374bcdaf78b500973566
     .agents/skills/build-webmcp-tools/evals/suites/stage-3-roleplay.json: sha256:bffd71886cc390f179705deb4fed6c08e36d78a2a93721e76ef34d4c3d6e86cc
-    .agents/skills/build-webmcp-tools/evals/suites/stage-4-boundaries.json: sha256:1205f1e9cb888bb1bb0cdb18c6894a65b4d33034f9978c3fc487008124174a32
-    .agents/skills/build-webmcp-tools/evals/suites/stage-5-specs.json: sha256:e5b88ea0068dc46e73ae2bdf2d8697c3e07ff54e1b3216c3bdbaa3f4020dff54
-    .agents/skills/build-webmcp-tools/evals/suites/stage-6-frameworks.json: sha256:0e04cbdfec6cac0cd405f3969a3808cebcc082f0dd4939aa0593d4e6e1ad0f3b
-    .agents/skills/build-webmcp-tools/evals/trigger-queries.json: sha256:4c81f516ec5baf1baa44c562052aa7d9f6b095ac66c740fd69ccdb19278767e5
+    .agents/skills/build-webmcp-tools/evals/suites/stage-4-boundaries.json: sha256:1d824847ae4be8d5a990d8543480e1268fdc0adca0e899a91d5fc997147b8cfe
+    .agents/skills/build-webmcp-tools/evals/suites/stage-5-specs.json: sha256:7b370511d671288b203a9c1779f8deb72597f39a0d8dd709e53031f2b1137621
+    .agents/skills/build-webmcp-tools/evals/suites/stage-6-frameworks.json: sha256:73f8107493a10832f92c90dcd90f02b125a5eab48e141a4894b01296195b54df
+    .agents/skills/build-webmcp-tools/evals/trigger-queries.json: sha256:837a813aa82b8d8678226ed6be5b9c09ed14b238b52581ddb93caa30c383798d
     .agents/skills/build-webmcp-tools/references/agent-security.md: sha256:2f60e2d4b9f5d2c05670401dbfb55c133c899b37171c14d9ef754272bae7e2be
     .agents/skills/build-webmcp-tools/references/angular-patterns.md: sha256:53cd0db12f6eecc18ce28a640b6da40f175e06f8fbfdafa2359575941385f156
-    .agents/skills/build-webmcp-tools/references/annotations.md: sha256:f0e767d52892e61b59fc495d53920ed4e2873ec97a66e7f4c25a7f97f303322b
-    .agents/skills/build-webmcp-tools/references/audit-checklist.md: sha256:0ec81a4ed52036cd473c69a1b0c8dc5d259e472fafe3a392d32a44b2fe4db431
-    .agents/skills/build-webmcp-tools/references/conversational-design.md: sha256:6a8da88b8835ff7830535750ca2e7724eaac9252e61ed05031454b9edbc99dbe
-    .agents/skills/build-webmcp-tools/references/declarative-patterns.md: sha256:35c3efa2063623049865967c83a207570e4a43c095b91ebfbd7cb4da4b13580b
-    .agents/skills/build-webmcp-tools/references/error-handling.md: sha256:085f3afb4e0f6cbffec5048a5d9dc2142a45e043fb553d66815c973dd1070715
-    .agents/skills/build-webmcp-tools/references/evals-format.md: sha256:b348f416ba82db604c868fcfb43181dce49ec3524880ee53db26941693c11ef0
+    .agents/skills/build-webmcp-tools/references/annotations.md: sha256:1d1a272a27224a52758bf5553bde83a3eed6e181040cd05c4f16c2ed081f2d87
+    .agents/skills/build-webmcp-tools/references/audit-checklist.md: sha256:bf9e8f615f874e2f118db9784f6e8dfd853fb0ba7b25825a0779a3661d601e27
+    .agents/skills/build-webmcp-tools/references/conversational-design.md: sha256:6f544e1b7019ac7efaeaf96382a784200429bf8c7551626a3147775454378ff1
+    .agents/skills/build-webmcp-tools/references/declarative-patterns.md: sha256:1630f1ae1bd76099b3c644a2116d785fcae31ad35001d12704dfa5cab8d3c7fe
+    .agents/skills/build-webmcp-tools/references/error-handling.md: sha256:39bfd044e46b789e7fc9ce5787e436547845e4bbec112bdb6265cd1c62c21a7e
+    .agents/skills/build-webmcp-tools/references/evals-format.md: sha256:d8f34b53655cb7a75d371390cae6ab60386033bc95eec446459971c5cf163330
     .agents/skills/build-webmcp-tools/references/live-site-discovery.md: sha256:2d4e0449ad4fcfc3bd1ccee9261e7bb54313611017185ba1a1cb19ad0d6bba77
-    .agents/skills/build-webmcp-tools/references/react-patterns.md: sha256:69f2ef12f9b7205e80140b6ec60b59479502336c5acfad332c6fb2b1cbaf6c78
+    .agents/skills/build-webmcp-tools/references/react-patterns.md: sha256:0d56810cef83dac9811d264bcd6d3f42bb486f857d671d6e92cc01d8da01bc15
     .agents/skills/build-webmcp-tools/references/sources.md: sha256:627da651405edc82816830a4c59427d01391517955f29fd37b598928204e4c0e
     .agents/skills/build-webmcp-tools/references/testing-and-debugging.md: sha256:3ae12ec57273e21d8b578ef344f98ac421394aa721ee49e47a711054024e8828
-    .agents/skills/build-webmcp-tools/references/tool-design.md: sha256:49830180731ccc625e6cf1093432cb47d0181f804d1ad34b50b10cd8407580f5
-    .agents/skills/build-webmcp-tools/references/use-case-template.md: sha256:495a916dba89fecba9bfe15d91219affc09e362a1f0248248e773eaaa62793b0
-    .agents/skills/build-webmcp-tools/references/vanilla-patterns.md: sha256:a9f644fd6082d5faa66735b84e2a57b157b58c0dcbf2cf6f83507d3df4164601
-  content_hash: sha256:293b3c1d5b02e5d7544ef44393013c485b268cebdff3918d2dbe9c8a848d1992
+    .agents/skills/build-webmcp-tools/references/tool-design.md: sha256:def6a0ac875e23908707014083c3321f97407240f18289ed5e5b2ca89ced487c
+    .agents/skills/build-webmcp-tools/references/use-case-template.md: sha256:3b9c0eebf0968d94ef8e75e14c6c1995b305382efe17c22fddfb844140dc6920
+    .agents/skills/build-webmcp-tools/references/vanilla-patterns.md: sha256:723b7f1f413fef8c3b7f2dfe7b8ca81a14ccde433fcb3c522a304bb554b09658
+  content_hash: sha256:6c3670dcfc6f8218850fdcd2093cdbc7e541cf4f2b49be3df027ab6dcb535dd1
 - repo_url: hol1kgmg/rules
   materialization_repo_url: Hol1kgmg/rules
   name: rules-code-comment
@@ -941,7 +941,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:2ef4db0bd1b3b8b319f8e042d03fa2e957eacd98f8b2d004aabb65921a3b3784
+  content_hash: sha256:40a1832abeef575044f28f18b7fed008d4d93812560fe0a9c7a1802da37caa7d
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/evals.json
@@ -950,7 +950,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:2ff1235af34cb2e04c6790ab91d78eb0dd958948d7caac0e7cc37b59c6571d59
+  content_hash: sha256:4e2569a71cc96e0d2b93b3704fba4143bfbca9deb25d9e22727ed4ecd1a3efd4
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/fixtures/hotel-app/schema.json
@@ -1013,7 +1013,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:6c013a9b690880fb27a4d953bdcd74002875fbec3102fafa7bfa8a14ff7794a6
+  content_hash: sha256:9f8bf1c1f4eb083fc403d567c1133b2738cdf9f37f1880de7a0773abcd5f0dc3
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/suites/core-principles.json
@@ -1022,7 +1022,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:763f1d55e91cdc1fae1f829c5c7dad1c75beca6d5bff8d4c03ef1811125ea539
+  content_hash: sha256:515ad6506f35d6825dcf9f0ea87fc9b299ce280cfaa09b80285c84da8ce834ab
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/suites/stage-0-router.json
@@ -1067,7 +1067,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:1205f1e9cb888bb1bb0cdb18c6894a65b4d33034f9978c3fc487008124174a32
+  content_hash: sha256:1d824847ae4be8d5a990d8543480e1268fdc0adca0e899a91d5fc997147b8cfe
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/suites/stage-5-specs.json
@@ -1076,7 +1076,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:e5b88ea0068dc46e73ae2bdf2d8697c3e07ff54e1b3216c3bdbaa3f4020dff54
+  content_hash: sha256:7b370511d671288b203a9c1779f8deb72597f39a0d8dd709e53031f2b1137621
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/suites/stage-6-frameworks.json
@@ -1085,7 +1085,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:0e04cbdfec6cac0cd405f3969a3808cebcc082f0dd4939aa0593d4e6e1ad0f3b
+  content_hash: sha256:73f8107493a10832f92c90dcd90f02b125a5eab48e141a4894b01296195b54df
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/evals/trigger-queries.json
@@ -1094,7 +1094,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:4c81f516ec5baf1baa44c562052aa7d9f6b095ac66c740fd69ccdb19278767e5
+  content_hash: sha256:837a813aa82b8d8678226ed6be5b9c09ed14b238b52581ddb93caa30c383798d
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/agent-security.md
@@ -1121,7 +1121,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:f0e767d52892e61b59fc495d53920ed4e2873ec97a66e7f4c25a7f97f303322b
+  content_hash: sha256:1d1a272a27224a52758bf5553bde83a3eed6e181040cd05c4f16c2ed081f2d87
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/audit-checklist.md
@@ -1130,7 +1130,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:0ec81a4ed52036cd473c69a1b0c8dc5d259e472fafe3a392d32a44b2fe4db431
+  content_hash: sha256:bf9e8f615f874e2f118db9784f6e8dfd853fb0ba7b25825a0779a3661d601e27
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/conversational-design.md
@@ -1139,7 +1139,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:6a8da88b8835ff7830535750ca2e7724eaac9252e61ed05031454b9edbc99dbe
+  content_hash: sha256:6f544e1b7019ac7efaeaf96382a784200429bf8c7551626a3147775454378ff1
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/declarative-patterns.md
@@ -1148,7 +1148,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:35c3efa2063623049865967c83a207570e4a43c095b91ebfbd7cb4da4b13580b
+  content_hash: sha256:1630f1ae1bd76099b3c644a2116d785fcae31ad35001d12704dfa5cab8d3c7fe
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/error-handling.md
@@ -1157,7 +1157,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:085f3afb4e0f6cbffec5048a5d9dc2142a45e043fb553d66815c973dd1070715
+  content_hash: sha256:39bfd044e46b789e7fc9ce5787e436547845e4bbec112bdb6265cd1c62c21a7e
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/evals-format.md
@@ -1166,7 +1166,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:b348f416ba82db604c868fcfb43181dce49ec3524880ee53db26941693c11ef0
+  content_hash: sha256:d8f34b53655cb7a75d371390cae6ab60386033bc95eec446459971c5cf163330
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/live-site-discovery.md
@@ -1184,7 +1184,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:69f2ef12f9b7205e80140b6ec60b59479502336c5acfad332c6fb2b1cbaf6c78
+  content_hash: sha256:0d56810cef83dac9811d264bcd6d3f42bb486f857d671d6e92cc01d8da01bc15
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/sources.md
@@ -1211,7 +1211,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:49830180731ccc625e6cf1093432cb47d0181f804d1ad34b50b10cd8407580f5
+  content_hash: sha256:def6a0ac875e23908707014083c3321f97407240f18289ed5e5b2ca89ced487c
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/use-case-template.md
@@ -1220,7 +1220,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:495a916dba89fecba9bfe15d91219affc09e362a1f0248248e773eaaa62793b0
+  content_hash: sha256:3b9c0eebf0968d94ef8e75e14c6c1995b305382efe17c22fddfb844140dc6920
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/build-webmcp-tools/references/vanilla-patterns.md
@@ -1229,7 +1229,7 @@ deployments:
   owners:
   - googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
   active_owner: googlechromelabs/webmcp-tools/webmcp-skills/skills/build-webmcp-tools
-  content_hash: sha256:a9f644fd6082d5faa66735b84e2a57b157b58c0dcbf2cf6f83507d3df4164601
+  content_hash: sha256:723b7f1f413fef8c3b7f2dfe7b8ca81a14ccde433fcb3c522a304bb554b09658
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/cloud-run-basics
@@ -1724,7 +1724,7 @@ deployments:
   owners:
   - google/skills/skills/cloud/google-cloud-recipe-auth
   active_owner: google/skills/skills/cloud/google-cloud-recipe-auth
-  content_hash: sha256:3415b14510b1b32a25a04233d2e81b2c8f4a923e4a40486f5b6fe5a4439afa54
+  content_hash: sha256:ecc4a5a8b52de9962633abda668b38dcf88036058b7d89e582db5bee650d0a28
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/google-cloud-recipe-auth/references/attribution.md
