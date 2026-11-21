@@ -60,7 +60,7 @@ func (q *Queries) ListArticleDomains(ctx context.Context, arg ListArticleDomains
 }
 
 const listRepostCandidates = `-- name: ListRepostCandidates :many
-SELECT a.id, a.url, a.title, a.category, p.id AS parent_id, p.url AS parent_url, p.title AS parent_title,
+SELECT a.id, a.url, a.title, a.category, p.url AS parent_url, p.title AS parent_title,
   min(d.entry_date)::date AS first_published_on
 FROM articles a
 JOIN digest_articles da ON da.article_id = a.id
@@ -69,7 +69,7 @@ LEFT JOIN articles p ON p.id = a.parent_id AND NOT p.hidden
 WHERE a.created_by = $1 AND NOT a.hidden
   AND (strpos(lower(a.title), lower($2)) > 0 OR strpos(lower(a.url), lower($2)) > 0
     OR strpos(lower(a.url), lower($3)) > 0)
-GROUP BY a.id, p.id
+GROUP BY a.id, p.url, p.title
 ORDER BY min(d.entry_date) DESC, a.id
 LIMIT 50
 `
@@ -85,7 +85,6 @@ type ListRepostCandidatesRow struct {
 	Url              string
 	Title            string
 	Category         string
-	ParentID         *uuid.UUID
 	ParentUrl        *string
 	ParentTitle      *string
 	FirstPublishedOn time.Time
@@ -106,7 +105,6 @@ func (q *Queries) ListRepostCandidates(ctx context.Context, arg ListRepostCandid
 			&i.Url,
 			&i.Title,
 			&i.Category,
-			&i.ParentID,
 			&i.ParentUrl,
 			&i.ParentTitle,
 			&i.FirstPublishedOn,

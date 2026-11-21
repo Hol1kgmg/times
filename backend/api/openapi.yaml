@@ -569,12 +569,9 @@ components:
             $ref: "#/components/schemas/RepostCandidate"
     RepostCandidateParent:
       type: object
-      required: [id, url, title]
+      required: [url, title]
       description: 子のときだけ入る。親を隠していれば入らない
       properties:
-        id:
-          type: string
-          format: uuid
         url:
           type: string
           format: uri

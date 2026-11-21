@@ -154,9 +154,9 @@ func (s *Server) ListRepostCandidates(ctx context.Context, req api.ListRepostCan
 	candidates := make([]api.RepostCandidate, 0, len(rows))
 	for _, r := range rows {
 		var parent *api.RepostCandidateParent
-		// id・url・title は同じ LEFT JOIN の行から来るので、一部だけ入ることはない
-		if r.ParentID != nil {
-			parent = &api.RepostCandidateParent{Id: *r.ParentID, Url: *r.ParentUrl, Title: *r.ParentTitle}
+		// url と title は同じ LEFT JOIN の行から来るので、片方だけ入ることはない
+		if r.ParentUrl != nil && r.ParentTitle != nil {
+			parent = &api.RepostCandidateParent{Url: *r.ParentUrl, Title: *r.ParentTitle}
 		}
 		candidates = append(candidates, api.RepostCandidate{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
 			Parent: parent, FirstPublishedOn: openapi_types.Date{Time: r.FirstPublishedOn}})

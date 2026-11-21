@@ -116,7 +116,7 @@ export const repostCandidate = z.object({
   url: z.url(),
   title: z.string(),
   category,
-  parent: z.object({ id: articleId, url: z.url(), title: z.string() }).optional(),
+  parent: z.object({ url: z.url(), title: z.string() }).optional(),
   firstPublishedOn: z.iso.date(),
 }) satisfies z.ZodType<Schemas["RepostCandidate"]>;
 
