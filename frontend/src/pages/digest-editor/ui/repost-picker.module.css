@@ -3,8 +3,8 @@
   width: 560px;
   /* 中央寄せだと候補の数で検索欄が上下に跳ね、高さを上限で取ると検索前に空の面が大きすぎるので、上端に止めて下へ伸ばす */
   align-self: start;
-  margin-top: 15dvh;
-  max-height: calc(100% - 15dvh - var(--space-4));
+  margin-top: var(--space-modal-top);
+  max-height: calc(100% - var(--space-modal-top) - var(--space-4));
   scrollbar-gutter: stable;
 }
 
@@ -142,7 +142,14 @@
 
 .meta {
   composes: t-meta from global;
+  display: flex;
+  min-width: 0;
   color: var(--color-text-muted);
+}
+
+.metaRest {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .blocked .meta,
@@ -151,10 +158,5 @@
 }
 
 .srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  composes: sr-only from global;
 }

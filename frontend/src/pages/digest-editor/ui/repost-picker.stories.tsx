@@ -11,7 +11,7 @@ const candidate = (
     title?: string;
     category?: RepostCandidate["category"];
     firstPublishedOn?: string;
-    parent?: { id: string; url: string; title: string };
+    parent?: { url: string; title: string };
   } = {},
 ) => ({
   id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
@@ -70,7 +70,7 @@ export const Found: Story = {
           candidate(1),
           candidate(2, {
             category: "AI系",
-            parent: { id: candidate(1).id, url: candidate(1).url, title: candidate(1).title },
+            parent: { url: candidate(1).url, title: candidate(1).title },
           }),
           candidate(3),
           candidate(4, { firstPublishedOn: "2026-11-02" }),

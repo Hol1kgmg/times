@@ -1,4 +1,3 @@
-import { isNotFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useId, useState } from "react";
 import { Button, ListBox, ListBoxItem } from "react-aria-components";
@@ -8,6 +7,7 @@ import { Chevron } from "#/shared/ui/chevron";
 import { Favicon } from "#/shared/ui/favicon";
 import { ModalDialog } from "#/shared/ui/modal";
 import { repostBlock } from "../model/board";
+import { failureMessage } from "./failure-message";
 import type { Board, RepostCandidate } from "../model/board";
 import styles from "./repost-picker.module.css";
 
@@ -15,6 +15,8 @@ const blockText = {
   "not-before": "この日より前に公開されてないので選べません",
   "on-board": "もう載ってるので選べません",
 } as const;
+
+const label = (c: RepostCandidate) => (c.title === "" ? new URL(c.url).hostname : c.title);
 
 const Candidate = ({ c, block }: { c: RepostCandidate; block: keyof typeof blockText | null }) => (
   <>
@@ -26,7 +28,7 @@ const Candidate = ({ c, block }: { c: RepostCandidate; block: keyof typeof block
     )}
     <span className={styles.titleLine}>
       <Favicon url={c.url} />
-      <span className={styles.title}>{c.title === "" ? new URL(c.url).hostname : c.title}</span>
+      <span className={styles.title}>{label(c)}</span>
       {block !== null && (
         <>
           <span aria-hidden className={styles.dot} />
@@ -35,7 +37,10 @@ const Candidate = ({ c, block }: { c: RepostCandidate; block: keyof typeof block
       )}
     </span>
     <span className={styles.meta}>
-      {`${new URL(c.url).hostname} · ${c.category} · ${formatEntryDate(c.firstPublishedOn)}に初掲載`}
+      <span className={styles.ellipsis}>{c.url}</span>
+      <span className={styles.metaRest}>
+        {` · ${c.category} · ${formatEntryDate(c.firstPublishedOn)}に初掲載`}
+      </span>
     </span>
   </>
 );
@@ -64,11 +69,8 @@ const RepostPicker = ({
       const result = await list({ data: { q } });
       setCandidates(result.articles);
     } catch (error_) {
-      setError(
-        isNotFound(error_)
-          ? "ログインが切れました。別のタブでログインし直してから、もう一度検索してください"
-          : "検索できませんでした。時間をおいてもう一度試してください",
-      );
+      setCandidates(undefined);
+      setError(failureMessage(error_, "検索"));
     }
     setSearching(false);
   };
@@ -114,24 +116,21 @@ const RepostPicker = ({
           {candidates?.length === 0 && <p className={styles.message}>見つからなかったです</p>}
           {candidates !== undefined && candidates.length > 0 && (
             // disabledKeys は矢印キーでも飛ばされるので使わず、選べない行は押しても何もしない (adr/frontend/0008)
-            <ListBox
-              aria-label="候補"
-              className={styles.list}
-              items={candidates}
-              onAction={(key) => {
-                const c = candidates.find((x) => x.id === key);
-                if (c !== undefined && repostBlock(board, c, entryDate) === null) {
-                  onPick(c);
-                  close();
-                }
-              }}
-            >
+            <ListBox aria-label="候補" className={styles.list} items={candidates}>
               {(c) => {
                 const block = repostBlock(board, c, entryDate);
                 return (
                   <ListBoxItem
                     className={block === null ? styles.item : `${styles.item} ${styles.blocked}`}
-                    textValue={c.title}
+                    textValue={label(c)}
+                    onAction={
+                      block === null
+                        ? () => {
+                            onPick(c);
+                            close();
+                          }
+                        : undefined
+                    }
                   >
                     <Candidate block={block} c={c} />
                   </ListBoxItem>
