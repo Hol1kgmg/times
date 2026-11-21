@@ -1,5 +1,5 @@
 lockfile_version: '1'
-apm_version: 0.35.0
+apm_version: 0.34.0
 dependencies:
 - repo_url: _local/project
   name: project-local
@@ -45,7 +45,6 @@ dependencies:
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:11d47b4773cf5336bc73e73bc4b156aa27d8e78d67fd595ab3d7aa8ea57c6429
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -63,7 +62,6 @@ dependencies:
     .agents/skills/template-sync-review/SKILL.md: sha256:deda8f9dfa60bd112fd51e50192cf049ab10f95bd0871adcd3bf2681a747c47a
   source: local
   local_path: ./packages/template
-  content_hash: sha256:20bb8c95e9bc282a0def2bc61dfed53870a416f48de995938f2d3f8562e2f403
 - repo_url: addyosmani/web-quality-skills
   name: accessibility
   host: github.com
@@ -459,7 +457,7 @@ dependencies:
   materialization_repo_url: GoogleChromeLabs/webmcp-tools
   name: build-webmcp-tools
   host: github.com
-  resolved_commit: a9d4cf1d34e94afc703a8988ace35cfb8904c4ee
+  resolved_commit: 596af768f84748da165879e2452fb39add447f0d
   resolved_ref: main
   version: unknown
   virtual_path: webmcp-skills/skills/build-webmcp-tools
@@ -534,7 +532,7 @@ dependencies:
     .agents/skills/build-webmcp-tools/references/tool-design.md: sha256:49830180731ccc625e6cf1093432cb47d0181f804d1ad34b50b10cd8407580f5
     .agents/skills/build-webmcp-tools/references/use-case-template.md: sha256:495a916dba89fecba9bfe15d91219affc09e362a1f0248248e773eaaa62793b0
     .agents/skills/build-webmcp-tools/references/vanilla-patterns.md: sha256:a9f644fd6082d5faa66735b84e2a57b157b58c0dcbf2cf6f83507d3df4164601
-  content_hash: sha256:293b3c1d5b02e5d7544ef44393013c485b268cebdff3918d2dbe9c8a848d1992
+  content_hash: sha256:6c3670dcfc6f8218850fdcd2093cdbc7e541cf4f2b49be3df027ab6dcb535dd1
 - repo_url: hol1kgmg/rules
   materialization_repo_url: Hol1kgmg/rules
   name: rules-code-comment
