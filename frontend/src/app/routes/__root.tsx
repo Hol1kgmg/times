@@ -14,6 +14,7 @@ import kleeOneFixed600 from "../styles/fonts/klee-one-fixed-600.woff2?url";
 import { NotFoundPage } from "#/pages/not-found";
 import { reportPageView } from "#/shared/api";
 import { getCurrentAdmin } from "#/shared/auth";
+import { Toaster } from "#/shared/ui/toast";
 import {
   FEED_PATH,
   SITE_DESCRIPTION as description,
@@ -109,6 +110,7 @@ export const Route = createRootRoute({
       </head>
       <body>
         <Outlet />
+        <Toaster />
         <PageView />
         <Scripts />
       </body>

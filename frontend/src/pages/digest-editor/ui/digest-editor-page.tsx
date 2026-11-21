@@ -4,6 +4,7 @@ import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } 
 import type { SetStateAction } from "react";
 import { Button } from "react-aria-components";
 import { category } from "#/shared/api";
+import { toast } from "#/shared/ui/toast";
 import type { DigestContent, DigestStatus } from "#/shared/api";
 import { createDigest } from "../api/create-digest";
 import type { Rejection } from "../api/rejection-of";
@@ -79,26 +80,18 @@ const dateErrorText = {
   "future-publish": "未来の日付は公開できないです。日付を直すか、下書きで保存してください",
 } as const;
 
-const RowRejections = ({
-  registeredLeft,
-  unavailableLeft,
-}: {
-  registeredLeft: number;
-  unavailableLeft: number;
-}) => (
-  <>
-    {registeredLeft > 0 && (
-      <p className={styles.error} role="alert">
-        登録済みの記事が含まれてます。削除してください
-      </p>
-    )}
-    {unavailableLeft > 0 && (
-      <p className={styles.error} role="alert">
-        再掲載できない記事が含まれてます。削除してください
-      </p>
-    )}
-  </>
-);
+// どの行かは行の印で示すので、トーストは直し方だけを伝える
+const rejectionText = (
+  reason: "url-already-registered" | "repost-unavailable",
+  leftToRemove: boolean,
+) => {
+  if (reason === "repost-unavailable") {
+    return "再掲載できない記事が含まれてます。印の付いた記事を削除してください";
+  }
+  return leftToRemove
+    ? "登録済みの記事が含まれてます。印の付いた記事を削除してください"
+    : "登録済みの記事を再掲載に切り替えました。確かめてから保存してください";
+};
 
 interface FormProps<S extends DigestStatus> {
   heading: string;
@@ -108,7 +101,7 @@ interface FormProps<S extends DigestStatus> {
   saveActions: readonly [SaveAction<S>, ...SaveAction<S>[]];
   submitLabel: string;
   leaveMessage: string;
-  save: (entry: DigestContent, status: S) => Promise<Rejection>;
+  save: (entry: DigestContent, status: S) => Promise<Rejection | undefined>;
   isDirty: (entry: DigestContent, board: Board) => boolean;
   taken: ReadonlySet<string>;
 }
@@ -143,7 +136,6 @@ const DigestForm = <S extends DigestStatus>({
   const [addingCount, setAddingCount] = useState(0);
   const adding = addingCount > 0;
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string>();
   // 直前に断られた理由ごとの URL。外すか直せば印も消え、断られるたびに入れ替える
   const [rowRejection, setRowRejection] = useState<
     Pick<CardActions, "registered" | "converted" | "unavailable">
@@ -154,8 +146,6 @@ const DigestForm = <S extends DigestStatus>({
     entryDate: string;
     reason: "digest-already-exists" | "future-publish";
   }>();
-  // 外せずに隠した行へ戻した件数。次に保存するまで案内を出す
-  const [restored, setRestored] = useState(0);
   const [previewing, setPreviewing] = useState(false);
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
@@ -177,12 +167,6 @@ const DigestForm = <S extends DigestStatus>({
 
   const entry = toNewDigest(board, entryDate);
   const dirty = isDirty(entry, board) && !submitting;
-  const parentUrls = entry.articles.map((a) => ("repostOf" in a ? a.repostOf : a.url));
-  const childUrls = entry.articles.flatMap((a) =>
-    a.children.map((c) => ("repostOf" in c ? c.repostOf : c.url)),
-  );
-  const registeredLeft = [...parentUrls, ...childUrls].filter((u) => registered.has(u)).length;
-  const unavailableLeft = parentUrls.filter((u) => unavailable.has(u)).length;
   const dateError =
     entryDate !== "" && entryDate === dateRejection?.entryDate ? dateRejection.reason : undefined;
   useBlocker({
@@ -236,11 +220,14 @@ const DigestForm = <S extends DigestStatus>({
 
   const onSubmit = async (status: S) => {
     setSubmitting(true);
-    setSubmitError(undefined);
-    setRestored(0);
     try {
       // navigate は呼ばない。成功時はサーバー関数が redirect を投げ、Router が遷移する
       const rejected = await save(entry, status);
+      // useServerFn は redirect を遷移に替え、遷移し終えると undefined を返す
+      if (rejected === undefined) {
+        toast.success(`${submitLabel}しました`);
+        return;
+      }
       // 日付で断られたときは URL を確かめる前に止まっているので、前の行の印を残す
       if ("duplicateUrls" in rejected) {
         const repostable = rejected.reason === "url-already-registered" ? rejected.repostable : [];
@@ -258,18 +245,24 @@ const DigestForm = <S extends DigestStatus>({
         });
         // 自動では保存し直さず、切り替えた行を見てから保存してもらう
         setBoard((b) => convertToReposts(b, repostable));
+        toast.error(
+          rejectionText(rejected.reason, repostable.length < rejected.duplicateUrls.length),
+        );
       }
       if (rejected.reason === "parent-has-children") {
         // 自動では保存し直さず、戻した行を見てから保存してもらう
         setBoard((b) => restoreHidden(b, rejected.hideable, initialBoard));
-        setRestored(rejected.hideable.length);
+        toast.error(
+          "子がほかの日にいる記事は外せないので、隠した行に戻しました。確かめてから保存してください",
+        );
       }
       if (rejected.reason === "digest-already-exists" || rejected.reason === "future-publish") {
         setDateRejection({ entryDate: entry.entryDate, reason: rejected.reason });
+        toast.error(dateErrorText[rejected.reason]);
       }
       setSubmitting(false);
     } catch (error) {
-      setSubmitError(failureMessage(error, submitLabel));
+      toast.error(failureMessage(error, submitLabel));
       setSubmitting(false);
     }
   };
@@ -302,18 +295,6 @@ const DigestForm = <S extends DigestStatus>({
             {reasons.length > 0 && (
               <p className={styles.message} id={blockersId}>
                 {reasons.map(blockerText).join("。")}
-              </p>
-            )}
-            {submitError !== undefined && <p className={styles.message}>{submitError}</p>}
-            {dateError !== undefined && (
-              <p className={styles.error} role="alert">
-                {dateErrorText[dateError]}
-              </p>
-            )}
-            <RowRejections registeredLeft={registeredLeft} unavailableLeft={unavailableLeft} />
-            {restored > 0 && (
-              <p className={styles.error} role="alert">
-                子がほかの日にいる記事は外せないので、隠した行に戻しました。確かめてから保存してください
               </p>
             )}
           </div>

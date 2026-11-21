@@ -1,6 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "react-aria-components";
+import { toast } from "#/shared/ui/toast";
 import { logout } from "../api/logout";
 import type { LoginError } from "../api/pick-login-error";
 import { startGitHubLogin } from "../api/start-github-login";
@@ -25,6 +26,15 @@ export const LoginPage = () => {
     const { url } = await start({ data: { path: loginPath } });
     window.location.assign(url);
   };
+  const signOut = async () => {
+    try {
+      // redirect は Router が処理して / へ遷移し、遷移し終えてから戻る
+      await end({ data: { path: loginPath } });
+      toast.success("ログアウトしました");
+    } catch {
+      toast.error("ログアウトできませんでした。時間をおいてもう一度試してください");
+    }
+  };
 
   if (user) {
     return (
@@ -37,8 +47,7 @@ export const LoginPage = () => {
           <Button
             className={styles.secondary}
             onPress={() => {
-              // redirect は Router が処理して / へ遷移する
-              void end({ data: { path: loginPath } });
+              void signOut();
             }}
           >
             ログアウト

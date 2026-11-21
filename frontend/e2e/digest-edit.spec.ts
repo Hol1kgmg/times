@@ -92,6 +92,8 @@ test("下書きで登録した Digest を一覧から開き、タイトル・記
   await page.getByRole("menuitemradio", { name: "公開して保存" }).click();
   await page.getByRole("button", { name: "公開して保存" }).click();
   await page.waitForURL((url) => url.pathname === "/admin/digests");
+  // 保存の成功は遷移先のトーストで伝える
+  await expect(page.getByRole("alertdialog", { name: "保存しました" })).toBeVisible();
 
   await expect(page.locator(`a[href="/admin/digests/${moved}/edit"]`)).not.toContainText("下書き");
   await expect(page.locator(`a[href="/admin/digests/${date}/edit"]`)).toHaveCount(0);
