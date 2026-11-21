@@ -45,7 +45,7 @@ export const Route = createFileRoute("/")({
         return new Response(latestDigestMarkdown(await loadLatestDigest()), {
           headers: {
             "content-type": "text/markdown; charset=utf-8",
-            "cache-control": "public, max-age=300",
+            "cache-control": "no-cache",
             vary: "Accept",
             link: LINK,
           },

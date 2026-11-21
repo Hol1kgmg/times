@@ -21,11 +21,15 @@ export const Route = createFileRoute("/feed/images/$file")({
           return new Response(null, { status: 404 });
         }
         // 版のクエリ (?v=) はキーに入れない。版を上げるのはデプロイと同時で、キャッシュも 300 秒で入れ替わる
-        return await cachedResponse(
+        const cached = await cachedResponse(
           cacheKey.feedImage(date),
           300,
           async () => await backendFetchRaw(`/feed/images/${date}`),
         );
+        // 編集で同じ URL の画像が変わるので、ブラウザには持たせない (adr/frontend/0002)
+        const res = new Response(cached.body, cached);
+        res.headers.set("cache-control", "no-cache");
+        return res;
       },
     },
   },
