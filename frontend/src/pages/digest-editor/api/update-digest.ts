@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { backendFetch, unwrapBackend } from "#/shared/api/index.server";
+import { backendFetch, purgeDigestCaches, unwrapBackend } from "#/shared/api/index.server";
 import { digestUpdate } from "#/shared/api";
 import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
@@ -25,5 +25,6 @@ export const updateDigest = createServerFn({ method: "POST" })
       return rejection;
     }
     unwrapBackend(result);
+    await purgeDigestCaches([data.date, data.digest.entryDate]);
     throw redirect({ to: "/admin/digests" });
   });

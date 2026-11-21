@@ -23,7 +23,10 @@ decision-makers: 'Hol1kgmg'
 
 **Workers の Cache API (`caches.open("times")`) に載せる。backend は無状態のまま、キャッシュ用のヘッダも持たせない。**
 
-- `GET /digests/latest` の結果: TTL 5 分。更新直後に最大 5 分古い表示が出ることを許容し、purge は実装しない
+- `GET /digests/latest` の結果: TTL 5 分。RSS (`/feed`) と RSS の画像 (`/feed/images/{date}`) も同じ 5 分
+- Digest の保存 (登録・編集) に成功したら、サーバー関数が最新の Digest・RSS・保存した日付の RSS 画像を `delete` する (2026-11-21、issue #116)。編集で日付を変えたときは前後の両方の日付を消す。公開中の Digest の誤字を直したら、管理者の手元ですぐ確かめたいため
+  - 消えるのは保存を受けたデータセンターの分だけ。ほかの地域の読み手には最大 5 分の遅れが残ることを許容する。全地域で消すには Cache API をやめて、ゾーンのキャッシュと Purge API に移す必要がある
+  - 消す処理が失敗しても保存は成功として返す。キャッシュは TTL で切れるため
 - リンクプレビュー (`getLinkPreview`): 成功は 1 日、失敗 (`null`) も 1 時間キャッシュして、壊れた URL を毎回取りに行かない
   - 受け付けるのは最新 Digest (キャッシュ済み) に載っている URL だけ。それ以外は取りに行かず `null` を返す (2026-10-22)。公開エンドポイントなので、任意の URL を受けると URL を変えるだけでキャッシュを外され、クローラーや踏み台利用で外部 fetch が青天井になる
 - SSR の HTML そのものはキャッシュしない。ヘッダにログイン状態が出るため
@@ -36,7 +39,7 @@ decision-makers: 'Hol1kgmg'
 - Good, because 外部サイトへの fetch が記事 × 閲覧者 から 記事 × 日 に減る。コストの重心はここだった
 - Good, because 追加のサービスも課金も無い。コードは Workers のヘルパー 1 つ
 - Bad, because Cache API はデータセンター単位で、保持も保証されない。ヒット率は閲覧者の地域に依る。個人サイトの規模では問題にしない
-- Bad, because 管理者が Digest を登録した直後、最大 5 分は旧表示のまま。即時反映が要るなら `POST /digests` 成功後に `(await caches.open("times")).delete(...)` を 1 行足す (再検討条件)
+- Bad, because Digest を保存した直後、保存を受けたデータセンター以外の読み手には最大 5 分は旧表示のまま (保存時の `delete` は 1 地域にしか効かない)
 - Bad, because Cache API の `match` は GET の Request しか受けない。POST 系やトークン付きの要求には使えないが、今はそれらをキャッシュする予定が無い
 
 ## Implementation Plan
@@ -57,17 +60,18 @@ decision-makers: 'Hol1kgmg'
 
 - [x] Vitest: ヘルパーが 2 回目の呼び出しで load 関数を呼ばない。null も関数 TTL でヒットする。load 失敗時は保存しない (`shared/api/cache.server.test.ts`)
 - [ ] 本番で `/` を 2 回連続で開き、Cloud Run のリクエストログが 2 回目に出ない
-- [ ] 本番で Digest を登録し、5 分後に `/` に反映される
+- [x] Vitest: 保存後の削除が最新の Digest・RSS・各日付の RSS 画像のキーを消し、1 つ失敗しても残りを消す (`shared/api/cache.server.test.ts`)
+- [ ] 本番で公開中の Digest のタイトルを直して保存し、同じ端末で `/` と `/feed.xml` を開き直すとすぐに反映されている
 
 ## Alternatives Considered
 
 - **backend が `Cache-Control` を返し、Workers はそれに従う**: HTTP 的には正しいが、今の構成で `Cache-Control` を見るのは Workers のヘルパーだけ。openapi.yaml にヘッダを足し、生成コードを更新してまで 2 箇所に分ける価値が無い。CDN など第 2 の消費者が出たら backend 側に移す
 - **Go プロセス内のメモリキャッシュ**: min instances 0 なので、アクセスの少ないサイトではインスタンスごと消えて効かない
 - **Workers KV**: データセンターを跨いで共有できるが有料で、書き込みの反映にも遅れがある。ヒット率の差が意味を持つ規模ではない
-- **即時 purge**: 管理者 1 人なので 1 行で済むが、「5 分遅れてよい」と決めたので今は入れない
+- **ゾーンのキャッシュと Purge API で全地域から消す**: 全地域ですぐに反映されるが、Cache API をやめてキャッシュの置き場ごと移すことになる。目的は管理者の手元での確認で、ほかの地域の 5 分の遅れは困らないので見送る (issue #116)
 
 ## More Information
 
 - 関連: [adr/backend/0003](../backend/0003-call-backend-from-server-functions-only.md) (Workers だけが backend を呼ぶ前提)、[adr/backend/0006](../backend/0006-host-backend-on-cloud-run-and-cloud-sql.md) (min instances 0 と月額の目安)
 - 計測: ヒット率と backend への到達は Workers Logs で見る ([docs/cache-metrics.md](../../docs/cache-metrics.md)、issue #140)
-- 再検討条件: 更新の即時反映が要るとき、ヒット率が低くて Cloud Run の請求が目安を超えるとき、backend に Workers 以外の消費者が付いたとき
+- 再検討条件: 管理者以外の読み手にも全地域で即時反映が要るとき、ヒット率が低くて Cloud Run の請求が目安を超えるとき、backend に Workers 以外の消費者が付いたとき
