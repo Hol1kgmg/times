@@ -49,7 +49,12 @@ jobs:
       - run: pnpm --dir frontend install --frozen-lockfile --strict-peer-dependencies --trust-lockfile
       - run: pnpm --dir frontend generate-routes
       - run: pnpm --dir frontend generate-api
-      - run: pnpm --dir frontend test:mutation ${SINCE:+--since "$SINCE"} --reporter text --reporter html
+      # checkout はブランチを origin/<name> でしか持たないので、main のような名前を補う
+      - run: |
+          if [ -n "$SINCE" ] && ! git rev-parse --verify -q "$SINCE^{commit}" >/dev/null; then
+            SINCE="origin/$SINCE"
+          fi
+          pnpm --dir frontend test:mutation ${SINCE:+--since "$SINCE"} --reporter text --reporter html
         env:
           SINCE: ${{ inputs.since }}
       - uses: actions/upload-artifact@v7.0.2

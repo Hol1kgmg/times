@@ -142,10 +142,10 @@ just fe-test-mutation --since main                  # main との差分だけ。
 just fe-test-mutation --since main --include-test-changes  # テストだけ直したときも、そのテストが通るコードを試す
 just fe-test-mutation                               # 全件 (初回約 8 分、2 回目以降はキャッシュで数秒)
 just fe-test-mutation --reporter html               # レポートは frontend/.mutator/report/index.html
-just fe-test-mutation --since main --reporter agent > frontend/.mutator/agent.json  # AI エージェントに渡す JSON
+mkdir -p frontend/.mutator && just fe-test-mutation --since main --reporter agent > frontend/.mutator/agent.json  # AI エージェントに渡す JSON
 ```
 
-- 対象と除外は `frontend/mutator.config.json`。純粋なロジックの層 (`shared/lib`、`pages/*/model`、`pages/*/lib`) だけを試し、UI・サーバー関数・`*.gen.ts`・`index.ts`・型宣言は外す。UI の Vitest はほとんどないので、試しても NoCoverage が並ぶだけになる。
+- 対象と除外は `frontend/mutator.config.json`。純粋なロジックの層 (`shared/lib`、`pages/*/model`、`pages/*/lib`) だけを試し、UI・サーバー関数・`*.gen.ts`・`index.ts`・型宣言は外す。同じ層にある React の hook (`use-hovered.ts` など)、WebMCP のツールの登録 (`*-tool.ts` など)、画像の読み込み (`load-favicon.ts`) も外す。UI の Vitest はほとんどないので、試しても NoCoverage が並ぶだけになる。
 - 結果の読み方 (スコアは Killed + Timeout + RuntimeError を、それに Survived と NoCoverage を足したもので割る。CompileError は分母に入らない):
 
   | 結果 | 意味 | すること |
