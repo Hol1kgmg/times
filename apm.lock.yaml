@@ -1,5 +1,5 @@
 lockfile_version: '1'
-apm_version: 0.35.0
+apm_version: 0.34.0
 dependencies:
 - repo_url: _local/project
   name: project-local
@@ -45,7 +45,6 @@ dependencies:
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:11d47b4773cf5336bc73e73bc4b156aa27d8e78d67fd595ab3d7aa8ea57c6429
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -63,7 +62,6 @@ dependencies:
     .agents/skills/template-sync-review/SKILL.md: sha256:deda8f9dfa60bd112fd51e50192cf049ab10f95bd0871adcd3bf2681a747c47a
   source: local
   local_path: ./packages/template
-  content_hash: sha256:20bb8c95e9bc282a0def2bc61dfed53870a416f48de995938f2d3f8562e2f403
 - repo_url: addyosmani/web-quality-skills
   name: accessibility
   host: github.com
@@ -441,7 +439,7 @@ dependencies:
 - repo_url: google/skills
   name: google-cloud-recipe-auth
   host: github.com
-  resolved_commit: 1e285f9d77ab260fd50944b49c3e2269b459474c
+  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/google-cloud-recipe-auth
@@ -454,7 +452,7 @@ dependencies:
   deployed_file_hashes:
     .agents/skills/google-cloud-recipe-auth/SKILL.md: sha256:3415b14510b1b32a25a04233d2e81b2c8f4a923e4a40486f5b6fe5a4439afa54
     .agents/skills/google-cloud-recipe-auth/references/attribution.md: sha256:088a215373cfef7827688fc5f1e99c902d24616614cb978c0b0abf172480fb86
-  content_hash: sha256:b5e13edec8b9c17a07a49fd88a735ea84d21a48fd09b4c6d7f258aafcc9c1633
+  content_hash: sha256:629c53c381539c2306b968db858522407aadb0156870570b2ce18963237f27c5
 - repo_url: googlechromelabs/webmcp-tools
   materialization_repo_url: GoogleChromeLabs/webmcp-tools
   name: build-webmcp-tools
