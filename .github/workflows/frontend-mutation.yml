@@ -52,7 +52,7 @@ jobs:
       - run: pnpm --dir frontend test:mutation ${SINCE:+--since "$SINCE"} --reporter text --reporter html
         env:
           SINCE: ${{ inputs.since }}
-      - uses: actions/upload-artifact@v7.0.0
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: mutation-report
