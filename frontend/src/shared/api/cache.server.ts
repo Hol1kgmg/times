@@ -13,10 +13,19 @@ export const cacheKey = {
 
 // Cache API はデータセンター単位なので、消えるのは保存を受けた地域の分だけ (adr/frontend/0002)
 export const purgeDigestCaches = createServerOnlyFn(async (dates: string[]): Promise<void> => {
-  const cache = await openCache();
-  const keys = [cacheKey.latestDigest, cacheKey.feed, ...dates.map(cacheKey.feedImage)];
+  const cache = openCache();
+  const keys = [
+    cacheKey.latestDigest,
+    cacheKey.feed,
+    ...[...new Set(dates)].map(cacheKey.feedImage),
+  ];
   // 消せなくても TTL で切れるので、保存の成功は覆さない
-  await Promise.allSettled(keys.map(async (key) => await cache?.delete(new Request(key))));
+  await Promise.allSettled(
+    keys.map(async (key) => {
+      const opened = await cache;
+      return await opened?.delete(new Request(key));
+    }),
+  );
 });
 
 // Workers Logs で集計する (docs/cache-metrics.md)。プレビューのキーは記事 URL を含むので先頭 2 段に丸める
