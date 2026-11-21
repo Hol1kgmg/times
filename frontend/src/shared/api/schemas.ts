@@ -111,13 +111,13 @@ export const articleSearchResult = z.object({
   articles: articleSearchHit.array(),
 }) satisfies z.ZodType<Schemas["ArticleSearchResult"]>;
 
-export const repostCandidate = z.object({
-  id: articleId,
-  url: z.url(),
-  title: z.string(),
-  category,
-  parent: z.object({ url: z.url(), title: z.string() }).optional(),
-  firstPublishedOn: z.iso.date(),
+export const repostCandidate = articleSearchHit.pick({
+  id: true,
+  url: true,
+  title: true,
+  category: true,
+  parent: true,
+  firstPublishedOn: true,
 }) satisfies z.ZodType<Schemas["RepostCandidate"]>;
 
 export const repostCandidateList = z.object({

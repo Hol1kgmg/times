@@ -520,7 +520,7 @@ components:
     ArticleSearchParent:
       type: object
       required: [url, title]
-      description: 子のときだけ入る
+      description: 子のときだけ入る。親を隠していれば入らない
       properties:
         url:
           type: string
@@ -567,16 +567,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RepostCandidate"
-    RepostCandidateParent:
-      type: object
-      required: [url, title]
-      description: 子のときだけ入る。親を隠していれば入らない
-      properties:
-        url:
-          type: string
-          format: uri
-        title:
-          type: string
     RepostCandidate:
       type: object
       required: [id, url, title, category, firstPublishedOn]
@@ -592,7 +582,7 @@ components:
         category:
           $ref: "#/components/schemas/Category"
         parent:
-          $ref: "#/components/schemas/RepostCandidateParent"
+          $ref: "#/components/schemas/ArticleSearchParent"
         firstPublishedOn:
           type: string
           format: date
