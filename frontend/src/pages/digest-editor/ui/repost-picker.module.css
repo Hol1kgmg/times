@@ -1,8 +1,10 @@
 .modal {
   composes: modal from global;
   width: 560px;
-  /* 候補の数で高さが変わると、中央寄せのモーダルの検索欄が上下に跳ねるので、普段から上限の高さを取る */
-  height: 100%;
+  /* 中央寄せだと候補の数で検索欄が上下に跳ね、高さを上限で取ると検索前に空の面が大きすぎるので、上端に止めて下へ伸ばす */
+  align-self: start;
+  margin-top: 15dvh;
+  max-height: calc(100% - 15dvh - var(--space-4));
   scrollbar-gutter: stable;
 }
 
