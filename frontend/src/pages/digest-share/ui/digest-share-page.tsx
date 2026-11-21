@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
 import { SITE_URL } from "#/shared/config/site";
 import { formatEntryDateWithoutYear } from "#/shared/lib/entry-date";
+import { RouterLink } from "#/shared/ui/router-link";
 import styles from "./digest-share-page.module.css";
 
 // 題名はフィードの item と同じ形にする。fixed-chars の対象外に置き、表示しない字でトップのサブセットを太らせない
@@ -21,9 +21,15 @@ export const digestShareHead = (date: string) => {
   };
 };
 
-// 人は meta refresh ですぐトップへ移る。refresh を止めている人のためにリンクだけ置く
+// refresh を止めている人には移動が起きないので、案内の中にリンクを置く
 export const DigestSharePage = () => (
   <main className={styles.page}>
-    <Link to="/">トップへ</Link>
+    <span aria-hidden="true" className={styles.spinner} />
+    <p>
+      トップへ移動してます。移らないときは
+      <RouterLink className={styles.link} to="/">
+        こちら
+      </RouterLink>
+    </p>
   </main>
 );
