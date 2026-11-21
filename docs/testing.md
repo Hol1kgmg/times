@@ -133,7 +133,61 @@ just be-test -count=1                             # キャッシュを使わず�
 
 `go test` は結果をキャッシュする。出力に `(cached)` とあれば再実行されていない。
 
-## 8. コミット前の確認
+## 8. ミューテーションテストでテストの検出力を見る
+
+コードをわざと壊したもの (ミュータント) をテストが落とせるかを試し、行カバレッジでは分からない「通っているが何も確かめていない」テストを見つける (#177)。frontend の Vitest だけが対象で、ツールは [`@mizchi/mutator`](https://www.npmjs.com/package/@mizchi/mutator)。
+
+```sh
+just fe-test-mutation --since main                  # main との差分だけ。日常はこれ
+just fe-test-mutation --since main --include-test-changes  # テストだけ直したときも、そのテストが通るコードを試す
+just fe-test-mutation                               # 全件 (初回約 8 分、2 回目以降はキャッシュで数秒)
+just fe-test-mutation --reporter html               # レポートは frontend/.mutator/report/index.html
+just fe-test-mutation --since main --reporter agent > frontend/.mutator/agent.json  # AI エージェントに渡す JSON
+```
+
+- 対象と除外は `frontend/mutator.config.json`。純粋なロジックの層 (`shared/lib`、`pages/*/model`、`pages/*/lib`) だけを試し、UI・サーバー関数・`*.gen.ts`・`index.ts`・型宣言は外す。UI の Vitest はほとんどないので、試しても NoCoverage が並ぶだけになる。
+- 結果の読み方 (スコアは Killed + Timeout + RuntimeError を、それに Survived と NoCoverage を足したもので割る。CompileError は分母に入らない):
+
+  | 結果 | 意味 | すること |
+  |---|---|---|
+  | Killed / RuntimeError / Timeout | テストが落ちた (例外・無限ループも含む) | なし |
+  | Survived (not detected) | テストは通るが、どれも落ちない | 結果を確かめる assertion を足す・強める |
+  | Survived (not infected) | テストは通るが、元と変異後で値が変わる入力がない | 境界の値など、両者が分かれる入力を足す |
+  | NoCoverage (not reached) | どのテストも通らない | テストが要るかを [品質ルール](../.claude/rules/quality.md#テストの置き場所) で判断する |
+  | CompileError | 型チェックで落ちたので試していない | なし (型が守っている) |
+
+- 等価ミュータント (変えても結果が同じもの) は `pnpm -C frontend exec mutator accept <key> --reason "<理由>"` で `frontend/mutator.accepted.json` に理由を残す。100% は目指さない。
+- `src/app/styles/fonts/fixed-chars.test.ts` は子プロセスで `scripts/fixed-chars.ts` を動かすので、mutator からは見えない (毎回警告が出る)。
+- 改善の例: `digest-urls.ts` の `some` → `every` の 2 件が生き残っていた。記事も子も 1 件しかない fixture では `some` と `every` が同じ値になるため。記事を 2 件、子を 2 件にしたテストを足して殺した。
+
+### CI
+
+`frontend-mutation` workflow を Actions の画面から手動で起動する (`since` に ref を入れると差分だけ)。レポートは artifact `mutation-report` に残る。PR の必須チェックには入れず、閾値で落とすこともしない。
+
+### ツールの比較 (2026-11、`entry-date.ts` / `group-by-category.ts` / `digest-urls.ts` の 3 ファイルと同じテストで、手元で 4 並列)
+
+| | `@mizchi/mutator` 0.4.5 | StrykerJS 10.1.1 |
+|---|---|---|
+| 全件 | 31 秒 (型チェック 12 秒を含む) | 20 秒 |
+| 2 回目 | 10 秒 (キャッシュ) | 7 秒 (`--incremental`) |
+| 差分だけ | `--since` で 1〜11 秒。テストの変更も拾える | なし (`--incremental` は前回の結果の使い回しだけ) |
+| ミュータント | 67 (型の合わない 35 件を先に除く) | 65 (型エラーも実行して errors 14 件) |
+| スコア | 65.6% | 74.5% (数え方が違うので比べられない) |
+| 生き残り | `some` → `every` 2 件 | 同じ 2 件 + 関数を丸ごと空にする変異など 4 件 |
+| 導入の手間 | 設定ファイルだけで動いた | pnpm だとプラグインが自動で見つからない。サンドボックスに写すと Vite の `fs.allow` に弾かれ、`--inPlace` は読み取り専用の `.agents` で復元の途中に落ちて作業ツリーを書き換えたまま止まった |
+| AI エージェント | `--reporter agent` の JSON と `mutation-test-loop` skill を同梱 | なし |
+
+mutator を選んだ。差分だけを数秒で回せて、テストの変更も追えるので、日常の開発で回せる。型チェックで変異を先に減らすので、TypeScript の型が守っている所を数えずに済む。弱いのは 0.x で更新が速い (0.4.0 → 0.5.0 が 2 日) ことで、上げるときは `minimumReleaseAge` を待ってから CLI の `--help` で手順を確かめる。
+
+AI エージェント向けのレポートは、生き残りごとに種類 (`notDetected` / `notInfected` / `notReached`)、囲む関数、それを通るテストが入っていて、上の改善例はこの JSON だけで直せた。`mutation-test-loop` skill はこのリポジトリには入れていない。skill は apm が配置するので、使うなら `packages/project/.apm/` に入れる。
+
+全件の実測 (対象 25 ファイル): ミュータント 1,735 件、うち型チェックで落ちたもの 703 件、実行したもの 673 件。466 秒 (型チェックが 326 秒) で、メモリは最大 1.8GB。スコアは 47.9%。NoCoverage が多いのは `not-found/lib/load-favicon.ts` など、テストを書かない方針の部分。
+
+### backend (Go)
+
+まだ入れていない。候補は [gremlins](https://github.com/go-gremlins/gremlins) (v0.6.0、2025-12) と [avito-tech/go-mutesting](https://github.com/avito-tech/go-mutesting) (v2.3.1、2025-12)。どちらも保守はされているが、Go 1.26 での試走はしていない。試すなら、DB に触れない `internal/auth` と `internal/feed` から始める。入れるかは #204 で決める。
+
+## 9. コミット前の確認
 
 ```sh
 just be-gen            # OpenAPI か SQL を変えたとき。生成物に差分が出たら一緒にコミットする
