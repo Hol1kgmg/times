@@ -130,15 +130,36 @@ func (s *Server) SearchArticles(ctx context.Context, req api.SearchArticlesReque
 	hits := make([]api.ArticleSearchHit, 0, len(rows))
 	for _, r := range rows {
 		first, reposted := splitPublishedOn(r.PublishedOn)
-		var parent *api.ArticleSearchParent
-		// url と title は同じ LEFT JOIN の行から来るので、片方だけ入ることはない
-		if r.ParentUrl != nil && r.ParentTitle != nil {
-			parent = &api.ArticleSearchParent{Url: *r.ParentUrl, Title: *r.ParentTitle}
-		}
 		hits = append(hits, api.ArticleSearchHit{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
-			Parent: parent, FirstPublishedOn: first, RepostedOn: reposted, HotOn: toDates(r.HotOn)})
+			Parent: toSearchParent(r.ParentUrl, r.ParentTitle), FirstPublishedOn: first, RepostedOn: reposted, HotOn: toDates(r.HotOn)})
 	}
 	return api.SearchArticles200JSONResponse{Articles: hits}, nil
+}
+
+// ponytail: ログインできるのは管理者だけなので bearerAuth で足りる。一般ユーザーを足したら管理者の判定を足す
+func (s *Server) ListRepostCandidates(ctx context.Context, req api.ListRepostCandidatesRequestObject) (api.ListRepostCandidatesResponseObject, error) {
+	p, ok := auth.PrincipalFrom(ctx)
+	if !ok {
+		return nil, apperr.Unauthorized("no session in context")
+	}
+	rows, err := s.q.ListRepostCandidates(ctx, db.ListRepostCandidatesParams{CreatedBy: p.UserID, Q: req.Params.Q, EncodedQ: encodedQuery(req.Params.Q)})
+	if err != nil {
+		return nil, err
+	}
+	candidates := make([]api.RepostCandidate, 0, len(rows))
+	for _, r := range rows {
+		candidates = append(candidates, api.RepostCandidate{Id: r.ID, Url: r.Url, Title: r.Title, Category: api.Category(r.Category),
+			Parent: toSearchParent(r.ParentUrl, r.ParentTitle), FirstPublishedOn: openapi_types.Date{Time: r.FirstPublishedOn}})
+	}
+	return api.ListRepostCandidates200JSONResponse{Articles: candidates}, nil
+}
+
+func toSearchParent(url, title *string) *api.ArticleSearchParent {
+	// url と title は同じ LEFT JOIN の行から来るので、片方だけ入ることはない
+	if url == nil || title == nil {
+		return nil
+	}
+	return &api.ArticleSearchParent{Url: *url, Title: *title}
 }
 
 // 公開の掲載を INNER JOIN して古い順に集めるので、dates は 1 件以上ある

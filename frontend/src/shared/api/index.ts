@@ -7,6 +7,7 @@ export { listDigests } from "./list-digests";
 export { listPublishedDigests } from "./list-published-digests";
 export { loadAnyLinkPreview } from "./load-any-link-preview";
 export { reportArticleOpen, reportPageView } from "./report";
+export { listRepostCandidates } from "./repost-candidates";
 export * from "./schemas";
 export { articleSearchQuery, searchArticles } from "./search-articles";
 export { suggestCategory } from "./suggest-category";

@@ -121,7 +121,12 @@ const EditDialog = ({
     }
   };
   return (
-    <ModalDialog className={styles.dialog} labelledBy={headingId} onClose={onClose}>
+    <ModalDialog
+      className={styles.dialog}
+      closeOnOutside={false}
+      labelledBy={headingId}
+      onClose={onClose}
+    >
       {({ close }) => (
         <form
           className={styles.form}

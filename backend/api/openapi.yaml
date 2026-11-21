@@ -224,16 +224,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: q
-          in: query
-          required: true
-          description: タイトルか URL に含まれる文字列。大文字小文字を区別せず、URL はパーセントエンコードした形とも照らす
-          schema:
-            type: string
-            minLength: 1
-            maxLength: 100
-            # 空白だけの語は strpos でほぼ全件に当たる
-            pattern: '\S'
+        - $ref: "#/components/parameters/ArticleSearchQuery"
       responses:
         "200":
           description: OK
@@ -241,6 +232,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ArticleSearchResult"
+        "400":
+          description: 形式違反 (validation-failed)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /articles/repost-candidates:
+    get:
+      operationId: listRepostCandidates
+      description: 再掲載の候補を searchArticles と同じ条件で探し、初掲載日の新しい順で最大 50 件返す。再掲載の日付と HOT の履歴は返さない。選べるかは画面で判定し、保存時に repost-unavailable で再検証する。管理者専用 (specs/021)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArticleSearchQuery"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepostCandidateList"
         "400":
           description: 形式違反 (validation-failed)
           content:
@@ -366,6 +380,17 @@ components:
         minimum: 1
         maximum: 50
         default: 20
+    ArticleSearchQuery:
+      name: q
+      in: query
+      required: true
+      description: タイトルか URL に含まれる文字列。大文字小文字を区別せず、URL はパーセントエンコードした形とも照らす
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+        # 空白だけの語は strpos でほぼ全件に当たる
+        pattern: '\S'
   responses:
     BadRequest:
       description: Bad Request
@@ -495,7 +520,7 @@ components:
     ArticleSearchParent:
       type: object
       required: [url, title]
-      description: 子のときだけ入る
+      description: 子のときだけ入る。親を隠していれば入らない
       properties:
         url:
           type: string
@@ -534,6 +559,34 @@ components:
           items:
             type: string
             format: date
+    RepostCandidateList:
+      type: object
+      required: [articles]
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RepostCandidate"
+    RepostCandidate:
+      type: object
+      required: [id, url, title, category, firstPublishedOn]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        parent:
+          $ref: "#/components/schemas/ArticleSearchParent"
+        firstPublishedOn:
+          type: string
+          format: date
+          description: 公開の掲載のうちいちばん古い日付
     DigestStatus:
       type: string
       enum: [draft, published, private]

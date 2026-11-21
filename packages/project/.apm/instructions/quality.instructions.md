@@ -18,6 +18,7 @@
 
 - **信頼境界は 2 つ**: ブラウザ → サーバー関数 (zod)、サーバー関数 → backend (OpenAPI)。両方を必ず通す。片方を「もう検証済み」として省かない。
 - **UI の HTML 属性はユーザー体験のため**であり検証ではない。外しても backend が拒否する状態を保つ。
+- **`pattern` には形式を説明する `title` を付ける**。独自エラー文言の例外で、ブラウザの既定の文言は「形式が違う」とだけ出て何を直せばよいか伝わらず、HTML の仕様と markuplint (`html-standard/input-pattern-title`) も付けるよう求めるため。
 - **フォームの検証でサーバー関数の検証を省略しない**。Zod の適用範囲とスキーマ共有は [TypeScript アプリのルール](typescript-app.md#zod-の適用範囲) に従う。
 - **enum と固定値は 1 か所で定義**する。backend は `openapi.yaml` の `Category`、frontend は `schemas.ts` の `category` (`satisfies` で生成型に縛る)。UI の `<select>` も `category.options` から作る。
 - **DB の制約違反は handler で判別して 400 にする**。pgx の `*pgconn.PgError` で `23505` (unique) / `23514` (check) を見て `apperr.ValidationFailed` を返す。500 のまま返さない。

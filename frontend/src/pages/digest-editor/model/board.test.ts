@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDraft,
+  addRepost,
   blockers,
   canMakeChild,
   convertToReposts,
@@ -16,6 +17,7 @@ import {
   pinReposts,
   rejectUpdate,
   remove,
+  repostBlock,
   restoreHidden,
   revert,
   settleCategory,
@@ -29,7 +31,7 @@ import {
   UNSORTED,
   updateDraft,
 } from "./board";
-import { digest } from "#/shared/api";
+import { digest, repostCandidate } from "#/shared/api";
 import type { Board, BoxId, Draft, Link } from "./board";
 
 const link = (id: string, title = `title ${id}`): Link => ({
@@ -366,6 +368,34 @@ describe("断られた行を再掲載にする", () => {
       { id: "a", title: "元のタイトル", hot: false, repost: { firstPublishedOn: "2026-10-03" } },
     ]);
     expect(pinReposts(remove(converted, "c")).AI系.map((d) => d.id)).toStrictEqual(["a", "b"]);
+  });
+});
+
+describe("過去の記事から再掲載を足す", () => {
+  const candidate = repostCandidate.parse({
+    id: "00000000-0000-4000-8000-000000000001",
+    url: "https://example.com/old",
+    title: "過去の記事",
+    category: "AI系",
+    firstPublishedOn: "2026-10-19",
+  });
+
+  it("can repost only an article first published before the entry date", () => {
+    expect(repostBlock(emptyBoard(), candidate, "2026-10-19")).toBe("not-before");
+    expect(repostBlock(emptyBoard(), candidate, "2026-10-20")).toBeNull();
+  });
+
+  it("cannot repost an article already on the board as a child", () => {
+    const b = board({
+      IT系: [draft("p", { children: [{ ...link("c"), url: candidate.url }] })],
+    });
+    expect(repostBlock(b, candidate, "2026-10-20")).toBe("on-board");
+  });
+
+  it("sends a picked article as a repost in its original category", () => {
+    expect(
+      toNewDigest(ok(addRepost(emptyBoard(), candidate, "r")), "2026-10-20").articles,
+    ).toStrictEqual([{ repostOf: candidate.url, category: "AI系", children: [] }]);
   });
 });
 

@@ -65,6 +65,7 @@
   --space-2: 12px;
   --space-3: 16px;
   --space-4: 24px;
+  --space-modal-top: 15dvh;
   --z-menu-overlay: 10;
   --z-header: 20;
   --z-modal: 30;
@@ -237,6 +238,15 @@ dialog.modal {
   .modal::backdrop {
     transition: none;
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* global.css の中では composes できないので、文字は使う側で t-body と一緒に取り込む */

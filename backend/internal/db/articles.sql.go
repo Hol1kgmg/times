@@ -59,6 +59,66 @@ func (q *Queries) ListArticleDomains(ctx context.Context, arg ListArticleDomains
 	return items, nil
 }
 
+const listRepostCandidates = `-- name: ListRepostCandidates :many
+SELECT a.id, a.url, a.title, a.category, p.url AS parent_url, p.title AS parent_title,
+  min(d.entry_date)::date AS first_published_on
+FROM articles a
+JOIN digest_articles da ON da.article_id = a.id
+JOIN digests d ON d.id = da.digest_id AND d.status = 'published'
+LEFT JOIN articles p ON p.id = a.parent_id AND NOT p.hidden
+WHERE a.created_by = $1 AND NOT a.hidden
+  AND (strpos(lower(a.title), lower($2)) > 0 OR strpos(lower(a.url), lower($2)) > 0
+    OR strpos(lower(a.url), lower($3)) > 0)
+GROUP BY a.id, p.url, p.title
+ORDER BY min(d.entry_date) DESC, a.id
+LIMIT 50
+`
+
+type ListRepostCandidatesParams struct {
+	CreatedBy int64
+	Q         string
+	EncodedQ  string
+}
+
+type ListRepostCandidatesRow struct {
+	ID               uuid.UUID
+	Url              string
+	Title            string
+	Category         string
+	ParentUrl        *string
+	ParentTitle      *string
+	FirstPublishedOn time.Time
+}
+
+// 登録・編集画面で再掲載の候補を選ぶのに要るのは初掲載日だけで、調査用の集計は重い。絞り込みは SearchArticles と同じに保つ
+func (q *Queries) ListRepostCandidates(ctx context.Context, arg ListRepostCandidatesParams) ([]ListRepostCandidatesRow, error) {
+	rows, err := q.db.Query(ctx, listRepostCandidates, arg.CreatedBy, arg.Q, arg.EncodedQ)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRepostCandidatesRow
+	for rows.Next() {
+		var i ListRepostCandidatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Title,
+			&i.Category,
+			&i.ParentUrl,
+			&i.ParentTitle,
+			&i.FirstPublishedOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchArticles = `-- name: SearchArticles :many
 SELECT a.id, a.url, a.title, a.category, p.url AS parent_url, p.title AS parent_title,
   -- 公開の掲載だけを JOIN するので、下書き・非公開にしか載っていない記事は出ない (specs/018 FR-005)
@@ -94,6 +154,7 @@ type SearchArticlesRow struct {
 	HotOn       []time.Time
 }
 
+// 調査用で掲載日と HOT の履歴まで集める。絞り込みを変えるときは ListRepostCandidates も同じに直す
 // ponytail: 記事は数千件に届かないので全件を strpos で見る。遅くなったら pg_trgm の索引を足す
 // 再掲載は自分の記事を upsert するので、ほかの利用者の記事は出さない
 // 隠した親は再掲載の候補に出さないので、子にも親として示さない

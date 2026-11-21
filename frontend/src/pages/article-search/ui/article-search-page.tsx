@@ -125,7 +125,7 @@ const HitDialog = ({ hit, onClose }: { hit: Hit; onClose: () => void }) => {
   const headingId = useId();
   const dates = [hit.firstPublishedOn, ...hit.repostedOn].toReversed();
   return (
-    <ModalDialog className={styles.modal} closeOnOutside labelledBy={headingId} onClose={onClose}>
+    <ModalDialog className={styles.modal} labelledBy={headingId} onClose={onClose}>
       {({ close }) => (
         <div className={styles.modalBody}>
           <h2 className={styles.modalTitle} id={headingId}>
