@@ -186,6 +186,10 @@ fe-generate-routes:
 fe-test *args:
     pnpm -C frontend test {{args}}
 
+# Run mutation tests (e.g. just fe-test-mutation --since main)
+fe-test-mutation *args:
+    pnpm -C frontend test:mutation {{args}}
+
 # Run E2E tests
 fe-test-e2e *args:
     pnpm -C frontend test:e2e {{args}}

@@ -1,0 +1,59 @@
+name: frontend-mutation
+
+# 全件で約 8 分かかり、閾値も未定なので PR の必須チェックにせず手動で回す (#177)
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "この ref との差分だけを試す (空なら全件)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  node-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - id: resolve
+        run: |
+          version=$(nix eval --raw .#node.version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  mutation:
+    needs: node-version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          # --since が比べる ref を手元に持つため
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ needs.node-version.outputs.version }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile --strict-peer-dependencies --trust-lockfile
+      - run: pnpm --dir frontend generate-routes
+      - run: pnpm --dir frontend generate-api
+      - run: pnpm --dir frontend test:mutation ${SINCE:+--since "$SINCE"} --reporter text --reporter html
+        env:
+          SINCE: ${{ inputs.since }}
+      - uses: actions/upload-artifact@v7.0.0
+        if: always()
+        with:
+          name: mutation-report
+          path: frontend/.mutator/report/
