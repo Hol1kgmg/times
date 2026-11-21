@@ -8,7 +8,7 @@ export const Route = createFileRoute("/feed.xml")({
         new Response(await loadFeedXml(), {
           headers: {
             "content-type": "application/rss+xml; charset=utf-8",
-            "cache-control": "public, max-age=300",
+            "cache-control": "no-cache",
           },
         }),
     },

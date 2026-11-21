@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { backendFetch, unwrapBackend } from "#/shared/api/index.server";
+import { backendFetch, purgeDigestCaches, unwrapBackend } from "#/shared/api/index.server";
 import { newDigest } from "#/shared/api";
 import { requireAdminToken } from "#/shared/auth/index.server";
 import { rejectionOf } from "./rejection-of";
@@ -24,6 +24,7 @@ export const createDigest = createServerFn({ method: "POST" })
       return rejection;
     }
     unwrapBackend(result);
+    await purgeDigestCaches([data.entryDate]);
     // 下書きはトップに出ないので、登録できたことを一覧で見せる
     throw redirect({ to: data.status === "published" ? "/" : "/admin/digests" });
   });

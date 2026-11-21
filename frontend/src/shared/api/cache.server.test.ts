@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { cachedJson, cachedResponse } from "./cache.server";
+import { cachedJson, cachedResponse, purgeDigestCaches } from "./cache.server";
 
 const stubCaches = () => {
   const cache = {
     match: vi.fn<(req: Request) => Promise<Response | undefined>>(),
     put: vi.fn<(req: Request, res: Response) => Promise<void>>().mockResolvedValue(),
+    delete: vi.fn<(req: Request) => Promise<boolean>>().mockResolvedValue(true),
   };
   vi.stubGlobal("caches", { open: vi.fn<() => Promise<typeof cache>>().mockResolvedValue(cache) });
   return cache;
@@ -105,5 +106,19 @@ describe(cachedResponse, () => {
     await cachedResponse("https://example.test/missing", 300, missing);
     await cachedResponse("https://example.test/missing", 300, missing);
     expect(missing).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe(purgeDigestCaches, () => {
+  it("drops the top, the feed and the feed image of every given date even if one delete fails", async () => {
+    const cache = stubCaches();
+    cache.delete.mockRejectedValueOnce(new Error("boom"));
+    await purgeDigestCaches(["2026-11-20", "2026-11-21"]);
+    expect(cache.delete.mock.calls.map(([req]) => req.url)).toStrictEqual([
+      "https://cache.times.invalid/digests/latest",
+      "https://cache.times.invalid/feed",
+      "https://cache.times.invalid/feed/images/2026-11-20",
+      "https://cache.times.invalid/feed/images/2026-11-21",
+    ]);
   });
 });

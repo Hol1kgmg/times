@@ -1,14 +1,14 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { backendFetch, unwrapBackend } from "./backend.server";
-import { cachedJson } from "./cache.server";
+import { cacheKey, cachedJson } from "./cache.server";
 
-// 公開は管理者が手動で行うときしか変わらないので、トップと同じく 5 分の遅れを許容する (adr/frontend/0002)
+// トップと同じく、ほかの地域には 5 分の遅れを許容する (adr/frontend/0002)
 const TTL_SECONDS = 300;
 
 export const loadFeedXml = createServerOnlyFn(
   async () =>
-    await cachedJson("https://cache.times.invalid/feed", z.string(), TTL_SECONDS, async () => {
+    await cachedJson(cacheKey.feed, z.string(), TTL_SECONDS, async () => {
       const res = unwrapBackend(await backendFetch("/feed"));
       return await res.text();
     }),
