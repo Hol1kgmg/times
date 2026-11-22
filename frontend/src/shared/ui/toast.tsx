@@ -9,7 +9,12 @@ import {
   UNSTABLE_ToastRegion as ToastRegion,
 } from "react-aria-components";
 import type { QueuedToast } from "react-aria-components";
+import { LineIcon } from "./icons/line-icon";
 import styles from "./toast.module.css";
+
+// lucide の check / circle-alert。circle-alert は 1 本のパスにしたもの
+const checkPath = "M20 6 9 17l-5-5";
+const alertPath = "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM12 8v4m0 4h.01";
 
 interface Notice {
   kind: "success" | "error";
@@ -63,6 +68,11 @@ export const Toaster = () => (
           style={{ viewTransitionName: t.key }}
           toast={t}
         >
+          <LineIcon
+            className={styles.icon}
+            d={t.content.kind === "error" ? alertPath : checkPath}
+            size={16}
+          />
           <ToastContent className={styles.content}>
             <Text slot="title">
               {t.content.message.split(/(?<=。)/u).map((sentence) => (
@@ -72,20 +82,22 @@ export const Toaster = () => (
               ))}
             </Text>
           </ToastContent>
-          <Button className={styles.close} slot="close">
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height={16}
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-              width={16}
-            >
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </Button>
+          {t.content.kind === "error" && (
+            <Button className={styles.close} slot="close">
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height={16}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+                width={16}
+              >
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </Button>
+          )}
         </Toast>
       )}
     </ToastList>

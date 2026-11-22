@@ -32,6 +32,17 @@
   border-color: var(--color-danger);
 }
 
+.icon {
+  flex-shrink: 0;
+  /* 1 行目の文字の高さにそろえる */
+  margin-top: 2px;
+  color: var(--color-brand);
+}
+
+.toast[data-kind="error"] .icon {
+  color: var(--color-danger);
+}
+
 .content {
   composes: t-body from global;
   flex: 1;
@@ -47,8 +58,9 @@
 
 .close {
   composes: icon-button from global;
-  /* 1 行目の文字の高さにそろえる */
-  margin-top: 2px;
+  /* 見た目は 16px のまま、押せる範囲を WCAG 2.5.8 の 24px に広げ、1 行目の文字の高さにそろえる */
+  margin: -2px -4px -4px;
+  padding: 4px;
 }
 
 ::view-transition-group(*.toast) {
