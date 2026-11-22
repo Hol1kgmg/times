@@ -17,6 +17,7 @@ const make = (articles: ({ category: string; children: object[] } & Record<strin
       hot: false,
       repost: false,
       hidden: false,
+      listed: true,
       originalStatus: "published",
       ...a,
       children: a.children.map((c) => ({

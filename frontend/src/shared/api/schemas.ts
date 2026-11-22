@@ -43,6 +43,7 @@ const articleBase = z.object({
   hot: z.boolean(),
   repost: z.boolean(),
   hidden: z.boolean(),
+  listed: z.boolean(),
   originalStatus: digestStatus,
   originalCategory: category.optional(),
   children: childArticle.array(),
@@ -154,6 +155,7 @@ export const newArticle = newChildArticle.extend({
 export const repostArticle = z.object({
   repostOf: articleUrl,
   category,
+  listed: z.boolean().default(false),
   children: childEntry.array().max(20),
 }) satisfies z.ZodType<Schemas["RepostArticle"]>;
 

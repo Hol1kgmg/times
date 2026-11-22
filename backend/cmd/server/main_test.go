@@ -246,6 +246,24 @@ func TestCreateDigestRejectsArticleInBothShapes(t *testing.T) {
 	}
 }
 
+// 再掲載の親も載せるかは真偽値だけ受ける (specs/018 Revision 4)
+func TestCreateDigestRejectsNonBooleanListed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
+		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
+	}
+	r, _ := newRouter(newStub(nil), "", lookup)
+	body := `{"entryDate":"2026-10-17","articles":[{"category":"その他","repostOf":"https://example.com","listed":"yes"}]}`
+	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer valid")
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
+		t.Errorf("got %d: %s", w.Code, w.Body)
+	}
+}
+
 // 下書きへ戻せないことは、更新の status が draft を受けないことで守る (specs/006 SC-004)
 func TestUpdateDigestRejectsDraft(t *testing.T) {
 	gin.SetMode(gin.TestMode)

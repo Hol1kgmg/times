@@ -12,6 +12,8 @@ import { updateDigest } from "../api/update-digest";
 import {
   addRepost,
   blockers,
+  boxIds,
+  canLink,
   canMakeChild,
   convertToReposts,
   draftCount,
@@ -19,6 +21,8 @@ import {
   emptyBoard,
   fromDigest,
   hasDrafts,
+  linkBlock,
+  linkToParent,
   makeChild,
   MAX_DRAFTS,
   moveChild,
@@ -26,10 +30,12 @@ import {
   remove,
   restoreHidden,
   revert,
+  setListed,
   toggleHot,
   toNewDigest,
   toPreview,
   unhide,
+  unlinkParent,
   unmakeChild,
   UNSORTED,
 } from "../model/board";
@@ -43,7 +49,7 @@ import { DraftCard } from "./draft-card";
 import { failureMessage } from "./failure-message";
 import type { CardActions } from "./draft-card";
 import { PreviewDialog } from "./preview-dialog";
-import { RepostAdd } from "./repost-picker";
+import { RepostAdd, RepostPicker } from "./repost-picker";
 import { SaveSplitButton } from "./save-split-button";
 import { TodayTakenDialog } from "./today-taken-dialog";
 import type { SaveAction } from "./save-split-button";
@@ -57,6 +63,18 @@ const noop = () => {
   /* 何もしない */
 };
 const subscribeNever = () => noop;
+
+// 移った先が画面の外の枠だと、カードが消えたように見える
+const focusCard = (id: string) => {
+  // メニューが閉じてフォーカスを戻し終えてから移す
+  requestAnimationFrame(() => {
+    const menu = document.querySelector<HTMLElement>(
+      `[data-draft-id="${CSS.escape(id)}"] [aria-label="メニュー"]`,
+    );
+    menu?.focus();
+    menu?.scrollIntoView({ block: "center" });
+  });
+};
 
 const blockerText = (b: Blocker) => {
   switch (b.kind) {
@@ -147,6 +165,8 @@ const DigestForm = <S extends DigestStatus>({
     reason: "digest-already-exists" | "future-publish";
   }>();
   const [previewing, setPreviewing] = useState(false);
+  // 掲載済みの記事に紐付ける子の id
+  const [linking, setLinking] = useState<string>();
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
   useArticleTools({ board, setBoard, setSuggesting, setAdding: setAddingCount });
@@ -215,6 +235,19 @@ const DigestForm = <S extends DigestStatus>({
     },
     unhide: (id) => {
       setBoard(unhide(board, id));
+    },
+    canLink: (id) => entryDate !== "" && canLink(board, id),
+    startLink: setLinking,
+    unlink: (id) => {
+      apply(unlinkParent(board, id));
+    },
+    setListed: (id, listed) => {
+      const from = boxIds.find((b) => board[b].some((d) => d.id === id));
+      const next = pinReposts(setListed(board, id, listed));
+      setBoard(next);
+      if (from !== undefined && !next[from].some((d) => d.id === id)) {
+        focusCard(id);
+      }
     },
   };
 
@@ -323,6 +356,20 @@ const DigestForm = <S extends DigestStatus>({
           date={defaultDate}
           onClose={() => {
             setEditedDate("");
+          }}
+        />
+      )}
+      {linking !== undefined && (
+        <RepostPicker
+          block={linkBlock}
+          board={board}
+          entryDate={entryDate}
+          heading="掲載済みの記事に紐付ける"
+          onClose={() => {
+            setLinking(undefined);
+          }}
+          onPick={(c) => {
+            setBoard(linkToParent(board, linking, c, crypto.randomUUID()));
           }}
         />
       )}

@@ -9,6 +9,7 @@ const make = (id: string, category: string, title: string, hot = false) =>
     hot,
     repost: false,
     hidden: false,
+    listed: true,
     originalStatus: "published",
     title,
     url: `https://x.example/${title}`,

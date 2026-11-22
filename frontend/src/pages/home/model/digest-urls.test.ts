@@ -7,6 +7,7 @@ const meta = {
   hot: false,
   repost: false,
   hidden: false,
+  listed: true,
   originalStatus: "published",
 } as const;
 
