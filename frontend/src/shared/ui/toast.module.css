@@ -1,0 +1,96 @@
+.region {
+  position: fixed;
+  right: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  z-index: var(--z-toast);
+  outline: none;
+}
+
+.list {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toast {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  width: 360px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  view-transition-class: toast;
+}
+
+.toast[data-kind="error"] {
+  border-color: var(--color-danger);
+}
+
+.icon {
+  flex-shrink: 0;
+  /* 1 行目の文字の高さにそろえる */
+  margin-top: 2px;
+  color: var(--color-brand);
+}
+
+.toast[data-kind="error"] .icon {
+  color: var(--color-danger);
+}
+
+.content {
+  composes: t-body from global;
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text);
+  font-family: var(--font-dynamic);
+  overflow-wrap: anywhere;
+}
+
+.sentence {
+  display: block;
+}
+
+.close {
+  composes: icon-button from global;
+  /* 見た目は 16px のまま、押せる範囲を WCAG 2.5.8 の 24px に広げ、1 行目の文字の高さにそろえる */
+  margin: -2px -4px -4px;
+  padding: 4px;
+}
+
+::view-transition-group(*.toast) {
+  animation-duration: 0.2s;
+  animation-timing-function: ease-out;
+}
+
+::view-transition-new(*.toast):only-child {
+  animation: toast-in 0.2s ease-out;
+}
+
+::view-transition-old(*.toast):only-child {
+  animation: toast-in 0.2s ease-out reverse;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--space-2);
+  }
+}
+
+@media (--narrow) {
+  .region {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  }
+
+  .toast {
+    width: auto;
+  }
+}

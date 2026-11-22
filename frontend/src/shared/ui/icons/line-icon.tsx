@@ -8,6 +8,7 @@ export const LineIcon = ({
   size: number;
 }) => (
   <svg
+    aria-hidden="true"
     className={className}
     fill="none"
     height={size}

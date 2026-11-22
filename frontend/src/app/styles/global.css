@@ -69,6 +69,7 @@
   --z-menu-overlay: 10;
   --z-header: 20;
   --z-modal: 30;
+  --z-toast: 40;
   /* view transition の中だけの重なり順。ページの重なり順とは別の重ね合わせ文脈で比べる */
   --z-transition-backdrop: 1;
   --z-transition-panel: 2;

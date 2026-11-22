@@ -88,11 +88,6 @@
   color: var(--color-text-muted);
 }
 
-.error {
-  composes: message;
-  color: var(--color-danger);
-}
-
 @media (--narrow) {
   .page {
     grid-template-columns: minmax(0, 1fr);
