@@ -658,9 +658,17 @@ export const repostBlock = (
   return findDuplicate(board, candidate.url) ? "on-board" : null;
 };
 
+// 紐付けは親を上限に数えないので、上限は足すときだけ見る
+export const repostAddBlock = (
+  board: Board,
+  candidate: RepostCandidate,
+  entryDate: string,
+): ReturnType<typeof repostBlock> | "limit" =>
+  repostBlock(board, candidate, entryDate) ?? (draftCount(board) >= MAX_DRAFTS ? "limit" : null);
+
 // 子の候補も単独の行にする。保存後に読むと元の親が呼び出される (specs/018 FR-004)
 export const addRepost = (board: Board, candidate: RepostCandidate, id: string): Board => {
-  // ピッカーが選べない候補を弾いているので、ここで断られるのは開いている間にボードが変わったときだけ
+  // ピッカーが今のボードで選べない候補を弾くので、ここで断られるのは判定と押下の間にボードが変わったときだけ
   if (rejectAdd(board, candidate.url) !== null) {
     return board;
   }

@@ -6,7 +6,7 @@ import { formatEntryDate } from "#/shared/lib/entry-date";
 import { Chevron } from "#/shared/ui/chevron";
 import { Favicon } from "#/shared/ui/favicon";
 import { ModalDialog } from "#/shared/ui/modal";
-import { repostBlock } from "../model/board";
+import { repostAddBlock } from "../model/board";
 import { failureMessage } from "./failure-message";
 import type { Board, LinkBlock, RepostCandidate } from "../model/board";
 import styles from "./repost-picker.module.css";
@@ -16,7 +16,8 @@ const blockText = {
   "on-board": "もう載ってるので選べません",
   "has-parent": "関連記事なので親にできません",
   full: "関連記事がいっぱいなので選べません",
-} as const satisfies Record<NonNullable<LinkBlock>, string>;
+  limit: "記事がいっぱいなので選べません",
+} as const satisfies Record<NonNullable<LinkBlock> | "limit", string>;
 
 const label = (c: RepostCandidate) => (c.title === "" ? new URL(c.url).hostname : c.title);
 
@@ -49,14 +50,14 @@ const Candidate = ({ c, block }: { c: RepostCandidate; block: keyof typeof block
 
 export const RepostPicker = ({
   heading = "過去の記事から追加",
-  block: blockOf = repostBlock,
+  block: blockOf = repostAddBlock,
   board,
   entryDate,
   onPick,
   onClose,
 }: {
   heading?: string;
-  block?: (board: Board, candidate: RepostCandidate, entryDate: string) => LinkBlock;
+  block?: (board: Board, candidate: RepostCandidate, entryDate: string) => LinkBlock | "limit";
   board: Board;
   entryDate: string;
   onPick: (candidate: RepostCandidate) => void;
@@ -126,7 +127,7 @@ export const RepostPicker = ({
             <ListBox
               aria-label="候補"
               className={styles.list}
-              dependencies={[board, entryDate]}
+              dependencies={[board]}
               items={candidates}
             >
               {(c) => {

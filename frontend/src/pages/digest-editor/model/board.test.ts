@@ -22,6 +22,7 @@ import {
   pinReposts,
   rejectUpdate,
   remove,
+  repostAddBlock,
   repostBlock,
   restoreHidden,
   revert,
@@ -399,6 +400,11 @@ describe("過去の記事から再掲載を足す", () => {
       IT系: [draft("p", { children: [{ ...link("c"), url: candidate.url }] })],
     });
     expect(repostBlock(b, candidate, "2026-10-20")).toBe("on-board");
+  });
+
+  it("cannot pick a repost once the board holds the maximum number of articles", () => {
+    const b = board({ その他: Array.from({ length: 100 }, (_, i) => draft(String(i))) });
+    expect(repostAddBlock(b, candidate, "2026-10-20")).toBe("limit");
   });
 
   it("sends a picked article as a repost in its original category", () => {
