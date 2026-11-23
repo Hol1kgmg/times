@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { boardOf, fillDate, loggedInState } from "./admin";
 
-// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。digest-edit.spec.ts (1900 年から) とぶつからないよう 1700 年から数え、1 回の実行で 8 日使うので 1900 年に届かない幅で回す
+// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。digest-edit.spec.ts (1900 年から) とぶつからないよう 1700 年から数え、1 回の実行で 10 日使うので 1900 年に届かない幅で回す
 const dayFrom = (n: number) =>
   new Date(Date.UTC(1700, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -12,7 +12,7 @@ test("公開済みの記事を親、新しい記事を子にして別の日に�
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 9000) * 8;
+  const base = (Math.floor(run / 1000) % 7000) * 10;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -66,7 +66,7 @@ test("公開済みの記事を親、新しい記事を子にして別の日に�
 // 親と子を公開した日のあと、子だけを別の日に入れ、断られて切り替わった再掲載のまま公開する
 const repostChildElsewhere = async (page: Page, offset: number) => {
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 9000) * 8 + offset;
+  const base = (Math.floor(run / 1000) % 7000) * 10 + offset;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -167,7 +167,7 @@ test("公開した記事を別の日の登録画面でタイトルから探し�
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 9000) * 8 + 6;
+  const base = (Math.floor(run / 1000) % 7000) * 10 + 6;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, collect } = boardOf(page);
@@ -206,5 +206,55 @@ test("公開した記事を別の日の登録画面でタイトルから探し�
   await expect(dialog.getByRole("listitem").filter({ hasText: title }).first()).toContainText(
     "再掲載",
   );
+  await context.close();
+});
+
+test("公開した記事を別の日に新しい記事の親として紐付けて公開すると、開き直したときに親はその日に載せない細い行で、その下に子が並ぶ", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ storageState: await loggedInState(browser) });
+  const page = await context.newPage();
+  const run = Date.now();
+  const base = (Math.floor(run / 1000) % 7000) * 10 + 8;
+  const first = dayFrom(base);
+  const linked = dayFrom(base + 1);
+  const { dragFirstUnsortedTo, menuOf, collect } = boardOf(page);
+  const publish = page.getByRole("button", { name: "公開して登録" });
+  const parent = `紐付け先 ${run}`;
+  const child = `紐付ける続報 ${run}`;
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, first);
+  await collect(`https://e2e.example/repost/${run}/linked-parent`, parent);
+  await dragFirstUnsortedTo("UI系");
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await publish.click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, linked);
+  await collect(`https://e2e.example/repost/${run}/linked-child`, child);
+  await dragFirstUnsortedTo("IT系");
+  await menuOf(child, "掲載済みの記事に紐付ける");
+  const picker = page.getByRole("dialog");
+  await picker.getByRole("searchbox", { name: "タイトルか URL" }).fill(parent);
+  await picker.getByRole("button", { name: "検索" }).click();
+  await picker.getByRole("option", { name: parent }).click();
+  await expect(picker).toBeHidden();
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await publish.click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  await page.goto(`/admin/digests/${linked}/edit`);
+  await page.waitForLoadState("networkidle");
+  const row = page.getByRole("listitem").filter({ hasText: parent }).first();
+  await expect(row.getByRole("list")).toContainText(child);
+  // 親を載せていないので、載せる操作が出る
+  await row.getByRole("button", { name: "メニュー" }).first().click();
+  await expect(page.getByRole("menuitem", { name: "親も掲載する" })).toBeVisible();
   await context.close();
 });

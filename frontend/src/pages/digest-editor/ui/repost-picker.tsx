@@ -8,13 +8,15 @@ import { Favicon } from "#/shared/ui/favicon";
 import { ModalDialog } from "#/shared/ui/modal";
 import { repostBlock } from "../model/board";
 import { failureMessage } from "./failure-message";
-import type { Board, RepostCandidate } from "../model/board";
+import type { Board, LinkBlock, RepostCandidate } from "../model/board";
 import styles from "./repost-picker.module.css";
 
 const blockText = {
   "not-before": "この日より前に公開されてないので選べません",
   "on-board": "もう載ってるので選べません",
-} as const;
+  "has-parent": "関連記事なので親にできません",
+  full: "関連記事がいっぱいなので選べません",
+} as const satisfies Record<NonNullable<LinkBlock>, string>;
 
 const label = (c: RepostCandidate) => (c.title === "" ? new URL(c.url).hostname : c.title);
 
@@ -45,12 +47,16 @@ const Candidate = ({ c, block }: { c: RepostCandidate; block: keyof typeof block
   </>
 );
 
-const RepostPicker = ({
+export const RepostPicker = ({
+  heading = "過去の記事から追加",
+  block: blockOf = repostBlock,
   board,
   entryDate,
   onPick,
   onClose,
 }: {
+  heading?: string;
+  block?: (board: Board, candidate: RepostCandidate, entryDate: string) => LinkBlock;
   board: Board;
   entryDate: string;
   onPick: (candidate: RepostCandidate) => void;
@@ -80,7 +86,7 @@ const RepostPicker = ({
       {({ close }) => (
         <div className={styles.body}>
           <h2 className={styles.srOnly} id={headingId}>
-            過去の記事から追加
+            {heading}
           </h2>
           <form
             className={styles.form}
@@ -118,7 +124,7 @@ const RepostPicker = ({
             // disabledKeys は矢印キーでも飛ばされるので使わず、選べない行は押しても何もしない (adr/frontend/0008)
             <ListBox aria-label="候補" className={styles.list} items={candidates}>
               {(c) => {
-                const block = repostBlock(board, c, entryDate);
+                const block = blockOf(board, c, entryDate);
                 return (
                   <ListBoxItem
                     className={block === null ? styles.item : `${styles.item} ${styles.blocked}`}

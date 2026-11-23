@@ -47,8 +47,8 @@ export interface LinkEdit {
 export interface Draft extends Link {
   suggested: boolean;
   children: Link[];
-  // category は子がない間に戻す元の記事のカテゴリ
-  repost?: { category: Category; firstPublishedOn?: string };
+  // category は子がない間に戻す元の記事のカテゴリ。listed は親もその日に載せるか (specs/018 Revision 4)
+  repost?: { category: Category; firstPublishedOn?: string; listed: boolean };
   // 子がほかの日にいて外せないので、外す代わりに隠した行
 }
 
@@ -76,7 +76,10 @@ export const emptyBoard = (): Board => byBox(() => []);
 
 const drafts = (board: Board) => boxIds.flatMap((b) => board[b]);
 const links = (board: Board) => drafts(board).flatMap((d): Link[] => [d, ...d.children]);
-export const draftCount = (board: Board) => drafts(board).length;
+// 紐付け直すときに探し直さずに済むよう消さずに残すが、保存では送らない
+export const isGhost = (d: Draft) => d.repost?.listed === false && d.children.length === 0;
+// 上限は送る件数なので、送らない幽霊の親は数えない
+export const draftCount = (board: Board) => drafts(board).filter((d) => !isGhost(d)).length;
 export const hasDrafts = (board: Board) => draftCount(board) > 0;
 
 export const findDuplicate = (board: Board, url: string, exceptId?: string) =>
@@ -211,6 +214,16 @@ export const toggleHot = (board: Board, id: string): Board =>
     (d) => (d.id === id ? settleChildHot(d) : d),
   );
 
+const repostTag = (d: Draft) => {
+  if (d.repost === undefined) {
+    return "";
+  }
+  if (d.repost.listed) {
+    return " [再掲載]";
+  }
+  return isGhost(d) ? " [紐付けの親・子がないので保存されない]" : " [紐付けの親]";
+};
+
 const linkLine = (l: Link) => `${l.id}: ${l.title === "" ? "(タイトルなし)" : l.title} / ${l.url}`;
 
 export const describeBoard = (board: Board): string =>
@@ -218,7 +231,7 @@ export const describeBoard = (board: Board): string =>
     .flatMap((box) => [
       `${box} (${board[box].length} 件)`,
       ...board[box].flatMap((d) => [
-        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}${d.repost === undefined ? "" : " [再掲載]"}${d.hidden === true ? " [隠した行]" : ""}`,
+        `- ${linkLine(d)}${d.hot ? " [hot]" : ""}${repostTag(d)}${d.hidden === true ? " [隠した行]" : ""}`,
         ...d.children.map(
           (c) =>
             `  - 子記事 ${linkLine(c)}${c.hot ? " [hot]" : ""}${c.repostChild === true ? " [再掲載]" : ""}`,
@@ -326,24 +339,109 @@ export const makeChild = (board: Board, id: string): Board => {
   if (draft === undefined || parent === undefined) {
     return board;
   }
-  const { url, title, initial, translated, category: saved } = draft;
-  items[at.index - 1] = {
-    ...parent,
-    children: [
-      ...parent.children,
-      {
-        id,
-        url,
-        title,
-        initial,
-        translated,
-        hot: draft.hot && !parent.hot,
-        ...(saved !== undefined && { category: saved }),
-      },
-    ],
-  };
+  items[at.index - 1] = { ...parent, children: [...parent.children, asChild(draft, parent.hot)] };
   return replaceBox(board, at.box, items);
 };
+
+const asChild = (
+  { id, url, title, initial, translated, hot, category: saved }: Draft,
+  parentHot: boolean,
+): Link => ({
+  id,
+  url,
+  title,
+  initial,
+  translated,
+  hot: hot && !parentHot,
+  ...(saved !== undefined && { category: saved }),
+});
+
+// 子を持つ記事を子にすると孫になり、再掲載と隠した行は記事の親を書き換えられない
+export const canLink = (board: Board, id: string) => {
+  const at = locate(board, id);
+  const d = at === null ? undefined : board[at.box][at.index];
+  return d !== undefined && d.repost === undefined && d.hidden !== true && d.children.length === 0;
+};
+
+export type LinkBlock = ReturnType<typeof repostBlock> | "has-parent" | "full";
+
+// ボードにある再掲載の親には子を足せる。ほかの形で載っている記事は親にできない
+export const linkBlock = (
+  board: Board,
+  candidate: RepostCandidate,
+  entryDate: string,
+): LinkBlock => {
+  if (candidate.parent !== undefined) {
+    return "has-parent";
+  }
+  const parent = drafts(board).find((d) => d.url === candidate.url);
+  if (parent?.repost === undefined) {
+    return repostBlock(board, candidate, entryDate);
+  }
+  return parent.children.length >= MAX_CHILDREN ? "full" : null;
+};
+
+export const linkToParent = (
+  board: Board,
+  childId: string,
+  candidate: RepostCandidate,
+  parentId: string,
+): Board => {
+  const at = locate(board, childId);
+  const draft = at === null ? undefined : board[at.box][at.index];
+  if (at === null || draft === undefined || !canLink(board, childId)) {
+    return board;
+  }
+  const child = asChild(draft, false);
+  const without = replaceBox(board, at.box, board[at.box].toSpliced(at.index, 1));
+  const existing = drafts(without).find((d) => d.url === candidate.url && d.repost !== undefined);
+  if (existing === undefined) {
+    const { url, title, category: c, firstPublishedOn } = candidate;
+    const parent: Draft = {
+      ...savedLink({ id: parentId, url, title, hot: false }),
+      suggested: false,
+      category: c,
+      children: [child],
+      repost: { category: c, firstPublishedOn, listed: false },
+    };
+    return replaceBox(without, at.box, without[at.box].toSpliced(at.index, 0, parent));
+  }
+  const joined = mapDrafts(without, (d) =>
+    d.id === existing.id ? { ...d, children: [...d.children, child] } : d,
+  );
+  // 投稿のカテゴリは子のカテゴリなので、子のいなかった親は子のいた枠へ移す (specs/018 FR-014)
+  return existing.children.length === 0 && isCategory(at.box)
+    ? moveToBoxEnd(joined, existing.id, at.box)
+    : joined;
+};
+
+// 再掲載の子は記事の親の下でしか保存できないので、親だけを外せない
+export const canUnlink = (d: Draft) =>
+  d.repost?.listed === false && d.children.every((c) => c.repostChild !== true);
+
+export const unlinkParent = (board: Board, id: string): Board | Rejected => {
+  const at = locate(board, id);
+  const d = at === null ? undefined : board[at.box][at.index];
+  if (at === null || d === undefined || !canUnlink(d)) {
+    return board;
+  }
+  if (draftCount(board) - 1 + d.children.length > MAX_DRAFTS) {
+    return "limit";
+  }
+  const freed = d.children.map((c): Draft => ({ ...c, suggested: false, children: [] }));
+  return replaceBox(board, at.box, board[at.box].toSpliced(at.index, 1, ...freed));
+};
+
+// 子のない再掲載は元のカテゴリに留まるので、載せると枠を移ることがある。移る先を押す前に示すために返す
+export const listedHome = (d: Draft, box: BoxId): Category | null =>
+  d.repost !== undefined && d.children.length === 0 && d.repost.category !== box
+    ? d.repost.category
+    : null;
+
+export const setListed = (board: Board, id: string, listed: boolean): Board =>
+  mapDrafts(board, (d) =>
+    d.id === id && d.repost !== undefined ? { ...d, repost: { ...d.repost, listed } } : d,
+  );
 
 export const unmakeChild = (board: Board, parentId: string, childId: string): Board | Rejected => {
   const at = locate(board, parentId);
@@ -381,6 +479,17 @@ export const moveChild = (board: Board, parentId: string, childId: string, step:
     children.splice(to, 0, moved);
     return { ...d, children };
   });
+
+// 枠を移ったかを見て、移した先のカードにフォーカスするために、子の id からも親のカードを引く
+export const cardOf = (board: Board, id: string) => {
+  for (const box of boxIds) {
+    const card = board[box].find((d) => d.id === id || d.children.some((c) => c.id === id));
+    if (card !== undefined) {
+      return { box, id: card.id };
+    }
+  }
+  return null;
+};
 
 export const isBoxId = (id: unknown): id is BoxId => boxIds.some((b) => b === id);
 export const isCategory = (box: BoxId): box is Category => box !== UNSORTED;
@@ -454,11 +563,12 @@ export const fromIds = (board: Board, ids: Record<BoxId, string[]>): Board => {
 
 export const blockers = (board: Board): Blocker[] => {
   const out: Blocker[] = [];
-  if (category.options.every((c) => board[c].length === 0)) {
+  if (category.options.every((c) => board[c].every(isGhost))) {
     out.push({ kind: "empty" });
   }
-  if (board[UNSORTED].length > 0) {
-    out.push({ kind: "unsorted", count: board[UNSORTED].length });
+  const unsorted = board[UNSORTED].filter((d) => !isGhost(d)).length;
+  if (unsorted > 0) {
+    out.push({ kind: "unsorted", count: unsorted });
   }
   const untitled = links(board).filter((l) => l.title.trim() === "");
   if (untitled.length > 0) {
@@ -501,6 +611,7 @@ export const fromDigest = (digest: Digest): Board => {
         repost: {
           category: a.originalCategory ?? a.category,
           ...(a.firstPublishedOn !== undefined && { firstPublishedOn: a.firstPublishedOn }),
+          listed: a.listed,
         },
       }),
     });
@@ -515,7 +626,8 @@ const pinnedBox = (d: Draft): Category | undefined => {
   }
   const [first] = d.children;
   if (first === undefined) {
-    return d.repost.category;
+    // 幽霊の親は送らないので、カテゴリに留めなくてよい
+    return d.repost.listed ? d.repost.category : undefined;
   }
   return first.repostChild === true ? first.category : undefined;
 };
@@ -562,7 +674,7 @@ export const addRepost = (
     suggested: false,
     category: c,
     children: [],
-    repost: { category: c, firstPublishedOn },
+    repost: { category: c, firstPublishedOn, listed: true },
   };
   return replaceBox(board, c, [...board[c], draft]);
 };
@@ -579,7 +691,7 @@ export const convertToReposts = (board: Board, repostable: readonly Repostable[]
             title: r.title,
             hot: false,
             category: r.category,
-            repost: { category: r.category, firstPublishedOn: r.firstPublishedOn },
+            repost: { category: r.category, firstPublishedOn: r.firstPublishedOn, listed: true },
           };
     }),
   );
@@ -637,12 +749,14 @@ const toEntry = (d: Draft, c: Category): DigestEntry => {
   const children = d.children.map(toChildEntry);
   return d.repost === undefined
     ? { category: c, hot: d.hot, hidden: d.hidden === true, title: d.title, url: d.url, children }
-    : { repostOf: d.url, category: c, children };
+    : { repostOf: d.url, category: c, listed: d.repost.listed, children };
 };
 
 export const toNewDigest = (board: Board, entryDate: string): DigestContent => ({
   entryDate,
-  articles: category.options.flatMap((c) => board[c].map((d) => toEntry(d, c))),
+  articles: category.options.flatMap((c) =>
+    board[c].filter((d) => !isGhost(d)).map((d) => toEntry(d, c)),
+  ),
 });
 
 // 公開ページと同じく、隠した行と公開されない記事は出さない
@@ -650,6 +764,9 @@ export const toPreview = (board: Board, entryDate: string): DraftDigest => ({
   entryDate,
   articles: category.options.flatMap((c) =>
     board[c].flatMap((d): DraftDigest["articles"] => {
+      if (isGhost(d)) {
+        return [];
+      }
       const children = d.children
         .filter((ch) => ch.unpublished !== true && ch.hidden !== true)
         .map(({ title, url, hot }) => ({ title, url, hot }));

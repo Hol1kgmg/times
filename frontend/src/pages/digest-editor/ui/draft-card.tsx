@@ -9,14 +9,16 @@ import {
   Button,
   MenuTrigger,
   Popover,
+  Text,
 } from "react-aria-components";
 import { loadAnyLinkPreview, translateTitle } from "#/shared/api";
+import type { Category } from "#/shared/api";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
-import { isCategory } from "../model/board";
+import { canUnlink, isCategory, isGhost, listedHome } from "../model/board";
 import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
@@ -35,6 +37,10 @@ export interface CardActions {
   unmakeChild: (parentId: string, childId: string) => void;
   moveChild: (parentId: string, childId: string, step: -1 | 1) => void;
   unhide: (id: string) => void;
+  canLink: (id: string) => boolean;
+  startLink: (id: string) => void;
+  unlink: (id: string) => void;
+  setListed: (id: string, listed: boolean) => void;
 }
 
 // 記事のカテゴリは元の掲載の保存でだけ枠のカテゴリに変わり、再掲載では変わらない
@@ -47,15 +53,24 @@ const categoryNote = (link: Link, box: BoxId, repost: boolean): string | null =>
     : `保存するとカテゴリが${box}に変わります`;
 };
 
+const listedNote = (draft: Draft, home: Category | null): string | null => {
+  if (draft.unpublished === true) {
+    return "初回掲載の Digest が公開されてないので載せられません";
+  }
+  return home === null ? null : `子がないので、元のカテゴリ (${home}) へ移ります`;
+};
+
 interface MenuItem {
   label: string;
   onSelect: () => void;
   disabled?: boolean;
+  // 押した先で何が起きるかを押す前に伝える
+  description?: string | null;
 }
 
 const Menu = ({ items }: { items: MenuItem[] }) => (
   <MenuTrigger>
-    <Button aria-label="メニュー" className={styles.more}>
+    <Button aria-label="メニュー" className={styles.more} data-card-menu="">
       ···
     </Button>
     <Popover className={styles.menu} offset={0} placement="bottom end">
@@ -68,11 +83,17 @@ const Menu = ({ items }: { items: MenuItem[] }) => (
             key={item.label}
             className={styles.item}
             id={item.label}
+            textValue={item.label}
             onAction={() => {
               item.onSelect();
             }}
           >
-            {item.label}
+            <Text slot="label">{item.label}</Text>
+            {typeof item.description === "string" && (
+              <Text className={styles.itemDescription} slot="description">
+                {item.description}
+              </Text>
+            )}
           </AriaMenuItem>
         ))}
       </AriaMenu>
@@ -220,6 +241,15 @@ const EditDialog = ({
   );
 };
 
+// 公開ページの細い「再掲載」の行と同じく、印・タイトル・注記を 1 行に収める
+const SlimText = ({ ghost, children }: { ghost: boolean; children: ReactNode }) => (
+  <span className={styles.slimText} data-ghost={ghost ? "" : undefined}>
+    <span className={styles.repostMark}>再掲載</span>
+    {children}
+    {ghost && <span className={styles.slimNote}>子がないので保存されません</span>}
+  </span>
+);
+
 const LinkRow = ({
   link,
   hot = false,
@@ -230,6 +260,7 @@ const LinkRow = ({
   converted = false,
   unavailable = false,
   hidden = false,
+  slim,
   note,
   handle,
   action,
@@ -245,6 +276,7 @@ const LinkRow = ({
   converted?: boolean;
   unavailable?: boolean;
   hidden?: boolean;
+  slim?: { ghost: boolean };
   note?: string | null;
   handle?: ReactNode;
   action?: ReactNode;
@@ -261,6 +293,37 @@ const LinkRow = ({
     load: loadAnyLinkPreview,
   });
   const untitled = link.title.trim() === "";
+  const meta = {
+    categoryNote: note,
+    converted,
+    hidden,
+    registered,
+    suggested,
+    unavailable,
+    unpublished: link.unpublished === true,
+    untitled,
+  };
+  const anchor = (
+    <AriaLink
+      className={slim === undefined ? styles.title : styles.slimTitle}
+      data-dismissed={dismissed ? "" : undefined}
+      href={link.url}
+      rel="noopener noreferrer"
+      target="_blank"
+      onFocus={show}
+      onHoverStart={show}
+    >
+      <span className={styles.titleText} title={link.title}>
+        {link.title === "" ? host : link.title}
+      </span>
+      {hot && (
+        <span className={styles.hot}>
+          {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れない */}
+          <Flame aria-label="ホット" role="img" size={14} />
+        </span>
+      )}
+    </AriaLink>
+  );
   return (
     <div
       className={styles.row}
@@ -269,41 +332,20 @@ const LinkRow = ({
     >
       {handle}
       <Favicon alt="" className={styles.favicon} url={link.url} />
-      <span className={styles.text}>
-        <AriaLink
-          className={styles.title}
-          data-dismissed={dismissed ? "" : undefined}
-          href={link.url}
-          rel="noopener noreferrer"
-          target="_blank"
-          onFocus={show}
-          onHoverStart={show}
-        >
-          <span className={styles.titleText} title={link.title}>
-            {link.title === "" ? host : link.title}
-          </span>
-          {hot && (
-            <span className={styles.hot}>
-              {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <img> だと currentColor で塗れない */}
-              <Flame aria-label="ホット" role="img" size={14} />
-            </span>
-          )}
-        </AriaLink>
-        {card}
-        <LinkMeta
-          categoryNote={note}
-          converted={converted}
-          firstPublishedOn={firstPublishedOn}
-          hidden={hidden}
-          host={host}
-          registered={registered}
-          repost={repost}
-          suggested={suggested}
-          unavailable={unavailable}
-          unpublished={link.unpublished === true}
-          untitled={untitled}
-        />
-      </span>
+      {slim === undefined ? (
+        <span className={styles.text}>
+          {anchor}
+          {card}
+          <LinkMeta {...meta} firstPublishedOn={firstPublishedOn} host={host} repost={repost} />
+        </span>
+      ) : (
+        <SlimText ghost={slim.ghost}>
+          {anchor}
+          {card}
+          {/* 「再掲載」の印は行頭に出しているので、ここでは重ねない */}
+          <LinkMeta {...meta} repost={false} />
+        </SlimText>
+      )}
       {action}
       <Menu
         items={[
@@ -383,8 +425,82 @@ export const DraftCard = ({
       actions.remove(draft.id, draft.children.length);
     },
   };
+  const menuOf = (): MenuItem[] => {
+    if (draft.repost === undefined) {
+      return [
+        {
+          label: draft.hot ? "ホットを外す" : "ホットにする",
+          onSelect: () => {
+            actions.toggleHot(draft.id);
+          },
+        },
+        {
+          label: "上の記事の関連記事にする",
+          disabled: !actions.canMakeChild(draft.id),
+          onSelect: () => {
+            actions.makeChild(draft.id);
+          },
+        },
+        {
+          label: "掲載済みの記事に紐付ける",
+          disabled: !actions.canLink(draft.id),
+          onSelect: () => {
+            actions.startLink(draft.id);
+          },
+        },
+        {
+          label: "変更を戻す",
+          onSelect: () => {
+            actions.revert(draft.id);
+          },
+        },
+        remove,
+      ];
+    }
+    if (draft.repost.listed) {
+      return [
+        // 子のない親は掲載をやめると保存されなくなるので、やめる代わりに削除させる
+        ...(draft.children.length === 0
+          ? []
+          : [
+              {
+                label: "親の掲載をやめる",
+                onSelect: () => {
+                  actions.setListed(draft.id, false);
+                },
+              },
+            ]),
+        remove,
+      ];
+    }
+    const home = listedHome(draft, box);
+    // 子は消えないので、確認せずに外す
+    return [
+      {
+        label: "紐付けを外す",
+        disabled: !canUnlink(draft),
+        onSelect: () => {
+          actions.unlink(draft.id);
+        },
+      },
+      {
+        label: "親も掲載する",
+        // 前の公開の掲載がない記事は、その日に載せると backend が断る (specs/018 FR-005)
+        disabled: draft.unpublished === true,
+        description: listedNote(draft, home),
+        onSelect: () => {
+          actions.setListed(draft.id, true);
+        },
+      },
+    ];
+  };
   return (
-    <li ref={ref} className={styles.card} data-dragging={isDragging ? "" : undefined}>
+    <li
+      ref={ref}
+      className={styles.card}
+      data-draft-id={draft.id}
+      data-dragging={isDragging ? "" : undefined}
+    >
       <LinkRow
         action={
           (draft.hidden === true || draft.unpublished === true) && (
@@ -436,35 +552,11 @@ export const DraftCard = ({
         hidden={draft.hidden === true}
         hot={draft.hot}
         link={draft}
-        menu={
-          draft.repost === undefined
-            ? [
-                {
-                  label: draft.hot ? "ホットを外す" : "ホットにする",
-                  onSelect: () => {
-                    actions.toggleHot(draft.id);
-                  },
-                },
-                {
-                  label: "上の記事の関連記事にする",
-                  disabled: !actions.canMakeChild(draft.id),
-                  onSelect: () => {
-                    actions.makeChild(draft.id);
-                  },
-                },
-                {
-                  label: "変更を戻す",
-                  onSelect: () => {
-                    actions.revert(draft.id);
-                  },
-                },
-                remove,
-              ]
-            : [remove]
-        }
+        menu={menuOf()}
         note={categoryNote(draft, box, draft.repost !== undefined)}
         registered={actions.registered.has(draft.url)}
         repost={draft.repost !== undefined}
+        slim={draft.repost?.listed === false ? { ghost: isGhost(draft) } : undefined}
         suggested={draft.suggested}
         unavailable={actions.unavailable.has(draft.url)}
         onEdit={draft.repost === undefined ? (next) => actions.edit(draft.id, next) : undefined}

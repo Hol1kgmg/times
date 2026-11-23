@@ -55,7 +55,7 @@ func TestURLsOfIncludesChildren(t *testing.T) {
 // 再掲載は親も子も repostOf で見分け、タイトルを持たない参照として扱う
 func TestEntriesOfTellsRepostFromNewArticle(t *testing.T) {
 	var items []api.DigestEntry
-	body := `[{"category":"その他","title":"t","url":"https://a.example","hot":true,"hidden":true},{"category":"IT系","repostOf":"https://b.example","children":[{"repostOf":"https://b.example/c","hot":true},{"title":"n","url":"https://b.example/n"}]}]`
+	body := `[{"category":"その他","title":"t","url":"https://a.example","hot":true,"hidden":true},{"category":"IT系","repostOf":"https://b.example","listed":true,"children":[{"repostOf":"https://b.example/c","hot":true},{"title":"n","url":"https://b.example/n"}]}]`
 	if err := json.Unmarshal([]byte(body), &items); err != nil {
 		t.Fatal(err)
 	}
@@ -63,11 +63,31 @@ func TestEntriesOfTellsRepostFromNewArticle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got[0].repost || got[0].title != "t" || !got[0].hot || !got[0].hidden || !got[1].repost || got[1].url != "https://b.example" || got[1].category != api.CategoryIT {
+	if got[0].repost || got[0].title != "t" || !got[0].hot || !got[0].hidden || !got[1].repost || !got[1].listed || got[1].url != "https://b.example" || got[1].category != api.CategoryIT {
 		t.Errorf("got %+v", got)
 	}
 	if cs := got[1].children; !cs[0].repost || !cs[0].hot || cs[0].url != "https://b.example/c" || cs[1].repost || cs[1].title != "n" {
 		t.Errorf("children: got %+v", cs)
+	}
+}
+
+// 再掲載の親は、子付きでも親も載せる指定があれば掲載を持つ。子がなければ指定によらず載せる (specs/018 Revision 4)
+func TestEntryPlacedOnlySkipsLinkedRepostParent(t *testing.T) {
+	kid := []child{{url: "https://a.example/c"}}
+	tests := []struct {
+		name string
+		e    entry
+		want bool
+	}{
+		{"new article", entry{children: kid}, true},
+		{"repost without children", entry{repost: true}, true},
+		{"linked repost parent", entry{repost: true, children: kid}, false},
+		{"listed repost parent", entry{repost: true, listed: true, children: kid}, true},
+	}
+	for _, tt := range tests {
+		if got := tt.e.placed(); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
 	}
 }
 
@@ -161,6 +181,7 @@ func TestToDigestRepost(t *testing.T) {
 			Category         string
 			OriginalCategory string
 			Repost           bool
+			Listed           bool
 			Hot              bool
 			FirstPublishedOn string
 			Children         []map[string]any
@@ -171,6 +192,10 @@ func TestToDigestRepost(t *testing.T) {
 	}
 	if got.Articles[0].Category != "IT系" || !got.Articles[0].Repost || got.Articles[0].FirstPublishedOn != "2026-10-03" || got.Articles[0].OriginalCategory != "セキュリティ" {
 		t.Errorf("summoned parent: got %s", body)
+	}
+	// 編集画面が、呼び出した親を細い親の行で、載せた再掲載を通常の箱で開くため
+	if got.Articles[0].Listed || !got.Articles[1].Listed {
+		t.Errorf("listed: got %s", body)
 	}
 	if got.Articles[0].Children[0]["repost"] != true || got.Articles[0].Children[1]["repost"] != false {
 		t.Errorf("repost child: got %s", body)
@@ -278,6 +303,7 @@ func TestCheckEntries(t *testing.T) {
 		{"repost already in this digest whose original was made private", []entry{{url: "https://kept.example", repost: true, category: api.CategoryOther}}, ""},
 		{"recalled parent whose original was made private", []entry{{url: "https://private-parent.example", repost: true, children: []child{{url: "https://private-child.example", repost: true}}}}, ""},
 		{"recalled parent with a new child", []entry{{url: "https://private-parent.example", repost: true, children: newChild}}, ""},
+		{"recalled parent whose original was made private listed on this date", []entry{{url: "https://private-parent.example", repost: true, listed: true, children: newChild}}, "/problems/repost-unavailable"},
 		{"new private parent with a new child", []entry{{url: "https://draft.example", repost: true, children: newChild}}, "/problems/repost-unavailable"},
 		{"original in this digest sent as a repost stays the original", []entry{{url: "https://here.example", repost: true, category: api.CategoryOther}}, ""},
 		{"article in this digest with an earlier placement sent as an ordinary parent", []entry{{url: "https://kept.example", title: "again"}}, "/problems/url-already-registered"},

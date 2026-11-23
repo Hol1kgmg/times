@@ -75,6 +75,7 @@ const id = () => {
 const shown = ({ children, ...a }: { category: string; children: object[] }) => ({
   ...a,
   hidden: false,
+  listed: true,
   originalStatus: "published",
   children: children.map((c) => ({
     category: a.category,
@@ -96,6 +97,7 @@ const repostDigest = digest.parse({
       hot: false,
       repost: true,
       hidden: false,
+      listed: false,
       originalStatus: "private" as const,
       concealed: true as const,
       children: [

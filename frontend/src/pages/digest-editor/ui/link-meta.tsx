@@ -2,7 +2,8 @@ import { formatFirstPublished } from "#/shared/lib/entry-date";
 import styles from "./link-meta.module.css";
 
 interface LinkMetaProps {
-  host: string;
+  // 細い行は 1 行に収めるため、ドメインを出さない
+  host?: string;
   untitled: boolean;
   suggested: boolean;
   registered: boolean;
@@ -29,7 +30,7 @@ export const LinkMeta = ({
   categoryNote,
 }: LinkMetaProps) => (
   <span className={styles.meta}>
-    <span className={styles.host}>{host}</span>
+    {host !== undefined && <span className={styles.host}>{host}</span>}
     {repost && (
       <span className={styles.firstPublished}>
         {firstPublishedOn === undefined ? "再掲載" : formatFirstPublished(firstPublishedOn)}

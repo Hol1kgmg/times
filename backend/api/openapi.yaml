@@ -593,7 +593,7 @@ components:
       description: draft は一度も公開していない、private はトップに出さないと決めた (取り下げた公開、出さないことにした下書き)
     Article:
       type: object
-      required: [id, category, hot, repost, hidden, originalStatus, children]
+      required: [id, category, hot, repost, hidden, listed, originalStatus, children]
       description: 再掲載で子があれば、category は子のカテゴリ (specs/018 FR-014)。concealed でなければ title と url を持つ
       properties:
         id:
@@ -610,6 +610,9 @@ components:
         hidden:
           type: boolean
           description: 子がほかの日にいて外せないので、外す代わりに隠した記事か
+        listed:
+          type: boolean
+          description: この Digest に掲載を持つか。子のために呼び出した親だけ false (specs/018 Revision 4)
         originalStatus:
           $ref: "#/components/schemas/DigestStatus"
         concealed:
@@ -743,6 +746,10 @@ components:
           description: 再掲載する記事の URL
         category:
           $ref: "#/components/schemas/Category"
+        listed:
+          type: boolean
+          default: false
+          description: 子付きのとき、親もこの Digest に載せるか。false なら子のために親を呼び出すだけにする。子がなければ常に載せる (specs/018 Revision 4)
         children:
           type: array
           maxItems: 20

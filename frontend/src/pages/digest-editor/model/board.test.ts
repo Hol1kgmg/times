@@ -3,6 +3,8 @@ import {
   addDraft,
   addRepost,
   blockers,
+  draftCount,
+  canLink,
   canMakeChild,
   convertToReposts,
   describeBoard,
@@ -12,6 +14,9 @@ import {
   fillTitle,
   fromDigest,
   fromIds,
+  linkBlock,
+  linkToParent,
+  listedHome,
   makeChild,
   moveToBoxEnd,
   pinReposts,
@@ -20,6 +25,7 @@ import {
   repostBlock,
   restoreHidden,
   revert,
+  setListed,
   settleCategory,
   stripTracking,
   toggleHot,
@@ -27,6 +33,7 @@ import {
   toNewDigest,
   toPreview,
   unhide,
+  unlinkParent,
   unmakeChild,
   UNSORTED,
   updateDraft,
@@ -228,6 +235,7 @@ describe("保存済みの Digest を開く", () => {
     hot: false,
     repost: false,
     hidden: false,
+    listed: true,
     originalStatus: "published",
     title: `title ${n}`,
     url: `https://example.com/${n}`,
@@ -329,7 +337,7 @@ describe("保存済みの Digest を開く", () => {
     const b = board({
       IT系: [
         draft("a", {
-          repost: { category: "AI系", firstPublishedOn: "2026-10-03" },
+          repost: { category: "AI系", firstPublishedOn: "2026-10-03", listed: false },
           children: [link("c")],
         }),
       ],
@@ -339,6 +347,7 @@ describe("保存済みの Digest を開く", () => {
       {
         repostOf: "https://example.com/a",
         category: "IT系",
+        listed: false,
         children: [{ title: "title c", url: "https://example.com/c", hot: true }],
       },
     ]);
@@ -395,7 +404,7 @@ describe("過去の記事から再掲載を足す", () => {
   it("sends a picked article as a repost in its original category", () => {
     expect(
       toNewDigest(ok(addRepost(emptyBoard(), candidate, "r")), "2026-10-20").articles,
-    ).toStrictEqual([{ repostOf: candidate.url, category: "AI系", children: [] }]);
+    ).toStrictEqual([{ repostOf: candidate.url, category: "AI系", listed: true, children: [] }]);
   });
 });
 
@@ -404,7 +413,7 @@ describe("再掲載の子", () => {
   const group = board({
     IT系: [
       draft("p", {
-        repost: { category: "IT系" },
+        repost: { category: "IT系", listed: false },
         children: [repostChild("c"), { ...link("n"), category: "UI系" }],
       }),
     ],
@@ -423,8 +432,102 @@ describe("再掲載の子", () => {
   });
 
   it("does not make a repost the child of another article", () => {
-    const b = board({ IT系: [draft("a"), draft("r", { repost: { category: "IT系" } })] });
+    const b = board({
+      IT系: [draft("a"), draft("r", { repost: { category: "IT系", listed: true } })],
+    });
     expect(canMakeChild(b, "r")).toBeFalsy();
+  });
+});
+
+describe("掲載済みの記事に紐付ける", () => {
+  const published = repostCandidate.parse({
+    id: "00000000-0000-4000-8000-000000000001",
+    url: "https://example.com/old",
+    title: "過去の記事",
+    category: "AI系",
+    firstPublishedOn: "2026-10-03",
+  });
+  const linked = linkToParent(board({ IT系: [draft("a"), draft("c")] }), "c", published, "p");
+
+  it("puts the child under a parent that is sent only to hold it, not as that day's listing", () => {
+    expect(linked.IT系.map((d) => [d.id, d.children.map((c) => c.id)])).toStrictEqual([
+      ["a", []],
+      ["p", ["c"]],
+    ]);
+    expect(toNewDigest(linked, "2026-10-20").articles[1]).toStrictEqual({
+      repostOf: published.url,
+      category: "IT系",
+      listed: false,
+      children: [{ title: "title c", url: "https://example.com/c", hot: false }],
+    });
+  });
+
+  it("keeps a parent left without children on the board but does not send it", () => {
+    const ghost = remove(linked, "c");
+    expect(ghost.IT系.map((d) => d.id)).toStrictEqual(["a", "p"]);
+    expect(pinReposts(ghost)).toStrictEqual(ghost);
+    expect(toNewDigest(ghost, "2026-10-20").articles).toHaveLength(1);
+    expect(toPreview(ghost, "2026-10-20").articles).toHaveLength(1);
+    expect(blockers(board({ IT系: [ghost.IT系[1] ?? draft("x")] }))).toStrictEqual([
+      { kind: "empty" },
+    ]);
+  });
+
+  it("neither counts toward the limit nor blocks saving as unsorted a parent that is not sent", () => {
+    const ghost = remove(linked, "c").IT系[1] ?? draft("x");
+    const b = board({ 未分類: [ghost], IT系: [draft("a")] });
+    expect(draftCount(b)).toBe(1);
+    expect(blockers(b)).toStrictEqual([]);
+  });
+
+  it("links another article under the parent already on the board", () => {
+    const relinked = linkToParent(remove(linked, "c"), "a", published, "q");
+    expect(relinked.IT系.map((d) => [d.id, d.children.map((c) => c.id)])).toStrictEqual([
+      ["p", ["a"]],
+    ]);
+  });
+
+  it("cannot pick an article that has a parent, nor link an article that has children", () => {
+    const child = { ...published, parent: { url: "https://example.com/x", title: "x" } };
+    expect(linkBlock(emptyBoard(), child, "2026-10-20")).toBe("has-parent");
+    expect(linkBlock(linked, published, "2026-10-20")).toBeNull();
+    expect(canLink(board({ IT系: [draft("a", { children: [link("c")] })] }), "a")).toBeFalsy();
+  });
+
+  it("turns the children back into parents in place when the parent is unlinked", () => {
+    expect(ok(unlinkParent(linked, "p")).IT系.map((d) => d.id)).toStrictEqual(["a", "c"]);
+  });
+
+  it("moves a childless parent back to its original category once it is listed again", () => {
+    const ghost = remove(linked, "c");
+    expect(listedHome(ghost.IT系[1] ?? draft("x"), "IT系")).toBe("AI系");
+    expect(pinReposts(setListed(ghost, "p", true)).AI系.map((d) => d.id)).toStrictEqual(["p"]);
+  });
+
+  it("reopens a parent called up for its children as a linked parent", () => {
+    const b = fromDigest(
+      digest.parse({
+        id: uuid(0),
+        entryDate: "2026-10-20",
+        status: "published",
+        articles: [
+          {
+            id: uuid(1),
+            category: "IT系",
+            hot: false,
+            repost: true,
+            hidden: false,
+            listed: false,
+            originalStatus: "published",
+            originalCategory: "AI系",
+            title: "親",
+            url: "https://example.com/1",
+            children: [],
+          },
+        ],
+      }),
+    );
+    expect(b.IT系[0]?.repost?.listed).toBeFalsy();
   });
 });
 
@@ -539,7 +642,7 @@ describe("エージェントの更新", () => {
   });
 
   it("rejects changing a repost except the category of one with children", () => {
-    const repost = { category: "AI系", firstPublishedOn: "2026-10-03" } as const;
+    const repost = { category: "AI系", firstPublishedOn: "2026-10-03", listed: true } as const;
     const b = board({
       AI系: [draft("a", { repost }), draft("b", { repost, children: [link("c")] })],
     });

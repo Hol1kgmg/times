@@ -53,6 +53,10 @@ const meta = {
       unmakeChild: fn<CardActions["unmakeChild"]>(),
       moveChild: fn<CardActions["moveChild"]>(),
       unhide: fn<CardActions["unhide"]>(),
+      canLink: () => true,
+      startLink: fn<CardActions["startLink"]>(),
+      unlink: fn<CardActions["unlink"]>(),
+      setListed: fn<CardActions["setListed"]>(),
     },
   },
 } satisfies Meta<typeof DraftCard>;
@@ -66,19 +70,43 @@ export const WithChildren: Story = { args: { draft: draft({ children: [child] })
 export const Repost: Story = {
   args: {
     draft: draft({
-      repost: { category: "セキュリティ", firstPublishedOn: "2026-11-10" },
+      repost: { category: "セキュリティ", firstPublishedOn: "2026-11-10", listed: true },
       children: [child],
     }),
   },
 };
+export const Linked: Story = {
+  args: {
+    draft: draft({
+      repost: { category: "セキュリティ", firstPublishedOn: "2026-11-10", listed: false },
+      children: [child],
+    }),
+  },
+};
+export const Ghost: Story = {
+  args: {
+    box: "IT系",
+    draft: draft({ repost: { category: "セキュリティ", listed: false } }),
+  },
+};
 export const RepostUnpublished: Story = {
   args: {
-    draft: draft({ repost: { category: "セキュリティ" }, unpublished: true, children: [child] }),
+    draft: draft({
+      repost: { category: "セキュリティ", listed: true },
+      unpublished: true,
+      children: [child],
+    }),
   },
 };
 export const Hidden: Story = { args: { draft: draft({ hidden: true }) } };
 export const HiddenRepost: Story = {
-  args: { draft: draft({ hidden: true, repost: { category: "セキュリティ" }, children: [child] }) },
+  args: {
+    draft: draft({
+      hidden: true,
+      repost: { category: "セキュリティ", listed: true },
+      children: [child],
+    }),
+  },
 };
 export const HiddenChild: Story = {
   args: { draft: draft({ children: [{ ...child, hidden: true }] }) },

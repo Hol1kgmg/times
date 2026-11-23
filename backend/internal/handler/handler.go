@@ -306,11 +306,14 @@ func (s *Server) CreateDigest(ctx context.Context, req api.CreateDigestRequestOb
 
 // entry は送られた親 1 件。再掲載は記事を参照するだけなので title を持たない
 type entry struct {
-	url, title          string
-	category            api.Category
-	hot, hidden, repost bool
-	children            []child
+	url, title                  string
+	category                    api.Category
+	hot, hidden, repost, listed bool
+	children                    []child
 }
+
+// 子付きの再掲載は、親も載せる指定がなければ子のために親を呼び出すだけで、親を載せない
+func (e entry) placed() bool { return !e.repost || e.listed || len(e.children) == 0 }
 
 type child struct {
 	url, title  string
@@ -330,7 +333,7 @@ func entriesOf(items []api.DigestEntry) ([]entry, error) {
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, entry{url: r.RepostOf, category: r.Category, repost: true, children: cs})
+			out = append(out, entry{url: r.RepostOf, category: r.Category, repost: true, listed: isTrue(r.Listed), children: cs})
 			continue
 		}
 		a, err := item.AsNewArticle()
@@ -416,8 +419,7 @@ func saveArticles(ctx context.Context, q *db.Queries, d db.Digest, userID int64,
 				return nil, err
 			}
 		}
-		// 子付きの再掲載は子のために親を呼び出すだけで、親を載せない
-		if !e.repost || len(e.children) == 0 {
+		if e.placed() {
 			if err := place(id, e.hot); err != nil {
 				return nil, err
 			}
@@ -487,7 +489,8 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 		}
 		r := registered[e.url]
 		switch {
-		case e.repost && !repostAvailable(e.url) && !r.HasPlacedChild:
+		// 子を収めるために呼び出すだけの親は FR-005 を問わないが、その日に掲載するなら問う
+		case e.repost && !repostAvailable(e.url) && (e.placed() || !r.HasPlacedChild):
 			unavailable = append(unavailable, e.url)
 		case !e.repost && !original(e.url):
 			duplicates = append(duplicates, e.url)
@@ -592,7 +595,7 @@ func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow, public bool) api.D
 		}
 		// 呼び出した親は、この Digest では子のための再掲載
 		repost := p.IsRepost || !p.Placed
-		a := api.Article{Id: p.ID, Category: api.Category(p.Category), Repost: repost, Hidden: p.Hidden, OriginalStatus: originalStatus(p), Children: cs}
+		a := api.Article{Id: p.ID, Category: api.Category(p.Category), Repost: repost, Hidden: p.Hidden, Listed: p.Placed, OriginalStatus: originalStatus(p), Children: cs}
 		if public && !visible(p) {
 			// 子のない再掲載はそれ自体を読ませる掲載なので、中身を隠しても場所は残す
 			if !(p.Placed && repost) && len(cs) == 0 {

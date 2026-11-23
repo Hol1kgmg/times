@@ -15,6 +15,7 @@ describe("schemas", () => {
       hot: false,
       repost: false,
       hidden: false,
+      listed: true,
       originalStatus: "published",
       title: "t",
       url: "https://x.example",
@@ -34,6 +35,7 @@ describe("schemas", () => {
       hot: false,
       repost: true,
       hidden: false,
+      listed: true,
       originalStatus: "private",
       children: [],
     };

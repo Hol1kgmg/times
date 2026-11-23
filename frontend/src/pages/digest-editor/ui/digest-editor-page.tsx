@@ -12,13 +12,17 @@ import { updateDigest } from "../api/update-digest";
 import {
   addRepost,
   blockers,
+  canLink,
   canMakeChild,
+  cardOf,
   convertToReposts,
   draftCount,
   editLink,
   emptyBoard,
   fromDigest,
   hasDrafts,
+  linkBlock,
+  linkToParent,
   makeChild,
   MAX_DRAFTS,
   moveChild,
@@ -26,10 +30,12 @@ import {
   remove,
   restoreHidden,
   revert,
+  setListed,
   toggleHot,
   toNewDigest,
   toPreview,
   unhide,
+  unlinkParent,
   unmakeChild,
   UNSORTED,
 } from "../model/board";
@@ -43,7 +49,7 @@ import { DraftCard } from "./draft-card";
 import { failureMessage } from "./failure-message";
 import type { CardActions } from "./draft-card";
 import { PreviewDialog } from "./preview-dialog";
-import { RepostAdd } from "./repost-picker";
+import { RepostAdd, RepostPicker } from "./repost-picker";
 import { SaveSplitButton } from "./save-split-button";
 import { TodayTakenDialog } from "./today-taken-dialog";
 import type { SaveAction } from "./save-split-button";
@@ -57,6 +63,18 @@ const noop = () => {
   /* 何もしない */
 };
 const subscribeNever = () => noop;
+
+// 移った先が画面の外の枠だと、カードが消えたように見える
+const focusCard = (id: string) => {
+  // メニューが閉じてフォーカスを戻し終えてから移す
+  requestAnimationFrame(() => {
+    const menu = document.querySelector<HTMLElement>(
+      `[data-draft-id="${CSS.escape(id)}"] > div [data-card-menu]`,
+    );
+    menu?.focus();
+    menu?.scrollIntoView({ block: "center" });
+  });
+};
 
 const blockerText = (b: Blocker) => {
   switch (b.kind) {
@@ -147,6 +165,7 @@ const DigestForm = <S extends DigestStatus>({
     reason: "digest-already-exists" | "future-publish";
   }>();
   const [previewing, setPreviewing] = useState(false);
+  const [linking, setLinking] = useState<string>();
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
   useArticleTools({ board, setBoard, setSuggesting, setAdding: setAddingCount });
@@ -175,6 +194,13 @@ const DigestForm = <S extends DigestStatus>({
     enableBeforeUnload: dirty,
     disabled: !dirty,
   });
+
+  const follow = (next: Board, id: string) => {
+    const to = cardOf(next, id);
+    if (to !== null && cardOf(board, id)?.box !== to.box) {
+      focusCard(to.id);
+    }
+  };
 
   const apply = (next: Board | Rejected): Rejected | null => {
     if (typeof next === "string") {
@@ -215,6 +241,16 @@ const DigestForm = <S extends DigestStatus>({
     },
     unhide: (id) => {
       setBoard(unhide(board, id));
+    },
+    canLink: (id) => entryDate !== "" && canLink(board, id),
+    startLink: setLinking,
+    unlink: (id) => {
+      apply(unlinkParent(board, id));
+    },
+    setListed: (id, listed) => {
+      const next = pinReposts(setListed(board, id, listed));
+      setBoard(next);
+      follow(next, id);
     },
   };
 
@@ -323,6 +359,24 @@ const DigestForm = <S extends DigestStatus>({
           date={defaultDate}
           onClose={() => {
             setEditedDate("");
+          }}
+        />
+      )}
+      {linking !== undefined && (
+        <RepostPicker
+          block={linkBlock}
+          board={board}
+          entryDate={entryDate}
+          heading="掲載済みの記事に紐付ける"
+          onClose={() => {
+            setLinking(undefined);
+          }}
+          onPick={(c) => {
+            const parentId = crypto.randomUUID();
+            const link = (b: Board) => linkToParent(b, linking, c, parentId);
+            // 開いている間にエージェントが変えたボードを、開いたときのボードで上書きしない
+            setBoard(link);
+            follow(pinReposts(link(board)), linking);
           }}
         />
       )}

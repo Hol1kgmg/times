@@ -130,15 +130,75 @@
 }
 
 @media (--hover) {
-  .title {
+  .title,
+  .slimTitle {
     anchor-name: --preview;
   }
 
   /* ドラッグ中は並べ替えの邪魔になるので出さない */
-  .card:not([data-dragging]) .text > a:not([data-dismissed])[data-hovered] + .preview,
-  .card:not([data-dragging]) .text > a:not([data-dismissed]):focus-visible + .preview {
+  .card:not([data-dragging])
+    :is(.text, .slimText)
+    > a:not([data-dismissed])[data-hovered]
+    + .preview,
+  .card:not([data-dragging])
+    :is(.text, .slimText)
+    > a:not([data-dismissed]):focus-visible
+    + .preview {
     display: flex;
   }
+}
+
+/* 子のための紐付けの親は子を主役にするため、公開ページの細い「再掲載」の行と同じ形にする (specs/018 Revision 4) */
+.slimTitle {
+  composes: t-body from global;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-dynamic);
+  text-decoration: none;
+}
+
+.slimTitle:focus-visible,
+.slimTitle[data-hovered] {
+  color: var(--color-accent);
+}
+
+.slimText {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+.repostMark,
+.slimNote {
+  composes: t-meta from global;
+  flex-shrink: 0;
+  color: var(--color-text-faint);
+}
+
+.repostMark {
+  margin-right: var(--space-1);
+}
+
+.slimNote {
+  margin-left: var(--space-1);
+}
+
+.row:has(.slimText) .favicon {
+  width: var(--space-2);
+  height: var(--space-2);
+}
+
+.row:has(.slimText) .more {
+  height: var(--space-4);
+}
+
+/* 子がないので保存されないことを、行全体を薄くして示す */
+.slimText[data-ghost] .slimTitle {
+  color: var(--color-text-faint);
 }
 
 .hot {
@@ -183,10 +243,17 @@
 
 .item {
   composes: t-body from global;
+  display: flex;
+  flex-direction: column;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-card);
   color: var(--color-text);
   cursor: pointer;
+}
+
+.itemDescription {
+  composes: t-meta from global;
+  color: var(--color-text-muted);
 }
 
 .item[data-disabled] {
