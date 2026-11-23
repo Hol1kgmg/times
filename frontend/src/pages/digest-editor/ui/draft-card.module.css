@@ -187,17 +187,13 @@
   margin-left: var(--space-1);
 }
 
-.slimError {
-  color: var(--color-danger);
-}
-
 .row:has(.slimText) .favicon {
   width: var(--space-2);
   height: var(--space-2);
 }
 
 .row:has(.slimText) .more {
-  height: 24px;
+  height: var(--space-4);
 }
 
 /* 子がないので保存されないことを、行全体を薄くして示す */

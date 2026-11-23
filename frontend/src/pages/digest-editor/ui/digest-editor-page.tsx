@@ -12,9 +12,9 @@ import { updateDigest } from "../api/update-digest";
 import {
   addRepost,
   blockers,
-  boxIds,
   canLink,
   canMakeChild,
+  cardOf,
   convertToReposts,
   draftCount,
   editLink,
@@ -69,7 +69,7 @@ const focusCard = (id: string) => {
   // メニューが閉じてフォーカスを戻し終えてから移す
   requestAnimationFrame(() => {
     const menu = document.querySelector<HTMLElement>(
-      `[data-draft-id="${CSS.escape(id)}"] [aria-label="メニュー"]`,
+      `[data-draft-id="${CSS.escape(id)}"] > div [data-card-menu]`,
     );
     menu?.focus();
     menu?.scrollIntoView({ block: "center" });
@@ -165,7 +165,6 @@ const DigestForm = <S extends DigestStatus>({
     reason: "digest-already-exists" | "future-publish";
   }>();
   const [previewing, setPreviewing] = useState(false);
-  // 掲載済みの記事に紐付ける子の id
   const [linking, setLinking] = useState<string>();
   const blockersId = useId();
   const header = useRef<HTMLElement>(null);
@@ -195,6 +194,13 @@ const DigestForm = <S extends DigestStatus>({
     enableBeforeUnload: dirty,
     disabled: !dirty,
   });
+
+  const follow = (next: Board, id: string) => {
+    const to = cardOf(next, id);
+    if (to !== null && cardOf(board, id)?.box !== to.box) {
+      focusCard(to.id);
+    }
+  };
 
   const apply = (next: Board | Rejected): Rejected | null => {
     if (typeof next === "string") {
@@ -242,12 +248,9 @@ const DigestForm = <S extends DigestStatus>({
       apply(unlinkParent(board, id));
     },
     setListed: (id, listed) => {
-      const from = boxIds.find((b) => board[b].some((d) => d.id === id));
       const next = pinReposts(setListed(board, id, listed));
       setBoard(next);
-      if (from !== undefined && !next[from].some((d) => d.id === id)) {
-        focusCard(id);
-      }
+      follow(next, id);
     },
   };
 
@@ -369,7 +372,11 @@ const DigestForm = <S extends DigestStatus>({
             setLinking(undefined);
           }}
           onPick={(c) => {
-            setBoard(linkToParent(board, linking, c, crypto.randomUUID()));
+            const parentId = crypto.randomUUID();
+            const link = (b: Board) => linkToParent(b, linking, c, parentId);
+            // 開いている間にエージェントが変えたボードを、開いたときのボードで上書きしない
+            setBoard(link);
+            follow(pinReposts(link(board)), linking);
           }}
         />
       )}

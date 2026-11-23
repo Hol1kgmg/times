@@ -12,6 +12,7 @@ import {
   Text,
 } from "react-aria-components";
 import { loadAnyLinkPreview, translateTitle } from "#/shared/api";
+import type { Category } from "#/shared/api";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
@@ -52,6 +53,13 @@ const categoryNote = (link: Link, box: BoxId, repost: boolean): string | null =>
     : `保存するとカテゴリが${box}に変わります`;
 };
 
+const listedNote = (draft: Draft, home: Category | null): string | null => {
+  if (draft.unpublished === true) {
+    return "初回掲載の Digest が公開されてないので載せられません";
+  }
+  return home === null ? null : `子がないので、元のカテゴリ (${home}) へ移ります`;
+};
+
 interface MenuItem {
   label: string;
   onSelect: () => void;
@@ -62,7 +70,7 @@ interface MenuItem {
 
 const Menu = ({ items }: { items: MenuItem[] }) => (
   <MenuTrigger>
-    <Button aria-label="メニュー" className={styles.more}>
+    <Button aria-label="メニュー" className={styles.more} data-card-menu="">
       ···
     </Button>
     <Popover className={styles.menu} offset={0} placement="bottom end">
@@ -234,22 +242,11 @@ const EditDialog = ({
 };
 
 // 公開ページの細い「再掲載」の行と同じく、印・タイトル・注記を 1 行に収める
-const SlimText = ({
-  ghost,
-  unavailable,
-  children,
-}: {
-  ghost: boolean;
-  unavailable: boolean;
-  children: ReactNode;
-}) => (
+const SlimText = ({ ghost, children }: { ghost: boolean; children: ReactNode }) => (
   <span className={styles.slimText} data-ghost={ghost ? "" : undefined}>
     <span className={styles.repostMark}>再掲載</span>
     {children}
     {ghost && <span className={styles.slimNote}>子がないので保存されません</span>}
-    {unavailable && (
-      <span className={`${styles.slimNote} ${styles.slimError}`}>この記事は再掲載できません</span>
-    )}
   </span>
 );
 
@@ -279,7 +276,6 @@ const LinkRow = ({
   converted?: boolean;
   unavailable?: boolean;
   hidden?: boolean;
-  // 子のために呼び出すだけの紐付けの親。ghost はそのうち子がなく保存されないもの
   slim?: { ghost: boolean };
   note?: string | null;
   handle?: ReactNode;
@@ -297,6 +293,16 @@ const LinkRow = ({
     load: loadAnyLinkPreview,
   });
   const untitled = link.title.trim() === "";
+  const meta = {
+    categoryNote: note,
+    converted,
+    hidden,
+    registered,
+    suggested,
+    unavailable,
+    unpublished: link.unpublished === true,
+    untitled,
+  };
   const anchor = (
     <AriaLink
       className={slim === undefined ? styles.title : styles.slimTitle}
@@ -330,24 +336,14 @@ const LinkRow = ({
         <span className={styles.text}>
           {anchor}
           {card}
-          <LinkMeta
-            categoryNote={note}
-            converted={converted}
-            firstPublishedOn={firstPublishedOn}
-            hidden={hidden}
-            host={host}
-            registered={registered}
-            repost={repost}
-            suggested={suggested}
-            unavailable={unavailable}
-            unpublished={link.unpublished === true}
-            untitled={untitled}
-          />
+          <LinkMeta {...meta} firstPublishedOn={firstPublishedOn} host={host} repost={repost} />
         </span>
       ) : (
-        <SlimText ghost={slim.ghost} unavailable={unavailable}>
+        <SlimText ghost={slim.ghost}>
           {anchor}
           {card}
+          {/* 「再掲載」の印は行頭に出しているので、ここでは重ねない */}
+          <LinkMeta {...meta} repost={false} />
         </SlimText>
       )}
       {action}
@@ -463,12 +459,17 @@ export const DraftCard = ({
     }
     if (draft.repost.listed) {
       return [
-        {
-          label: "親の掲載をやめる",
-          onSelect: () => {
-            actions.setListed(draft.id, false);
-          },
-        },
+        // 子のない親は掲載をやめると保存されなくなるので、やめる代わりに削除させる
+        ...(draft.children.length === 0
+          ? []
+          : [
+              {
+                label: "親の掲載をやめる",
+                onSelect: () => {
+                  actions.setListed(draft.id, false);
+                },
+              },
+            ]),
         remove,
       ];
     }
@@ -484,7 +485,9 @@ export const DraftCard = ({
       },
       {
         label: "親も掲載する",
-        description: home === null ? null : `子がないので、元のカテゴリ (${home}) へ移ります`,
+        // 前の公開の掲載がない記事は、その日に載せると backend が断る (specs/018 FR-005)
+        disabled: draft.unpublished === true,
+        description: listedNote(draft, home),
         onSelect: () => {
           actions.setListed(draft.id, true);
         },

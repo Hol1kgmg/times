@@ -303,6 +303,7 @@ func TestCheckEntries(t *testing.T) {
 		{"repost already in this digest whose original was made private", []entry{{url: "https://kept.example", repost: true, category: api.CategoryOther}}, ""},
 		{"recalled parent whose original was made private", []entry{{url: "https://private-parent.example", repost: true, children: []child{{url: "https://private-child.example", repost: true}}}}, ""},
 		{"recalled parent with a new child", []entry{{url: "https://private-parent.example", repost: true, children: newChild}}, ""},
+		{"recalled parent whose original was made private listed on this date", []entry{{url: "https://private-parent.example", repost: true, listed: true, children: newChild}}, "/problems/repost-unavailable"},
 		{"new private parent with a new child", []entry{{url: "https://draft.example", repost: true, children: newChild}}, "/problems/repost-unavailable"},
 		{"original in this digest sent as a repost stays the original", []entry{{url: "https://here.example", repost: true, category: api.CategoryOther}}, ""},
 		{"article in this digest with an earlier placement sent as an ordinary parent", []entry{{url: "https://kept.example", title: "again"}}, "/problems/url-already-registered"},

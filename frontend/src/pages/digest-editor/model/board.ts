@@ -76,10 +76,10 @@ export const emptyBoard = (): Board => byBox(() => []);
 
 const drafts = (board: Board) => boxIds.flatMap((b) => board[b]);
 const links = (board: Board) => drafts(board).flatMap((d): Link[] => [d, ...d.children]);
-export const draftCount = (board: Board) => drafts(board).length;
-
-// 載せず子もない再掲載の親。紐付け直せるよう残すが、保存では送らない
+// 紐付け直すときに探し直さずに済むよう消さずに残すが、保存では送らない
 export const isGhost = (d: Draft) => d.repost?.listed === false && d.children.length === 0;
+// 上限は送る件数なので、送らない幽霊の親は数えない
+export const draftCount = (board: Board) => drafts(board).filter((d) => !isGhost(d)).length;
 export const hasDrafts = (board: Board) => draftCount(board) > 0;
 
 export const findDuplicate = (board: Board, url: string, exceptId?: string) =>
@@ -480,6 +480,17 @@ export const moveChild = (board: Board, parentId: string, childId: string, step:
     return { ...d, children };
   });
 
+// 枠を移ったかを見て、移した先のカードにフォーカスするために、子の id からも親のカードを引く
+export const cardOf = (board: Board, id: string) => {
+  for (const box of boxIds) {
+    const card = board[box].find((d) => d.id === id || d.children.some((c) => c.id === id));
+    if (card !== undefined) {
+      return { box, id: card.id };
+    }
+  }
+  return null;
+};
+
 export const isBoxId = (id: unknown): id is BoxId => boxIds.some((b) => b === id);
 export const isCategory = (box: BoxId): box is Category => box !== UNSORTED;
 
@@ -555,8 +566,9 @@ export const blockers = (board: Board): Blocker[] => {
   if (category.options.every((c) => board[c].every(isGhost))) {
     out.push({ kind: "empty" });
   }
-  if (board[UNSORTED].length > 0) {
-    out.push({ kind: "unsorted", count: board[UNSORTED].length });
+  const unsorted = board[UNSORTED].filter((d) => !isGhost(d)).length;
+  if (unsorted > 0) {
+    out.push({ kind: "unsorted", count: unsorted });
   }
   const untitled = links(board).filter((l) => l.title.trim() === "");
   if (untitled.length > 0) {

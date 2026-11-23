@@ -489,7 +489,8 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 		}
 		r := registered[e.url]
 		switch {
-		case e.repost && !repostAvailable(e.url) && !r.HasPlacedChild:
+		// 子を収めるために呼び出すだけの親は FR-005 を問わないが、その日に掲載するなら問う
+		case e.repost && !repostAvailable(e.url) && (e.placed() || !r.HasPlacedChild):
 			unavailable = append(unavailable, e.url)
 		case !e.repost && !original(e.url):
 			duplicates = append(duplicates, e.url)

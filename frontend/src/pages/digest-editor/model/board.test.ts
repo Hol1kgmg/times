@@ -3,6 +3,7 @@ import {
   addDraft,
   addRepost,
   blockers,
+  draftCount,
   canLink,
   canMakeChild,
   convertToReposts,
@@ -470,6 +471,13 @@ describe("掲載済みの記事に紐付ける", () => {
     expect(blockers(board({ IT系: [ghost.IT系[1] ?? draft("x")] }))).toStrictEqual([
       { kind: "empty" },
     ]);
+  });
+
+  it("neither counts toward the limit nor blocks saving as unsorted a parent that is not sent", () => {
+    const ghost = remove(linked, "c").IT系[1] ?? draft("x");
+    const b = board({ 未分類: [ghost], IT系: [draft("a")] });
+    expect(draftCount(b)).toBe(1);
+    expect(blockers(b)).toStrictEqual([]);
   });
 
   it("links another article under the parent already on the board", () => {
