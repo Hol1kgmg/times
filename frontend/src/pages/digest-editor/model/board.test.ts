@@ -403,8 +403,13 @@ describe("過去の記事から再掲載を足す", () => {
 
   it("sends a picked article as a repost in its original category", () => {
     expect(
-      toNewDigest(ok(addRepost(emptyBoard(), candidate, "r")), "2026-10-20").articles,
+      toNewDigest(addRepost(emptyBoard(), candidate, "r"), "2026-10-20").articles,
     ).toStrictEqual([{ repostOf: candidate.url, category: "AI系", listed: true, children: [] }]);
+  });
+
+  it("leaves the board as it is when the article got on the board while the picker was open", () => {
+    const b = board({ IT系: [{ ...draft("p"), url: candidate.url }] });
+    expect(addRepost(b, candidate, "r")).toBe(b);
   });
 });
 

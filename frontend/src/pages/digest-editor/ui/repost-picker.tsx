@@ -122,7 +122,13 @@ export const RepostPicker = ({
           {candidates?.length === 0 && <p className={styles.message}>見つからなかったです</p>}
           {candidates !== undefined && candidates.length > 0 && (
             // disabledKeys は矢印キーでも飛ばされるので使わず、選べない行は押しても何もしない (adr/frontend/0008)
-            <ListBox aria-label="候補" className={styles.list} items={candidates}>
+            // 項目は候補ごとに覚えられて作り直されないので、選べるかの判定を今のボードで引き直させる
+            <ListBox
+              aria-label="候補"
+              className={styles.list}
+              dependencies={[board, entryDate]}
+              items={candidates}
+            >
               {(c) => {
                 const block = blockOf(board, c, entryDate);
                 return (

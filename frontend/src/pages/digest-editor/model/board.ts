@@ -659,14 +659,10 @@ export const repostBlock = (
 };
 
 // 子の候補も単独の行にする。保存後に読むと元の親が呼び出される (specs/018 FR-004)
-export const addRepost = (
-  board: Board,
-  candidate: RepostCandidate,
-  id: string,
-): Board | Rejected => {
-  const rejected = rejectAdd(board, candidate.url);
-  if (rejected !== null) {
-    return rejected;
+export const addRepost = (board: Board, candidate: RepostCandidate, id: string): Board => {
+  // ピッカーが選べない候補を弾いているので、ここで断られるのは開いている間にボードが変わったときだけ
+  if (rejectAdd(board, candidate.url) !== null) {
+    return board;
   }
   const { url, title, category: c, firstPublishedOn } = candidate;
   const draft: Draft = {
