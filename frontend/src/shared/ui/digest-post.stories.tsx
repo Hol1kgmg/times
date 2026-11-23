@@ -80,6 +80,7 @@ const shown = ({ children, ...a }: { category: string; children: object[] }) => 
   children: children.map((c) => ({
     category: a.category,
     repost: false,
+    hidden: false,
     originalStatus: "published",
     ...c,
   })),
@@ -106,6 +107,7 @@ const repostDigest = digest.parse({
           category: "AI系" as const,
           hot: false,
           repost: false,
+          hidden: false,
           originalStatus: "published" as const,
           title: "非公開にした記事の続報",
           url: "https://example.com/concealed-next",
