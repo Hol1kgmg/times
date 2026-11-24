@@ -67,11 +67,6 @@ export const currentAdminViewer = async (loginPath?: string): Promise<AdminViewe
   return adminViewer.parse({ ...body, loginPath });
 };
 
-export const currentAdmin = async (): Promise<AdminUser | undefined> => {
-  const viewer = await currentAdminViewer();
-  return viewer?.user;
-};
-
 // middleware にしないのは、.server.ts 由来の middleware はクライアントから呼ぶサーバー関数に付けると import-protection に弾かれるため
 // Cookie の有無だけ見る。照合は backendFetch(path, init, { token }) で backend が行う
 export const requireAdminToken = () => {

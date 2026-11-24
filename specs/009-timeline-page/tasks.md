@@ -39,6 +39,7 @@ description: "Task list for Digest のタイムライン画面 (009-timeline-pag
 - [X] T002 [P] `frontend/src/pages/digest-timeline/model/timeline.ts` に `PAGE_SIZE = 7` と `prependPage(current: Digest[], page: Digest[]): { digests: Digest[]; done: boolean }` を書く。`page` は新しい順で届くので逆順にして `current` の前に足し、`done` は `page.length < PAGE_SIZE` (data-model.md)。`[...page].reverse()` で入力を壊さない
 - [X] T003 [P] `frontend/src/pages/digest-timeline/model/timeline.test.ts` に 2 件: 「7 件のページは古い順にして前に足し、続きがあるとする」「7 件未満のページで終わりにする」。テスト名は仕様の言葉で書く (quality.md)
 - [X] T004 [P] `frontend/src/pages/digest-timeline/api/resolve-timeline-page.ts` に `resolveTimelinePage` を書く。`frontend/src/pages/digest-editor/api/resolve-digest-editor-page.ts` と同じ形 (`createServerFn({ method: "GET" })`、`currentAdmin()` が無ければ `throw notFound()`、`{ user }` を返す)。同じ理由のコメント (requireAdminPage を server function 内から呼ぶと本番ビルドで壊れる) も 1 行写す (research R1)
+  > **Superseded** (#220): `resolveTimelinePage` は消した。今は `timeline.tsx` の `beforeLoad` が `requireAdminViewer(context.viewer)` を呼ぶ (research R1 の注記)。T005 の export と T007 の `beforeLoad` も同じ。
 
 **Checkpoint**: `just fe-typecheck` と `just test` が通り、編集画面のプレビューが移動前と同じに取れる。
 

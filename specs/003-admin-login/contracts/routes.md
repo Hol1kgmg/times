@@ -20,7 +20,7 @@ backend の契約は [openapi.md](./openapi.md)、値の形は [../data-model.md
 
 | 名前 | method | 入力 | 処理 | 成功時 | 拒否時 |
 |---|---|---|---|---|---|
-| `resolveLoginPage` | GET | `{ path }` | パス照合。Cookie があれば `GET /auth/sessions/current` | `{ user }` (ログイン済み) または `{}` (未ログイン。401 なら Cookie を消す) | `notFound()` (パス不一致 / 設定未完) |
+| `resolveLoginPage` | GET | `{ path }` | パス照合だけ (#220 でセッションの照合をやめ、ルートの `beforeLoad` が root の `context.viewer.admin?.user` を `{ user }` として返す) | なし | `notFound()` (パス不一致 / 設定未完) |
 | `startGitHubLogin` | POST | `{ path }` | パス照合。state 発行 → `times_login` | `{ url }` (authorize URL) | `notFound()` |
 | `completeGitHubLogin` | GET | `{ code?, state?, error? }` | `times_login` と `state` を照合 (不一致 → 404)。`times_login` 削除。`error=access_denied` → cancelled。`POST /auth/sessions { code, redirectUri }` | 201 → `times_admin` に token (Max-Age 30 日) → `redirect({ to: "/" })` | 403 → `?error=forbidden`、502 / 通信失敗 → `?error=failed`、いずれもログイン画面へ redirect |
 | `logout` | POST | `{ path }` | パス照合。Cookie があれば `DELETE /auth/sessions/current` (401 も成功扱い)。Cookie 削除 | `redirect({ to: "/" })` | `notFound()` (パス不一致 / 設定未完) |

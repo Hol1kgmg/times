@@ -1,14 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { AdminUser } from "#/shared/auth/index.server";
-import { currentAdmin } from "#/shared/auth/index.server";
 import { loginConfig } from "./login-config.server";
 
-// 秘匿パスのページの beforeLoad。パス不一致は 404、ログイン済みなら user を返す
+// 秘匿パスの照合だけ行う。ログイン済みかは root の beforeLoad が照合済みの viewer を見る
 export const resolveLoginPage = createServerFn({ method: "GET" })
   .validator(z.object({ path: z.string() }))
-  .handler(async ({ data }): Promise<{ user?: AdminUser }> => {
+  .handler(({ data }) => {
     loginConfig(data.path);
-    const user = await currentAdmin();
-    return user ? { user } : {};
   });

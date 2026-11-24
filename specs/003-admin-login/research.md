@@ -27,6 +27,7 @@
 - **Decision**:
   - ページ: `beforeLoad` で `throw notFound()`。既存の未定義 URL と同じ表示・同じ 404 ステータス。
   - サーバー関数: `requireAdmin = createMiddleware({ type: "function" }).server(...)`。Cookie が無ければ即 `notFound({ data: { reason: SESSION_EXPIRED } })`、あれば `context.sessionToken` を載せて続行。backend を呼ぶ `backendFetch(path, init, { token })` は Bearer を付け、応答が 401 かつ Problem の `type` が `/problems/unauthorized` なら同じ `notFound(...)` を投げる。管理者向けページのガード `requireAdminPage` は `GET /auth/sessions/current` を呼んで有効性を確かめる。本機能では `requireAdminPage` を使うページを作らず、秘匿パスのページの「ログイン済み判定」で同じ関数を使って動作を確かめる。
+  > **Superseded** (#220): 下の R10 の注記のとおり、ガードは `requireAdminViewer` に替えた。
   - `SESSION_EXPIRED` は `shared/auth/errors.ts` の文字列定数。後続のページの UI は `isNotFound(e) && e.data?.reason === SESSION_EXPIRED` で再ログインを案内する (案内の形はそのページの仕様)。
 - **Rationale**: 書き込み系のサーバー関数は backend 呼び出しに照合が同乗するので、事前の `GET current` を省ける (往復 1 回)。ページ表示は backend を呼ばないので `GET current` が要る。`notFound` を使う理由は前版と同じ: サーバー関数から投げると `isNotFoundResponse` が `data` 込みの 404 JSON にし、クライアント fetcher が `isNotFound` で同じオブジェクトを throw する (`start-server-core/server-functions-handler.js`、`start-client-core/client-rpc/serverFnFetcher.js`)。`Error` は毎回 `console.error` が出て独自プロパティの直列化も保証されず、`Response` はクライアントが JSON を戻り値として返してしまい例外にならない。
 - **Alternatives considered**: 戻り値の union: 後続の全サーバー関数の戻り型を汚す。
@@ -42,6 +43,7 @@
 - **Decision**:
   - backend: `internal/auth/github_test.go` は `httptest.Server` で GitHub を模す。`handler/auth_test.go` は `Server` の GitHub クライアントと `sessions` 照合を関数値 (`func(ctx, hash) (db.Session, error)`) で差し替え、201 / 403 / 502 と `users` upsert の呼び出しを検証。`cmd/server/main_test.go` は `security` 宣言のある操作にトークンなしで 401、宣言のない `/health` が通ることを検証。DB 接続テストは書かない (constitution V)。
   - frontend: Vitest は `isAllowedPath`、`pickLoginError`、`requireAdmin` / `requireAdminPage` が投げる値の形。Playwright は `e2e/github-mock.mjs` (承認画面に「管理者として承認 / 別アカウントで承認 / キャンセル」の 3 リンク) を立て、backend は compose の実物を `GITHUB_BASE_URL` / `GITHUB_API_URL` をモックに向けて起動する。管理者専用ページが無いため、e2e の「ログイン済み」判定は秘匿パスのページの表示 (ログイン中 / ログインカード) で行う。
+  > **Superseded** (#220): `requireAdminPage` は消し、ガードのテストは `requireAdminViewer` の 1 件にした。
 - **Rationale**: backend の分岐は Go の単体テストで、通しの受け入れシナリオは実ブラウザ + 実 backend + 実 DB で確認する。constitution V (シナリオ = テスト) を満たす最小の構成。
 - **Alternatives considered**: e2e で backend もモック: 照合経路が検証されず、backend 起点にした意味が薄れる。
 - **Note**: e2e は compose の `backend` に環境変数を渡す必要があるため、`compose.yaml` に `GITHUB_BASE_URL` 等を `${VAR:-default}` で通す。CI で e2e を回すのは「CI からのデプロイ」(TODO) と一緒に整える。
@@ -69,4 +71,5 @@
 ## R10. 管理者専用ページの扱い (2026-09-26 改訂: 本機能では作らない)
 
 - **Decision**: `/admin` や pathless layout `_admin.tsx` は置かない。ログイン成功後とログアウト後の遷移先は `/` (FR-018 / FR-008)。後続の仕様 (001 など) が管理者専用ページを足すときは、そのルートの `beforeLoad` で `requireAdminPage()` を呼び、サーバー関数に `requireAdmin` を付ける。
+> **Superseded** (#220): 管理者専用ページは `/admin/*` に置き、親ルート `app/routes/_shell/admin.tsx` の `beforeLoad` で、root が照合済みの `context.viewer` を `shared/auth` の `requireAdminViewer` に通す (`viewer.admin` が無ければ `notFound()`、あれば `{ admin }` を context に載せる)。`/admin` 以外の管理者専用ページ (`/timeline`) は自分の `beforeLoad` で同じ関数を呼ぶ。`requireAdminPage` と `currentAdmin` は消した。秘匿パスのページのログイン済み判定も `context.viewer` を見る。
 - **Rationale**: 保護対象のページが無い状態で最小ページを作ると、後続の仕様が置き換える前提の捨てコードになる。仕組み (ガード 2 つ) は `shared/auth/` に残し、秘匿パスのページの判定で同じ関数を使うので動作は本機能内で検証できる。
