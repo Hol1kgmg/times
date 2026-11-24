@@ -4,7 +4,6 @@ export {
   clearAdminToken,
   currentAdmin,
   readAdminToken,
-  requireAdminPage,
   requireAdminToken,
   takeLoginState,
   writeAdminToken,

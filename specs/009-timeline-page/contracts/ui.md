@@ -4,7 +4,7 @@
 
 | パス | ファイル | beforeLoad | loader |
 |---|---|---|---|
-| `/timeline` | `app/routes/_shell/timeline.tsx` | `resolveTimelinePage()`: `currentAdmin()` が無ければ `notFound()` | `listPublishedDigests({ data: { limit: 7 } })` |
+| `/timeline` | `app/routes/_shell/timeline.tsx` | `requireAdminViewer(context.viewer)`: root が照合した `viewer.admin` が無ければ `notFound()` (R1) | `listPublishedDigests({ data: { limit: 7 } })` |
 
 - `head`: `<title>` を付ける (R7)
 - 未ログインで直接開く → 見つからない画面 (FR-001)
@@ -15,7 +15,6 @@
 |---|---|---|---|---|
 | `listPublishedDigests` | `shared/api` (既存、specs/008) | `{ before?: ISO 日付, limit?: 1〜31 }` | `digestPage` | `requireAdminToken` |
 | `fetchAnyLinkPreview` | `shared/api` (移動 + 改名、R5) | URL | `LinkPreview \| null` | `requireAdminToken` |
-| `resolveTimelinePage` | `pages/digest-timeline/api` (新規) | なし | `{ user }` / `notFound` | `currentAdmin` |
 
 読み足しの呼び出し: `listPublishedDigests({ data: { before: digests[0].entryDate, limit: 7 } })`
 

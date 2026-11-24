@@ -5,3 +5,4 @@ export {
   getCurrentAdmin,
   type Viewer,
 } from "./get-current-admin";
+export { requireAdminViewer } from "./require-admin-viewer";

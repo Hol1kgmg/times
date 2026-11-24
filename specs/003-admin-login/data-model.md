@@ -110,5 +110,5 @@
 ## 後続の管理者向け機能への引き継ぎ
 
 - 管理者専用の backend 操作は OpenAPI で `security: [bearerAuth]` を宣言する。handler は `AuthenticationFunc` が context に載せた user の `id` を使う (登録者の記録など)。frontend から user id を送らせない
-- 管理者専用のページはルートの `beforeLoad` で `requireAdminPage()` を呼ぶ (未ログインは `notFound()`)。サーバー関数は `requireAdmin` middleware を付け、`backendFetch` にトークンを渡すだけ
+- 管理者専用のページはルートの `beforeLoad` で `requireAdminViewer(context.viewer)` を呼ぶ (root の `beforeLoad` が照合した `viewer.admin` が無ければ `notFound()`)。サーバー関数は handler の中で `requireAdminToken()` を呼び、`backendFetch` にトークンを渡すだけ
 - 期限切れの判別は `isNotFound(e) && e.data?.reason === SESSION_EXPIRED`

@@ -10,7 +10,7 @@ backend の契約は [openapi.md](./openapi.md)、値の形は [../data-model.md
 | `/auth/github/callback` | `app/routes/auth.github.callback.tsx` | 常に 302 か 404。描画しない | `validateSearch: { code?: string, state?: string, error?: string }`。state 不一致・欠落・設定未完 → 404 |
 | `/`, `/items/$id`, `/client`, `/health` | 既存 | 変更なし | ログイン関連の表示・導線を追加しない (FR-002 / FR-009)。ログイン成功・ログアウト後の遷移先は `/` |
 
-管理者専用のページは本機能では作らない。後続の仕様がページを足すときは `beforeLoad` で `requireAdminPage()` を呼ぶ (未ログイン・期限切れ・失効 → 404)。
+管理者専用のページは本機能では作らない。後続の仕様がページを足すときは `beforeLoad` で `requireAdminViewer(context.viewer)` を呼ぶ (未ログイン・期限切れ・失効 → 404)。
 
 404 はすべて `throw notFound()` による Router 既定の表示。SSR ステータスも 404。
 
@@ -26,6 +26,8 @@ backend の契約は [openapi.md](./openapi.md)、値の形は [../data-model.md
 | `logout` | POST | `{ path }` | パス照合。Cookie があれば `DELETE /auth/sessions/current` (401 も成功扱い)。Cookie 削除 | `redirect({ to: "/" })` | `notFound()` (パス不一致 / 設定未完) |
 
 ### `requireAdminPage` (後続の管理者専用ページ向け)
+
+> **Superseded** (#220): `.server.ts` のサーバー関数はルートから import できず、root の `beforeLoad` (`getCurrentAdmin`) と同じ照合を遷移ごとに直列でもう一度することになるため消した。ページは root が照合済みの `context.viewer` を `shared/auth` の `requireAdminViewer` で見て、`viewer.admin` が無ければ `notFound()` を投げる。
 
 `shared/auth/session.server.ts` のサーバー関数 (GET、入力なし)。Cookie なし → `notFound()`。`GET /auth/sessions/current` が 200 → `{ user }`、401 → Cookie を消して `notFound()`。`resolveLoginPage` のログイン済み判定も内部でこれと同じ照合を使う。
 
@@ -77,7 +79,7 @@ env:
 
 | spec | テスト |
 |---|---|
-| US1-1, US1-8, US2-2, SC-001 | Vitest: `requireAdminPage` が Cookie なし / 401 で `notFound()` を投げる。`requireAdmin` が Cookie なしで拒否する。go test: `GET /auth/sessions/current` がトークンなしで 401 |
+| US1-1, US1-8, US2-2, SC-001 | Vitest: `requireAdminViewer` が `viewer.admin` なしで `notFound()` を投げる。`requireAdmin` が Cookie なしで拒否する。go test: `GET /auth/sessions/current` がトークンなしで 401 |
 | US1-2, SC-005 | e2e: `/not-the-path` → 404。`/auth/github/callback` 直叩き → 404。state 違い → 404 |
 | US1-3, FR-018 | e2e: 秘匿パス → 「管理者として承認」→ `/` が表示される |
 | US1-4, SC-007 | e2e: 「別のアカウントで承認」→ ログイン画面に forbidden 文言、秘匿パスはログインカードのまま。go test: `CreateSession` が 403 を返し `UpsertUser` を呼ばない |

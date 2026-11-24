@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
 import { notFound } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 import type { ApiResponse } from "#/shared/api";
@@ -72,15 +71,6 @@ export const currentAdmin = async (): Promise<AdminUser | undefined> => {
   const viewer = await currentAdminViewer();
   return viewer?.user;
 };
-
-// 管理者専用ページの beforeLoad で呼ぶ。未ログイン・期限切れ・失効はすべて 404
-export const requireAdminPage = createServerFn({ method: "GET" }).handler(async () => {
-  const user = await currentAdmin();
-  if (!user) {
-    throw notFound();
-  }
-  return { user };
-});
 
 // middleware にしないのは、.server.ts 由来の middleware はクライアントから呼ぶサーバー関数に付けると import-protection に弾かれるため
 // Cookie の有無だけ見る。照合は backendFetch(path, init, { token }) で backend が行う
