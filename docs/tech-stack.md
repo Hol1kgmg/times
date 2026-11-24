@@ -58,7 +58,7 @@ backend/
 | フレームワーク | TanStack Start / Router | SSR・サーバー関数・ファイルベースルーティング。`routeTree.gen.ts` は生成物 |
 | 検証 | Zod | サーバー関数の入力 |
 | アーキテクチャ | Feature-Sliced Design (v2.1) | `src/` をレイヤー / スライス / セグメントで構成。`routes/` は TanStack Router の規約なので FSD の外に置く |
-| ビルド | Vite 8 | `cssTarget` を Safari 16.3 に固定（range 構文のメディアクエリ回避） |
+| ビルド | Vite 8 | `cssTarget` を Safari 16.3 に固定（range 構文のメディアクエリ回避）。`package.json` の `sideEffects` は CSS だけなので、副作用だけの import (polyfill・読み込み時の登録など) を足すときはそのパスを加える。加えないと本番のビルドでだけ黙って落ちる (#221) |
 | スタイル | CSS Modules / PostCSS | `@custom-media` を `styles.css` で一元定義 |
 | フォント | Klee One (@fontsource) | |
 | 型検査 | TypeScript 6 | strict |
