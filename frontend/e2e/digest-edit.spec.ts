@@ -174,8 +174,9 @@ test("親と子を入れ替えて保存すると、開き直したときに入�
   await page.getByRole("button", { name: "下書きのまま保存" }).click();
   await page.waitForURL((url) => url.pathname === "/admin/digests");
 
-  // 一覧から開くと、保存前に開いたときの loader のキャッシュで盤面が作られるので、読み込み直す
-  await page.goto(`/admin/digests/${date}/edit`);
+  // 保存前に同じ日付を開いているので、その loader の値で盤面を作らないことも確かめる
+  await openDigest(page, date);
+  await page.waitForURL((url) => url.pathname === `/admin/digests/${date}/edit`);
   await page.waitForLoadState("networkidle");
   const links = await previewLinks(page);
   await expect(links).toHaveText([second, first]);

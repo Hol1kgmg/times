@@ -408,7 +408,9 @@ const DigestForm = <S extends DigestStatus>({
             board={board}
             entryDate={entryDate}
             onPick={(c) => {
-              apply(addRepost(board, c, crypto.randomUUID()));
+              const id = crypto.randomUUID();
+              // 開いている間に推定・取得・エージェントが変えたボードを、開いたときのボードで上書きしない
+              setBoard((b) => addRepost(b, c, id));
             }}
           />
           {renderBox(UNSORTED)}
