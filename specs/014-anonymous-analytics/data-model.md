@@ -43,4 +43,6 @@ DB は変えない。値はブラウザの localStorage と GA4 にだけ置く�
 
 ## 公開画面 (page_view を送る routeId)
 
-`/`、`/_shell/timeline`。これ以外 (`/digest/$date` (トップへ移るだけ)、`/_shell/admin.*`、`/_shell/$loginPath.auth.login`、`/auth/github/callback`、`/_shell/health`) は送らない。
+`/`、`/_shell/timeline`。これ以外 (`/digest/$date` (トップへ移るだけ)、`/_shell/_admin/*`、`/_shell/$loginPath.auth.login`、`/auth/github/callback`、`/_shell/health`) は送らない。
+
+> **Superseded** (#220): `/timeline` はログイン中しか開けない (specs/009) ので許可リストから外した。公開にするときに戻す。

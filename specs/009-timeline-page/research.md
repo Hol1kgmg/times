@@ -6,6 +6,8 @@
 - **Rationale**: pages どうしは import できない。ログイン画面へ飛ばすと、ログインの入口のパスを隠している意味がなくなる (specs/003)。
 - **Alternatives**: `resolveDigestEditorPage` を `shared` に上げる → 名前と置き場所を変える差分が増え、得るものがない。2 か所目なので、3 か所目が来たら上げる。
 
+> **Superseded** (#220): 記事検索が 3 か所目になり、root の `beforeLoad` と同じ照合を遷移ごとに直列でもう一度していたため、子は root が照合済みの `context.viewer` を `shared/auth` の `requireAdminViewer` で見て `notFound()` を投げる形にした。`resolveTimelinePage` と `resolveDigestEditorPage` は消した。
+
 ## R2. 読み足しのきっかけ
 
 - **Decision**: 投稿の列の上に状態表示の行 (読み込み中 / 失敗 + 再試行 / 空) を置き、その行を `IntersectionObserver` で見張る。effect は「読み込み中でも失敗でも終わりでもない」ときだけ見張りを作り、読み込みが終わるたびに作り直す。作り直した見張りは最初に今の交差を通知するので、中身が画面より短ければそのまま次を読み、画面が埋まるまで続く (FR-008)。

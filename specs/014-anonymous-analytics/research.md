@@ -11,6 +11,8 @@
 ## R2. `page_view` を送るきっかけ
 
 - **Decision**: `__root.tsx` に小さな部品を置き、`useRouterState` で解決済みの最後の match (`routeId` と `pathname`) を読み、`useEffect` で送る。送るのは routeId が公開画面の許可リスト (`/`、`/_shell/timeline`) に入るときだけ。`/digest/$date` は meta refresh でトップへ移るだけで、入れると 1 回の訪問を 2 件に数えるので入れない。直前に送った `pathname` をモジュール変数に持ち、同じなら送らない。
+
+> **Superseded** (#220): `/timeline` はログイン中しか開けない (specs/009) ので許可リストから外した。公開にするときに戻す。
 - **Rationale**:
   - 除外リスト (`/admin` で始まる) だと、ログイン画面 (`$loginPath`) の秘密のパスが GA4 に載ってしまう。新しい画面が増えたときも、許可リストなら黙って送られることがない。
   - 直前の `pathname` を見ることで、React Strict Mode の effect の二重実行、同じ URL への移動、クエリだけの変化を 1 つの仕組みで止められる (spec FR-007)。

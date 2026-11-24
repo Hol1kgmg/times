@@ -92,7 +92,7 @@ frontend/
 │       ├── api/backend.server.ts          # Bearer の転送。401 (unauthorized) を notFound(SESSION_EXPIRED) に写す
 │       └── auth/
 │           ├── config.server.ts           # ADMIN_LOGIN_PATH, GITHUB_CLIENT_ID (+ GITHUB_BASE_URL)
-│           ├── session.server.ts          # Cookie 読み書き、requireAdmin middleware、requireAdminPage (後続のページ用ガード)
+│           ├── session.server.ts          # Cookie 読み書き、requireAdmin middleware、requireAdminPage (後続のページ用ガード。Superseded #220: 消した。ガードは routes/_shell/_admin.tsx)
 │           ├── errors.ts                  # SESSION_EXPIRED
 │           └── index.ts
 ├── e2e/
@@ -107,6 +107,8 @@ docs/tech-stack.md, docs/admin-login.md    # 環境変数の一覧、運用手�
 ```
 
 **Structure Decision**: backend は既存の「handler が sqlc を直接呼ぶ」構成を守り、GitHub 呼び出しとトークン生成だけを `internal/auth` に切り出す (handler テストで差し替えるため)。frontend は FSD の既存配置に従い、認証の基盤 (Cookie・ガード) を `shared/auth/`、秘匿パスのページ固有の処理 (ログイン・ログアウト) を `pages/admin-login/` に置く。管理者専用のページは本機能では作らず、`requireAdminPage` / `requireAdmin` を後続のページ・サーバー関数が呼ぶ。GitHub との通信は frontend から消え、backend だけが行う。
+
+> **Superseded** (#220): `requireAdminPage` は消した。管理者専用ページのガードは research R10 の注記のとおり `requireAdminViewer` (`shared/auth/require-admin-viewer.ts`) で、`/admin/*` は親ルート `_shell/admin.tsx` にまとめる。
 
 ## 設計の要点 (research.md の結論)
 

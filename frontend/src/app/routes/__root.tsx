@@ -31,7 +31,6 @@ const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   "/about",
   "/contact",
   "/privacy",
-  "/_shell/timeline",
 ] satisfies (keyof FileRoutesById)[]);
 
 // Strict Mode の effect の二重実行と同じ URL への移動で数を増やさないため、描画をまたいで持つ

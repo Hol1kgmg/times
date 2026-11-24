@@ -62,12 +62,12 @@ specs/009-timeline-page/
 ```text
 frontend/src/
 ├── app/
-│   ├── routes/_shell/timeline.tsx            # 新規: beforeLoad (notFound) + loader
+│   ├── routes/_shell/timeline.tsx            # 新規: beforeLoad (notFound) + loader (#220 で _shell/_admin/timeline.tsx へ移し beforeLoad は親へ)
 │   └── layout/sidebar.tsx                    # ログイン中だけ #timeline
 ├── pages/
 │   ├── digest-timeline/                      # 新規
 │   │   ├── index.ts
-│   │   ├── api/resolve-timeline-page.ts      # currentAdmin が無ければ notFound
+│   │   ├── api/resolve-timeline-page.ts      # currentAdmin が無ければ notFound (Superseded #220: 消した。ガードは _shell/_admin.tsx)
 │   │   ├── model/timeline.ts (+ .test.ts)    # ページを足す (古い順・続きの有無)
 │   │   └── ui/timeline-page.tsx (+ .module.css)
 │   └── digest-editor/

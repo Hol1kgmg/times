@@ -16,7 +16,7 @@ import { RouterLink } from "#/shared/ui/router-link";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import styles from "./article-search-page.module.css";
 
-const route = getRouteApi("/_shell/admin/articles/search");
+const route = getRouteApi("/_shell/_admin/admin/articles/search");
 
 type Hit = z.infer<typeof articleSearchHit>;
 

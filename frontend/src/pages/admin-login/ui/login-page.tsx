@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useRouteContext } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "react-aria-components";
 import { toast } from "#/shared/ui/toast";
@@ -19,7 +19,7 @@ const messages: Record<LoginError, string> = {
 export const LoginPage = () => {
   const { loginPath } = route.useParams();
   const { error } = route.useSearch();
-  const { user } = route.useRouteContext();
+  const user = useRouteContext({ from: "__root__" }).viewer.admin?.user;
   const start = useServerFn(startGitHubLogin);
   const end = useServerFn(logout);
   const goToGitHub = async () => {

@@ -26,3 +26,4 @@
 
 - [ ] `item-data-model.md` (リポジトリ直下、未追跡) を specs か docs に移すか削除する
 - [ ] 認証・認可 (adr/backend/0003 で未決)。必要になるまで着手しない
+- [ ] `/timeline` を公開 (31 日分) にするとき: ルートを `_shell/_admin/` の外へ出し、`__root.tsx` の `PUBLIC_ROUTES` に戻す。戻さないと page_view が黙って欠ける (#220、specs/014 data-model)
