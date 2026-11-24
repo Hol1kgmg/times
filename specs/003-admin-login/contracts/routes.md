@@ -10,7 +10,7 @@ backend の契約は [openapi.md](./openapi.md)、値の形は [../data-model.md
 | `/auth/github/callback` | `app/routes/auth.github.callback.tsx` | 常に 302 か 404。描画しない | `validateSearch: { code?: string, state?: string, error?: string }`。state 不一致・欠落・設定未完 → 404 |
 | `/`, `/items/$id`, `/client`, `/health` | 既存 | 変更なし | ログイン関連の表示・導線を追加しない (FR-002 / FR-009)。ログイン成功・ログアウト後の遷移先は `/` |
 
-管理者専用のページは本機能では作らない。後続の仕様がページを足すときは `beforeLoad` で `requireAdminViewer(context.viewer)` を呼ぶ (未ログイン・期限切れ・失効 → 404)。
+管理者専用のページは本機能では作らない。後続の仕様がページを足すときは `routes/_shell/_admin/` の下に置く。パスを持たない親ルート `_shell/_admin.tsx` が `beforeLoad` で `requireAdminViewer(context.viewer)` を呼ぶので、子では書かない (未ログイン・期限切れ・失効 → 404、#220)。
 
 404 はすべて `throw notFound()` による Router 既定の表示。SSR ステータスも 404。
 

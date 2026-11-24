@@ -8,9 +8,8 @@ const search = z.object({ error: z.enum(["forbidden", "cancelled", "failed"]).op
 export const Route = createFileRoute("/_shell/$loginPath/auth/login")({
   // 想定外の値は無視する (エラー画面にしない)
   validateSearch: (raw: Record<string, unknown>) => search.safeParse(raw).data ?? {},
-  beforeLoad: async ({ params, context }) => {
+  beforeLoad: async ({ params }) => {
     await resolveLoginPage({ data: { path: params.loginPath } });
-    return { user: context.viewer.admin?.user };
   },
   component: LoginPage,
 });

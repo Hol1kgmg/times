@@ -9,7 +9,7 @@ import { DigestPost } from "#/shared/ui/digest-post";
 import { PAGE_SIZE, prependPage } from "../model/timeline";
 import styles from "./timeline-page.module.css";
 
-const route = getRouteApi("/_shell/timeline");
+const route = getRouteApi("/_shell/_admin/timeline");
 
 // ponytail: 全件を DOM に積む。数百件で重くなったら仮想化する
 export const TimelinePage = () => {

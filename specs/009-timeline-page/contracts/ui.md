@@ -4,7 +4,7 @@
 
 | パス | ファイル | beforeLoad | loader |
 |---|---|---|---|
-| `/timeline` | `app/routes/_shell/timeline.tsx` | `requireAdminViewer(context.viewer)`: root が照合した `viewer.admin` が無ければ `notFound()` (R1) | `listPublishedDigests({ data: { limit: 7 } })` |
+| `/timeline` | `app/routes/_shell/_admin/timeline.tsx` | 親ルート `_shell/_admin.tsx` の `requireAdminViewer(context.viewer)`: root が照合した `viewer.admin` が無ければ `notFound()` (R1、#220) | `listPublishedDigests({ data: { limit: 7 } })` |
 
 - `head`: `<title>` を付ける (R7)
 - 未ログインで直接開く → 見つからない画面 (FR-001)

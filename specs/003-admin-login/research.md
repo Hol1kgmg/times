@@ -71,5 +71,6 @@
 ## R10. 管理者専用ページの扱い (2026-09-26 改訂: 本機能では作らない)
 
 - **Decision**: `/admin` や pathless layout `_admin.tsx` は置かない。ログイン成功後とログアウト後の遷移先は `/` (FR-018 / FR-008)。後続の仕様 (001 など) が管理者専用ページを足すときは、そのルートの `beforeLoad` で `requireAdminPage()` を呼び、サーバー関数に `requireAdmin` を付ける。
+  - **Superseded** (#220): ページごとのガードは付け忘れると誰でも開けるため、パスを持たない `_shell/_admin.tsx` を置き、管理者専用のページはすべてその下 (`_shell/_admin/`) に入れる。ガードはそこの `requireAdminViewer(context.viewer)` だけ。
 > **Superseded** (#220): 管理者専用ページは `/admin/*` に置き、親ルート `app/routes/_shell/admin.tsx` の `beforeLoad` で、root が照合済みの `context.viewer` を `shared/auth` の `requireAdminViewer` に通す (`viewer.admin` が無ければ `notFound()`、あれば `{ admin }` を context に載せる)。`/admin` 以外の管理者専用ページ (`/timeline`) は自分の `beforeLoad` で同じ関数を呼ぶ。`requireAdminPage` と `currentAdmin` は消した。秘匿パスのページのログイン済み判定も `context.viewer` を見る。
 - **Rationale**: 保護対象のページが無い状態で最小ページを作ると、後続の仕様が置き換える前提の捨てコードになる。仕組み (ガード 2 つ) は `shared/auth/` に残し、秘匿パスのページの判定で同じ関数を使うので動作は本機能内で検証できる。

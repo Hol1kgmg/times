@@ -92,7 +92,7 @@ frontend/
 │       ├── api/backend.server.ts          # Bearer の転送。401 (unauthorized) を notFound(SESSION_EXPIRED) に写す
 │       └── auth/
 │           ├── config.server.ts           # ADMIN_LOGIN_PATH, GITHUB_CLIENT_ID (+ GITHUB_BASE_URL)
-│           ├── session.server.ts          # Cookie 読み書き、requireAdmin middleware、requireAdminPage (後続のページ用ガード)
+│           ├── session.server.ts          # Cookie 読み書き、requireAdmin middleware、requireAdminPage (後続のページ用ガード。Superseded #220: 消した。ガードは routes/_shell/_admin.tsx)
 │           ├── errors.ts                  # SESSION_EXPIRED
 │           └── index.ts
 ├── e2e/

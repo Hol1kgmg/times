@@ -441,7 +441,7 @@ const editActions = {
   readonly [SaveAction<DigestStatus>, ...SaveAction<DigestStatus>[]]
 >;
 
-const newRoute = getRouteApi("/_shell/admin/digests/new");
+const newRoute = getRouteApi("/_shell/_admin/admin/digests/new");
 
 export const DigestNewPage = () => {
   const { digests } = newRoute.useLoaderData();
@@ -463,7 +463,7 @@ export const DigestNewPage = () => {
   );
 };
 
-const editRoute = getRouteApi("/_shell/admin/digests/$date/edit");
+const editRoute = getRouteApi("/_shell/_admin/admin/digests/$date/edit");
 
 export const DigestEditPage = () => {
   const { digest, list } = editRoute.useLoaderData();

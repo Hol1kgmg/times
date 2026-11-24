@@ -7,7 +7,7 @@ import type { DigestStatus } from "#/shared/api";
 import type { YearGroup } from "../model/group-by-month";
 import styles from "./digest-list-page.module.css";
 
-const route = getRouteApi("/_shell/admin/digests/");
+const route = getRouteApi("/_shell/_admin/admin/digests/");
 
 // entryDate は UTC の 0 時として読まれるため、UTC で書式化しないと前日になりうる
 const dayFormat = new Intl.DateTimeFormat("ja-JP", {
