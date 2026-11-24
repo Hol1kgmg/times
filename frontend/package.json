@@ -2,6 +2,9 @@
   "name": "times-frontend",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "imports": {
     "#/*": "./src/*"
   },
