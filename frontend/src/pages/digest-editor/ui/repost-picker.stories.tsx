@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn, mocked, screen, userEvent } from "storybook/test";
+import type { repostCandidate } from "#/shared/api";
 import { listRepostCandidates, repostCandidateList } from "#/shared/api";
+import type { z } from "zod";
+import { fixture } from "../../../../.storybook/fixture";
 import { emptyBoard } from "../model/board";
 import type { RepostCandidate } from "../model/board";
 import { RepostAdd } from "./repost-picker";
@@ -13,7 +16,7 @@ const candidate = (
     firstPublishedOn?: string;
     parent?: { url: string; title: string };
   } = {},
-) => ({
+): z.input<typeof repostCandidate> => ({
   id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
   url: `https://example.com/articles/${n}`,
   title: `記事のタイトル ${n}`,
@@ -65,7 +68,7 @@ export const AtLimit: Story = { args: { atLimit: true } };
 export const Found: Story = {
   beforeEach: () => {
     mocked(listRepostCandidates).mockResolvedValue(
-      repostCandidateList.parse({
+      fixture(repostCandidateList, {
         articles: [
           candidate(1),
           candidate(2, {

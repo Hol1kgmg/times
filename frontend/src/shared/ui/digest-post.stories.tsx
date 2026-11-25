@@ -1,8 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 // 公開 API はサーバー関数を読み込み、TanStack Start を外した Storybook では動かない
+import type { childArticle, visibleArticle } from "#/shared/api/schemas";
 import { articleId, digest, digestId } from "#/shared/api/schemas";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { fn } from "storybook/test";
+import type { z } from "zod";
+import { fixture } from "../../../.storybook/fixture";
 import { DigestPost } from "./digest-post";
 
 const loadPreview = fn<(url: string) => Promise<LinkPreview | null>>();
@@ -72,7 +75,16 @@ const id = () => {
 };
 
 // 公開ページの取得は元の掲載が公開済みの記事だけを中身ごと返す
-const shown = ({ children, ...a }: { category: string; children: object[] }) => ({
+type Shown = Omit<
+  z.input<typeof visibleArticle>,
+  "hidden" | "listed" | "originalStatus" | "children"
+> & {
+  children: Omit<
+    z.input<typeof childArticle>,
+    "category" | "repost" | "hidden" | "originalStatus"
+  >[];
+};
+const shown = ({ children, ...a }: Shown): z.input<typeof visibleArticle> => ({
   ...a,
   hidden: false,
   listed: true,
@@ -86,7 +98,7 @@ const shown = ({ children, ...a }: { category: string; children: object[] }) => 
   })),
 });
 
-const repostDigest = digest.parse({
+const repostDigest = fixture(digest, {
   id: digestId.parse("00000000-0000-4000-8000-100000000000"),
   entryDate: "2026-11-17",
   status: "published" as const,
