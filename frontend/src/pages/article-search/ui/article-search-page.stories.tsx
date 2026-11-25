@@ -9,7 +9,7 @@ import { fn } from "storybook/test";
 import type { articleSearchHit } from "#/shared/api";
 import { ARTICLE_SEARCH_LIMIT, articleSearchResult } from "#/shared/api";
 import type { z } from "zod";
-import { fixture } from "../../../../.storybook/fixture";
+import { fixture } from "#storybook/fixture";
 import { ArticleSearchView } from "./article-search-page";
 
 const hit = (

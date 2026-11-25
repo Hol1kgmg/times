@@ -3,7 +3,7 @@ import { fn, mocked, screen, userEvent } from "storybook/test";
 import type { repostCandidate } from "#/shared/api";
 import { listRepostCandidates, repostCandidateList } from "#/shared/api";
 import type { z } from "zod";
-import { fixture } from "../../../../.storybook/fixture";
+import { fixture } from "#storybook/fixture";
 import { emptyBoard } from "../model/board";
 import type { RepostCandidate } from "../model/board";
 import { RepostAdd } from "./repost-picker";

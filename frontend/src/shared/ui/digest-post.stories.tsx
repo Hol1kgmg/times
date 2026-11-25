@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 // 公開 API はサーバー関数を読み込み、TanStack Start を外した Storybook では動かない
 import type { childArticle, visibleArticle } from "#/shared/api/schemas";
-import { articleId, digest, digestId } from "#/shared/api/schemas";
+import { digest } from "#/shared/api/schemas";
 import type { LinkPreview } from "#/shared/lib/parse-link-preview";
 import { fn } from "storybook/test";
 import type { z } from "zod";
-import { fixture } from "../../../.storybook/fixture";
+import { fixture } from "#storybook/fixture";
 import { DigestPost } from "./digest-post";
 
 const loadPreview = fn<(url: string) => Promise<LinkPreview | null>>();
@@ -71,56 +71,44 @@ export const WithAskAi: StoryObj<typeof meta> = {
 let seq = 0;
 const id = () => {
   seq += 1;
-  return articleId.parse(`00000000-0000-4000-8000-${String(seq).padStart(12, "0")}`);
+  return `00000000-0000-4000-8000-${String(seq).padStart(12, "0")}`;
 };
 
 // 公開ページの取得は元の掲載が公開済みの記事だけを中身ごと返す
-type Shown = Omit<
-  z.input<typeof visibleArticle>,
-  "hidden" | "listed" | "originalStatus" | "children"
-> & {
-  children: Omit<
-    z.input<typeof childArticle>,
-    "category" | "repost" | "hidden" | "originalStatus"
-  >[];
+const parentDefaults = { hidden: false, listed: true, originalStatus: "published" } as const;
+const childDefaults = { repost: false, hidden: false, originalStatus: "published" } as const;
+type Shown = Omit<z.input<typeof visibleArticle>, keyof typeof parentDefaults | "children"> & {
+  children: Omit<z.input<typeof childArticle>, keyof typeof childDefaults | "category">[];
 };
 const shown = ({ children, ...a }: Shown): z.input<typeof visibleArticle> => ({
   ...a,
-  hidden: false,
-  listed: true,
-  originalStatus: "published",
-  children: children.map((c) => ({
-    category: a.category,
-    repost: false,
-    hidden: false,
-    originalStatus: "published",
-    ...c,
-  })),
+  ...parentDefaults,
+  children: children.map((c) => ({ category: a.category, ...childDefaults, ...c })),
 });
 
 const repostDigest = fixture(digest, {
-  id: digestId.parse("00000000-0000-4000-8000-100000000000"),
+  id: "00000000-0000-4000-8000-100000000000",
   entryDate: "2026-11-17",
-  status: "published" as const,
+  status: "published",
   articles: [
     // 元の掲載の Digest が公開済みでない親は、中身を隠して子の場所だけ残す
     {
       id: id(),
-      category: "AI系" as const,
+      category: "AI系",
       hot: false,
       repost: true,
       hidden: false,
       listed: false,
-      originalStatus: "private" as const,
-      concealed: true as const,
+      originalStatus: "private",
+      concealed: true,
       children: [
         {
           id: id(),
-          category: "AI系" as const,
+          category: "AI系",
           hot: false,
           repost: false,
           hidden: false,
-          originalStatus: "published" as const,
+          originalStatus: "published",
           title: "非公開にした記事の続報",
           url: "https://example.com/concealed-next",
         },
@@ -207,10 +195,10 @@ export const RepostWithAskAi: StoryObj<typeof meta> = {
 };
 
 // 親が HOT で子が HOT でない形は保存で作らない (specs/018 FR-016)
-const hotPatternsDigest = {
-  id: digestId.parse("00000000-0000-4000-8000-200000000000"),
+const hotPatternsDigest = fixture(digest, {
+  id: "00000000-0000-4000-8000-200000000000",
   entryDate: "2026-11-17",
-  status: "published" as const,
+  status: "published",
   articles: [
     {
       id: id(),
@@ -283,8 +271,8 @@ const hotPatternsDigest = {
         },
       ],
     },
-  ],
-};
+  ].map(shown),
+});
 
 export const HotPatterns: StoryObj<typeof meta> = {
   args: { digest: hotPatternsDigest },
