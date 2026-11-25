@@ -1,4 +1,4 @@
-export { SESSION_EXPIRED } from "./errors";
+export { isSessionExpired, SESSION_EXPIRED } from "./errors";
 export {
   type AdminUser,
   type AdminViewer,

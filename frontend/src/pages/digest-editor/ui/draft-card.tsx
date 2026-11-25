@@ -17,9 +17,12 @@ import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
 import { ModalDialog } from "#/shared/ui/modal";
+import { toast } from "#/shared/ui/toast";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import { canUnlink, isCategory, isGhost, listedHome } from "../model/board";
 import type { BoxId, Draft, Link, LinkEdit, Rejected } from "../model/board";
+import { rethrowSessionExpired } from "../model/rethrow-session-expired";
+import { failureMessage } from "./failure-message";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
 
@@ -123,7 +126,8 @@ const EditDialog = ({
   const translated = async (requested: string) => {
     try {
       return await translate({ data: { title: requested } });
-    } catch {
+    } catch (error) {
+      rethrowSessionExpired(error);
       // 例外も確認を通らなかった結果と同じく失敗の表示にし、押し直してもらう (spec US2)
       return null;
     }
@@ -132,7 +136,14 @@ const EditDialog = ({
   const onTranslate = async () => {
     const requested = title;
     setTranslation("translating");
-    const result = await translated(requested);
+    let result: string | null;
+    try {
+      result = await translated(requested);
+    } catch (error) {
+      setTranslation("failed");
+      toast.error(failureMessage(error, "翻訳"));
+      return;
+    }
     setTranslation(result === null ? "failed" : "idle");
     if (result !== null) {
       // 翻訳を待つ間に手で直したタイトルは上書きしない

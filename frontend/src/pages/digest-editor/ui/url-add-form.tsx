@@ -2,11 +2,15 @@ import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "react-aria-components";
 import { newChildArticle } from "#/shared/api";
+import { isSessionExpired } from "#/shared/auth";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
+import { toast } from "#/shared/ui/toast";
 import { rejectedText, useAddUrl } from "../model/add-url";
+import type { Loaded } from "../model/add-url";
 import { rejectAdd, stripTracking } from "../model/board";
 import type { Board } from "../model/board";
+import { failureMessage } from "./failure-message";
 import styles from "./url-add-form.module.css";
 
 const clearIcon = "M18 6l-12 12M6 6l12 12";
@@ -44,11 +48,28 @@ export const UrlAddForm = ({
     }
     setAddError(undefined);
     setAdding((n) => n + 1);
-    const settled = add(link, await load(link));
+    let loaded: Loaded;
+    try {
+      loaded = await load(link).finally(() => {
+        setAdding((n) => n - 1);
+      });
+    } catch (error) {
+      toast.error(failureMessage(error, "追加"));
+      return;
+    }
+    const settled = add(link, loaded);
     setUrl("");
-    setAdding((n) => n - 1);
     urlInput.current?.focus();
-    await settled;
+    try {
+      await settled;
+    } catch (error) {
+      if (!isSessionExpired(error)) {
+        throw error;
+      }
+      toast.error(
+        "ログインが切れたので未分類に入れました。別のタブでログインし直してから振り分けてください",
+      );
+    }
   };
 
   const onPaste = async () => {

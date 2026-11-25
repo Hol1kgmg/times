@@ -4,6 +4,7 @@ import { FocusScope, useHover } from "react-aria";
 import { Button, Dialog, DialogTrigger, Link, Popover, Toolbar } from "react-aria-components";
 import { aiChatUrl, aiPrompt } from "#/shared/lib/ai-chat";
 import type { AiService } from "#/shared/lib/ai-chat";
+import { copyText } from "#/shared/lib/copy-text";
 import { reducedMotion } from "#/shared/lib/reduced-motion";
 import { safeTriangle } from "#/shared/lib/safe-triangle";
 import { CopyToast, useCopyToast } from "./copy-toast";
@@ -144,15 +145,8 @@ export const AskAi = ({
     }
   };
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt);
+    if (await copyText(prompt)) {
       toast.show();
-    } catch (error) {
-      // 権限で断られたときは、コピーできたと示さなければ仕様を満たす
-      if (error instanceof DOMException && error.name === "NotAllowedError") {
-        return;
-      }
-      throw error;
     }
   };
   const choices = (
