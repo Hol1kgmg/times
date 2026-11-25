@@ -1,3 +1,4 @@
+import { isNotFound } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { z } from "zod";
@@ -89,24 +90,33 @@ export const useArticleTools = ({ board, setBoard, setSuggesting, setAdding }: P
           const { accepted, rejected } = addUntitled(latest.current.board, entries);
           setBoard((b) => addUntitled(b, accepted).board);
           setAdding((n) => n + 1);
-          const loaded = await Promise.all(
-            accepted.map(async ({ id, url }) => {
-              const { title, translation } = await latest.current.load(url);
-              setBoard((b) => fillTitle(b, id, title, translation));
-              const shown = translation ?? title;
-              return {
-                line: `- ${id}: ${url} / ${shown === "" ? "タイトルを取れませんでした" : shown}`,
-                suggested: latest.current.settle(id, url, title),
-              };
-            }),
-          );
-          // 推定を待つ間も人は URL を足せる
-          setAdding((n) => n - 1);
-          const lines = await Promise.all(
-            loaded.map(
-              async ({ line, suggested }) => `${line} → ${suggestedText(await suggested)}`,
-            ),
-          );
+          let lines: string[];
+          try {
+            const loaded = await Promise.all(
+              accepted.map(async ({ id, url }) => {
+                const { title, translation } = await latest.current.load(url);
+                setBoard((b) => fillTitle(b, id, title, translation));
+                const shown = translation ?? title;
+                return {
+                  line: `- ${id}: ${url} / ${shown === "" ? "タイトルを取れませんでした" : shown}`,
+                  suggested: latest.current.settle(id, url, title),
+                };
+              }),
+            ).finally(() => {
+              // 推定を待つ間も人は URL を足せる
+              setAdding((n) => n - 1);
+            });
+            lines = await Promise.all(
+              loaded.map(
+                async ({ line, suggested }) => `${line} → ${suggestedText(await suggested)}`,
+              ),
+            );
+          } catch (error) {
+            if (!isNotFound(error)) {
+              throw error;
+            }
+            return "ログインが切れました。人にログインし直してもらってから、もう一度追加してください";
+          }
           return [
             `${accepted.length} 件を未分類に入れました`,
             ...lines,

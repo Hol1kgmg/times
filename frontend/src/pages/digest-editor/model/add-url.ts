@@ -4,6 +4,7 @@ import { autoTranslateTitle, fetchAnyLinkPreview, suggestCategory } from "#/shar
 import type { Category } from "#/shared/api";
 import { addDraft, draftTitle, MAX_DRAFTS, settleCategory } from "./board";
 import type { Board, Rejected } from "./board";
+import { rethrowSessionExpired } from "./rethrow-session-expired";
 
 export const rejectedText: Record<Rejected, string> = {
   duplicate: "その URL はもう入ってます",
@@ -29,14 +30,16 @@ export const useAddUrl = (
     let title = "";
     try {
       title = draftTitle(link, await getPreview({ data: link })) ?? "";
-    } catch {
+    } catch (error) {
+      rethrowSessionExpired(error);
       // 取れなかったときはタイトル空の候補として出し、手で入れてもらう
     }
     let translation: string | null = null;
     if (title.trim() !== "") {
       try {
         translation = await autoTranslate({ data: { title } });
-      } catch {
+      } catch (error) {
+        rethrowSessionExpired(error);
         // 未翻訳のまま出し、編集画面の翻訳ボタンで訳してもらう (#105)
       }
     }
@@ -44,17 +47,21 @@ export const useAddUrl = (
   };
 
   const settle = async (id: string, link: string, title: string): Promise<Suggested> => {
+    const settled = (suggested: Suggested) => {
+      setSuggesting((n) => n - 1);
+      setBoard((b) => settleCategory(b, id, suggested === "failed" ? null : suggested));
+      return suggested;
+    };
     setSuggesting((n) => n + 1);
-    let suggested: Suggested = "failed";
     try {
       // 訳したタイトルで分類したほうが当たるかは確かめていないので、原文で推定する (#110)
-      suggested = await suggest({ data: { url: link, title } });
-    } catch {
+      return settled(await suggest({ data: { url: link, title } }));
+    } catch (error) {
+      settled("failed");
+      rethrowSessionExpired(error);
       // 推定は補助で、失敗しても未分類から手で振り分けられる (FR-007)
+      return "failed";
     }
-    setSuggesting((n) => n - 1);
-    setBoard((b) => settleCategory(b, id, suggested === "failed" ? null : suggested));
-    return suggested;
   };
 
   const add = async (link: string, { title, translation }: Loaded) => {

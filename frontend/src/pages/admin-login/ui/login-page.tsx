@@ -23,8 +23,12 @@ export const LoginPage = () => {
   const start = useServerFn(startGitHubLogin);
   const end = useServerFn(logout);
   const goToGitHub = async () => {
-    const { url } = await start({ data: { path: loginPath } });
-    window.location.assign(url);
+    try {
+      const { url } = await start({ data: { path: loginPath } });
+      window.location.assign(url);
+    } catch {
+      toast.error("ログインを始められませんでした。時間をおいてもう一度試してください");
+    }
   };
   const signOut = async () => {
     try {

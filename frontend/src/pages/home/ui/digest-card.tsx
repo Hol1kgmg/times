@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "react-aria-components";
 import { reportArticleOpen } from "#/shared/api";
 import type { Digest } from "#/shared/api";
+import { copyText } from "#/shared/lib/copy-text";
 import { AiToggle } from "#/shared/ui/ai-toggle";
 import { CopyToast, useCopyToast } from "#/shared/ui/copy-toast";
 import { DigestPost } from "#/shared/ui/digest-post";
@@ -17,8 +18,9 @@ const checkIcon = "M5 12l5 5l10 -10";
 const CopyButton = ({ digest }: { digest: Digest }) => {
   const { shown, show } = useCopyToast();
   const copy = async () => {
-    await navigator.clipboard.writeText(digestMarkdown(digest));
-    show();
+    if (await copyText(digestMarkdown(digest))) {
+      show();
+    }
   };
   return (
     <CopyToast className={styles.copyWrap} shown={shown}>
