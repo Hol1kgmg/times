@@ -15,9 +15,9 @@ describe(rethrowSessionExpired, () => {
     expect(thrown).toBe(expired);
   });
 
-  it("lets other failures be ignored", () => {
+  it("lets a not-found that is not an expired session be ignored", () => {
     expect(() => {
-      rethrowSessionExpired(new Error("boom"));
+      rethrowSessionExpired(notFound());
     }).not.toThrow();
   });
 });

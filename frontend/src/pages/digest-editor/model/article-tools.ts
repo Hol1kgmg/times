@@ -1,8 +1,8 @@
-import { isNotFound } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { z } from "zod";
 import { category, newChildArticle } from "#/shared/api";
+import { isSessionExpired } from "#/shared/auth";
 import { defineTool, registerTool } from "#/shared/lib/webmcp";
 import { rejectedText, useAddUrl } from "./add-url";
 import type { Suggested } from "./add-url";
@@ -90,39 +90,52 @@ export const useArticleTools = ({ board, setBoard, setSuggesting, setAdding }: P
           const { accepted, rejected } = addUntitled(latest.current.board, entries);
           setBoard((b) => addUntitled(b, accepted).board);
           setAdding((n) => n + 1);
-          let lines: string[];
-          try {
-            const loaded = await Promise.all(
-              accepted.map(async ({ id, url }) => {
-                const { title, translation } = await latest.current.load(url);
-                setBoard((b) => fillTitle(b, id, title, translation));
-                const shown = translation ?? title;
-                return {
-                  line: `- ${id}: ${url} / ${shown === "" ? "タイトルを取れませんでした" : shown}`,
-                  suggested: latest.current.settle(id, url, title),
-                };
-              }),
-            ).finally(() => {
-              // 推定を待つ間も人は URL を足せる
-              setAdding((n) => n - 1);
-            });
-            lines = await Promise.all(
-              loaded.map(
-                async ({ line, suggested }) => `${line} → ${suggestedText(await suggested)}`,
-              ),
-            );
-          } catch (error) {
-            if (!isNotFound(error)) {
-              throw error;
+          // 下書きはもう画面にあるので、切れても途中で投げずに残りを待ち、入った記事を返す
+          let expired = false;
+          const orExpired = async <T>(p: Promise<T>, fallback: T): Promise<T> => {
+            try {
+              return await p;
+            } catch (error) {
+              if (!isSessionExpired(error)) {
+                throw error;
+              }
+              expired = true;
+              return fallback;
             }
-            return "ログインが切れました。人にログインし直してもらってから、もう一度追加してください";
-          }
+          };
+          const loaded = await Promise.all(
+            accepted.map(async ({ id, url }) => {
+              const { title, translation } = await orExpired(latest.current.load(url), {
+                title: "",
+                translation: null,
+              });
+              setBoard((b) => fillTitle(b, id, title, translation));
+              const shown = translation ?? title;
+              return {
+                line: `- ${id}: ${url} / ${shown === "" ? "タイトルを取れませんでした" : shown}`,
+                suggested: orExpired<Suggested>(latest.current.settle(id, url, title), "failed"),
+              };
+            }),
+          ).finally(() => {
+            // 推定を待つ間も人は URL を足せる
+            setAdding((n) => n - 1);
+          });
+          const lines = await Promise.all(
+            loaded.map(
+              async ({ line, suggested }) => `${line} → ${suggestedText(await suggested)}`,
+            ),
+          );
           return [
             `${accepted.length} 件を未分類に入れました`,
             ...lines,
             ...rejected.map(
               ({ url, reason }) => `- ${url}: 入れませんでした (${rejectedText[reason]})`,
             ),
+            ...(expired
+              ? [
+                  "途中でログインが切れました。人にログインし直してもらってから、取れなかったタイトルとカテゴリを update_articles で直してください",
+                ]
+              : []),
           ].join("\n");
         },
       }),

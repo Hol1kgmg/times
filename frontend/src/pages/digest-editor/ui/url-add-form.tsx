@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "react-aria-components";
 import { newChildArticle } from "#/shared/api";
+import { isSessionExpired } from "#/shared/auth";
 import { clipboardIcon } from "#/shared/ui/icons/clipboard";
 import { LineIcon } from "#/shared/ui/icons/line-icon";
 import { toast } from "#/shared/ui/toast";
@@ -62,7 +63,12 @@ export const UrlAddForm = ({
     try {
       await settled;
     } catch (error) {
-      toast.error(failureMessage(error, "振り分け"));
+      if (!isSessionExpired(error)) {
+        throw error;
+      }
+      toast.error(
+        "ログインが切れたので未分類に入れました。別のタブでログインし直してから振り分けてください",
+      );
     }
   };
 
