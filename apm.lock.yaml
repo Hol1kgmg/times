@@ -1,5 +1,5 @@
 lockfile_version: '1'
-apm_version: 0.35.0
+apm_version: 0.34.0
 dependencies:
 - repo_url: _local/project
   name: project-local
@@ -45,7 +45,6 @@ dependencies:
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:f52e61951b9353bd24f0cfe5acb65c1bb512beab5ed8be8b641d01d37b115e58
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -63,7 +62,6 @@ dependencies:
     .agents/skills/template-sync-review/SKILL.md: sha256:deda8f9dfa60bd112fd51e50192cf049ab10f95bd0871adcd3bf2681a747c47a
   source: local
   local_path: ./packages/template
-  content_hash: sha256:20bb8c95e9bc282a0def2bc61dfed53870a416f48de995938f2d3f8562e2f403
 - repo_url: addyosmani/web-quality-skills
   name: accessibility
   host: github.com
@@ -638,7 +636,7 @@ dependencies:
 - repo_url: nanaism/yomiyasu
   name: yomiyasu
   host: github.com
-  resolved_commit: c49d5f1bee91258e33e1febc3569c6c87be7669e
+  resolved_commit: 3979c750b5e1fe9892bd47bb354f0fb51d534ff2
   resolved_ref: main
   version: unknown
   virtual_path: skills/yomiyasu
@@ -731,7 +729,7 @@ dependencies:
     .agents/skills/yomiyasu/scripts/yomiyasu_diff.py: sha256:f1706460127cf7d8ded4dd5aad039e7a3a1808f0799e31fcacdb467878fdc564
     .agents/skills/yomiyasu/scripts/yomiyasu_hook.py: sha256:53e0a9081f48e30d5cb5665e2faf3dab30532978eac5fb5157f85233cc54373c
     .agents/skills/yomiyasu/scripts/yomiyasu_lint.py: sha256:8f9cac3d7a5d730213e60907742adc2afe01499f7f0aa81192b2de0f0cc9bf5e
-  content_hash: sha256:d59dfa888dd6d6400768c13b4cff0372365ce0b4ea799a79f7bfffa1387a9097
+  content_hash: sha256:8d0b11a0960f8eddc0255f2e99dbeeab2548810344e0f97d6ef2a8530b798c49
 - repo_url: vercel/ai
   name: adr-skill
   host: github.com
