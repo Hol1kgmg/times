@@ -19,7 +19,6 @@ import {
   listedHome,
   makeChild,
   moveToBoxEnd,
-  neighborOf,
   pinReposts,
   rejectUpdate,
   remove,
@@ -30,6 +29,7 @@ import {
   setListed,
   settleCategory,
   stripTracking,
+  successorOf,
   toggleHot,
   toIds,
   toNewDigest,
@@ -217,16 +217,22 @@ describe("関連記事", () => {
   });
 });
 
-describe("削除した後に操作を続ける先", () => {
-  it("moves to the next row, the previous one at the end, and the parent after its last child", () => {
-    const b = board({ その他: [draft("a"), draft("b", { children: [link("c")] })] });
-    expect(neighborOf(b, "a")).toStrictEqual({ draft: "b" });
-    expect(neighborOf(b, "b")).toStrictEqual({ draft: "a" });
-    expect(neighborOf(b, "c")).toStrictEqual({ draft: "b" });
+describe("消した行の代わりに操作を続ける先", () => {
+  it("moves to the row that takes the removed place, the previous one at the end, and the parent after its last child", () => {
+    const b = board({
+      その他: [draft("a"), draft("b", { children: [link("c1"), link("c2"), link("c3")] })],
+    });
+    expect(successorOf(b, remove(b, "a"), "a")).toStrictEqual({ draft: "b" });
+    expect(successorOf(b, remove(b, "b"), "b")).toStrictEqual({ draft: "a" });
+    expect(successorOf(b, remove(b, "c2"), "c2")).toStrictEqual({ draft: "c3" });
+    expect(successorOf(b, remove(b, "c3"), "c3")).toStrictEqual({ draft: "c2" });
+    const only = board({ その他: [draft("p", { children: [link("c")] })] });
+    expect(successorOf(only, remove(only, "c"), "c")).toStrictEqual({ draft: "p" });
   });
 
   it("moves to the box heading when its only article is removed", () => {
-    expect(neighborOf(board({ その他: [draft("a")] }), "a")).toStrictEqual({ box: "その他" });
+    const b = board({ その他: [draft("a")] });
+    expect(successorOf(b, remove(b, "a"), "a")).toStrictEqual({ box: "その他" });
   });
 });
 

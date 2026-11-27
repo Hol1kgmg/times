@@ -14,7 +14,7 @@ import {
   blockers,
   canLink,
   canMakeChild,
-  cardOf,
+  boxOf,
   convertToReposts,
   draftCount,
   editLink,
@@ -26,12 +26,12 @@ import {
   makeChild,
   MAX_DRAFTS,
   moveChild,
-  neighborOf,
   pinReposts,
   remove,
   restoreHidden,
   revert,
   setListed,
+  successorOf,
   toggleHot,
   toNewDigest,
   toPreview,
@@ -204,10 +204,11 @@ const DigestForm = <S extends DigestStatus>({
     disabled: !dirty,
   });
 
-  // 枠を移ったら、見える位置まで送る
   const follow = (next: Board, id: string) => {
-    focusOn({ draft: id }, cardOf(next, id)?.box !== cardOf(board, id)?.box);
+    focusOn({ draft: id }, boxOf(next, id) !== boxOf(board, id));
   };
+  // 選んだ後もピッカーはフェードアウトの間開いていて、閉じきる前に移しても中へ引き戻される
+  const afterPick = useRef<() => void>(undefined);
 
   const apply = (next: Board | Rejected): Rejected | null => {
     if (typeof next === "string") {
@@ -233,8 +234,9 @@ const DigestForm = <S extends DigestStatus>({
       const message = `関連記事 ${childCount} 件も消えます。削除しますか？`;
       // oxlint-disable-next-line eslint/no-alert -- 上の useBlocker と同じ理由
       if (childCount === 0 || window.confirm(message)) {
-        setBoard(remove(board, id));
-        focusOn(neighborOf(board, id));
+        const next = remove(board, id);
+        setBoard(next);
+        focusOn(successorOf(board, next, id));
       }
     },
     canMakeChild: (id) => canMakeChild(board, id),
@@ -256,10 +258,10 @@ const DigestForm = <S extends DigestStatus>({
     canLink: (id) => entryDate !== "" && canLink(board, id),
     startLink: setLinking,
     unlink: (id) => {
-      const at = cardOf(board, id);
-      const first = at === null ? undefined : board[at.box].find((d) => d.id === id)?.children[0];
-      if (apply(unlinkParent(board, id)) === null) {
-        focusOn(first === undefined ? neighborOf(board, id) : { draft: first.id });
+      const next = unlinkParent(board, id);
+      if (typeof next !== "string") {
+        setBoard(next);
+        focusOn(successorOf(board, next, id));
       }
     },
     setListed: (id, listed) => {
@@ -385,13 +387,18 @@ const DigestForm = <S extends DigestStatus>({
           heading="掲載済みの記事に紐付ける"
           onClose={() => {
             setLinking(undefined);
+            afterPick.current?.();
+            afterPick.current = undefined;
           }}
           onPick={(c) => {
             const parentId = crypto.randomUUID();
             const link = (b: Board) => linkToParent(b, linking, c, parentId);
             // 開いている間にエージェントが変えたボードを、開いたときのボードで上書きしない
             setBoard(link);
-            follow(pinReposts(link(board)), linking);
+            const next = pinReposts(link(board));
+            afterPick.current = () => {
+              follow(next, linking);
+            };
           }}
         />
       )}

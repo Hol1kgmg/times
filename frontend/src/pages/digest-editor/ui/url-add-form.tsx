@@ -56,8 +56,12 @@ export const UrlAddForm = ({
         flushSync(() => {
           setAdding((n) => n - 1);
         });
-        // 待つ間にほかの欄やカードへ移っていたら奪わない
-        if (document.activeElement === document.body) {
+        // 待つ間にほかの欄やカードへ移っていたら奪わない。disabled にした要素がフォーカスを持ったままのブラウザもある
+        const at = document.activeElement;
+        if (
+          at === document.body ||
+          (at !== null && urlInput.current?.form?.contains(at) === true)
+        ) {
           urlInput.current?.focus();
         }
       });

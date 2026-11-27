@@ -244,6 +244,14 @@ test("公開した記事を別の日に新しい記事の親として紐付け�
   await picker.getByRole("button", { name: "検索" }).click();
   await picker.getByRole("option", { name: parent }).click();
   await expect(picker).toBeHidden();
+  // 紐付けで子の行に作り直されても、ピッカーを閉じた後にその行のメニューへフォーカスが移ること
+  await expect(
+    page
+      .getByRole("listitem")
+      .filter({ hasText: child })
+      .last()
+      .getByRole("button", { name: "メニュー" }),
+  ).toBeFocused();
   await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
   await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
   await publish.click();

@@ -480,35 +480,29 @@ export const moveChild = (board: Board, parentId: string, childId: string, step:
     return { ...d, children };
   });
 
-// 枠を移ったかを見て、移した先のカードにフォーカスするために、子の id からも親のカードを引く
-// 消す行の代わりに操作を続ける先。下、上、子なら親の順に選び、どれもなければ箱の見出しにする
-export const neighborOf = (board: Board, id: string): { draft: string } | { box: BoxId } | null => {
+export const successorOf = (
+  before: Board,
+  after: Board,
+  id: string,
+): { draft: string } | { box: BoxId } | null => {
   for (const box of boxIds) {
-    const items = board[box];
-    const index = items.findIndex((d) => d.id === id);
+    const index = before[box].findIndex((d) => d.id === id);
     if (index !== -1) {
-      const next = items[index + 1] ?? items[index - 1];
+      const next = after[box][index] ?? after[box][index - 1];
       return next === undefined ? { box } : { draft: next.id };
     }
-    for (const d of items) {
-      const i = d.children.findIndex((c) => c.id === id);
-      if (i !== -1) {
-        return { draft: (d.children[i + 1] ?? d.children[i - 1] ?? d).id };
-      }
+    const parent = before[box].find((d) => d.children.some((c) => c.id === id));
+    if (parent !== undefined) {
+      const i = parent.children.findIndex((c) => c.id === id);
+      const siblings = after[box].find((d) => d.id === parent.id)?.children ?? [];
+      return { draft: (siblings[i] ?? siblings[i - 1] ?? parent).id };
     }
   }
   return null;
 };
 
-export const cardOf = (board: Board, id: string) => {
-  for (const box of boxIds) {
-    const card = board[box].find((d) => d.id === id || d.children.some((c) => c.id === id));
-    if (card !== undefined) {
-      return { box, id: card.id };
-    }
-  }
-  return null;
-};
+export const boxOf = (board: Board, id: string): BoxId | undefined =>
+  boxIds.find((box) => board[box].some((d) => d.id === id || d.children.some((c) => c.id === id)));
 
 export const isBoxId = (id: unknown): id is BoxId => boxIds.some((b) => b === id);
 export const isCategory = (box: BoxId): box is Category => box !== UNSORTED;
