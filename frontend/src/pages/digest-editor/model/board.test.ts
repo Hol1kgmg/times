@@ -19,6 +19,7 @@ import {
   listedHome,
   makeChild,
   moveToBoxEnd,
+  neighborOf,
   pinReposts,
   rejectUpdate,
   remove,
@@ -213,6 +214,19 @@ describe("関連記事", () => {
       ["b", true],
       ["z", false],
     ]);
+  });
+});
+
+describe("削除した後に操作を続ける先", () => {
+  it("moves to the next row, the previous one at the end, and the parent after its last child", () => {
+    const b = board({ その他: [draft("a"), draft("b", { children: [link("c")] })] });
+    expect(neighborOf(b, "a")).toStrictEqual({ draft: "b" });
+    expect(neighborOf(b, "b")).toStrictEqual({ draft: "a" });
+    expect(neighborOf(b, "c")).toStrictEqual({ draft: "b" });
+  });
+
+  it("moves to the box heading when its only article is removed", () => {
+    expect(neighborOf(board({ その他: [draft("a")] }), "a")).toStrictEqual({ box: "その他" });
   });
 });
 

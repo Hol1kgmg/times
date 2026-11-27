@@ -26,6 +26,7 @@ import {
   makeChild,
   MAX_DRAFTS,
   moveChild,
+  neighborOf,
   pinReposts,
   remove,
   restoreHidden,
@@ -64,15 +65,23 @@ const noop = () => {
 };
 const subscribeNever = () => noop;
 
-// 移った先が画面の外の枠だと、カードが消えたように見える
-const focusCard = (id: string) => {
+// メニューを開いたボタンが組み替えで消えると、RAC の Menu はフォーカスを戻す先がなく body に落ちる
+const focusOn = (to: { draft: string } | { box: BoxId } | null, scroll = false) => {
   // メニューが閉じてフォーカスを戻し終えてから移す
   requestAnimationFrame(() => {
-    const menu = document.querySelector<HTMLElement>(
-      `[data-draft-id="${CSS.escape(id)}"] > div [data-card-menu]`,
-    );
-    menu?.focus();
-    menu?.scrollIntoView({ block: "center" });
+    const el =
+      to === null
+        ? null
+        : document.querySelector<HTMLElement>(
+            "draft" in to
+              ? `[data-draft-id="${CSS.escape(to.draft)}"] > div [data-card-menu]`
+              : `[data-box="${CSS.escape(to.box)}"] button`,
+          );
+    el?.focus();
+    // 移った先が画面の外の枠だと、カードが消えたように見える
+    if (scroll) {
+      el?.scrollIntoView({ block: "center" });
+    }
   });
 };
 
@@ -195,11 +204,9 @@ const DigestForm = <S extends DigestStatus>({
     disabled: !dirty,
   });
 
+  // 枠を移ったら、見える位置まで送る
   const follow = (next: Board, id: string) => {
-    const to = cardOf(next, id);
-    if (to !== null && cardOf(board, id)?.box !== to.box) {
-      focusCard(to.id);
-    }
+    focusOn({ draft: id }, cardOf(next, id)?.box !== cardOf(board, id)?.box);
   };
 
   const apply = (next: Board | Rejected): Rejected | null => {
@@ -227,14 +234,18 @@ const DigestForm = <S extends DigestStatus>({
       // oxlint-disable-next-line eslint/no-alert -- 上の useBlocker と同じ理由
       if (childCount === 0 || window.confirm(message)) {
         setBoard(remove(board, id));
+        focusOn(neighborOf(board, id));
       }
     },
     canMakeChild: (id) => canMakeChild(board, id),
     makeChild: (id) => {
       setBoard(makeChild(board, id));
+      focusOn({ draft: id });
     },
     unmakeChild: (parentId, childId) => {
-      apply(unmakeChild(board, parentId, childId));
+      if (apply(unmakeChild(board, parentId, childId)) === null) {
+        focusOn({ draft: childId });
+      }
     },
     moveChild: (parentId, childId, step) => {
       setBoard(moveChild(board, parentId, childId, step));
@@ -245,7 +256,11 @@ const DigestForm = <S extends DigestStatus>({
     canLink: (id) => entryDate !== "" && canLink(board, id),
     startLink: setLinking,
     unlink: (id) => {
-      apply(unlinkParent(board, id));
+      const at = cardOf(board, id);
+      const first = at === null ? undefined : board[at.box].find((d) => d.id === id)?.children[0];
+      if (apply(unlinkParent(board, id)) === null) {
+        focusOn(first === undefined ? neighborOf(board, id) : { draft: first.id });
+      }
     },
     setListed: (id, listed) => {
       const next = pinReposts(setListed(board, id, listed));

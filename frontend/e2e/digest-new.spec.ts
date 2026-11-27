@@ -53,6 +53,14 @@ test("トップを開くと閲覧の記録が送られ、URL を貼って集め�
   await expect(unsorted.getByText("ここにドラッグ")).toBeVisible();
 
   await menuOf(related, "上の記事の関連記事にする");
+  // メニューを開いたボタンが組み替えで消えても、子になった行のメニューにフォーカスが移ること
+  await expect(
+    page
+      .getByRole("listitem")
+      .filter({ hasText: related })
+      .last()
+      .getByRole("button", { name: "メニュー" }),
+  ).toBeFocused();
   await menuOf(other, "ホットにする");
   await expect(page.getByRole("button", { name: "下書きで登録" })).toBeEnabled();
 

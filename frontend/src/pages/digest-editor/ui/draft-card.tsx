@@ -575,7 +575,7 @@ export const DraftCard = ({
       {draft.children.length > 0 && (
         <ul className={styles.children}>
           {draft.children.map((child, i) => (
-            <li key={child.id}>
+            <li key={child.id} data-draft-id={child.id}>
               <LinkRow
                 hidden={child.hidden === true}
                 hot={!draft.hot && child.hot}

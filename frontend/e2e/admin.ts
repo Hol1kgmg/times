@@ -70,6 +70,8 @@ export const boardOf = (page: Page) => {
     await urlInput.press("Enter");
     const card = unsorted.getByRole("listitem").last();
     await expect(card.getByText("タイトルを入れてください")).toBeVisible();
+    // 取得中に disabled になった欄へフォーカスが戻り、続けて貼れること
+    await expect(urlInput).toBeFocused();
     await card.getByRole("button", { name: "メニュー" }).click();
     await page.getByRole("menuitem", { name: "編集" }).click();
     // 閉じたダイアログはフェードアウトの間 DOM に残るので、開いているものに絞って閉じきるまで待つ

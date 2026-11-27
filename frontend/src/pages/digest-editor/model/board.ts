@@ -481,6 +481,25 @@ export const moveChild = (board: Board, parentId: string, childId: string, step:
   });
 
 // 枠を移ったかを見て、移した先のカードにフォーカスするために、子の id からも親のカードを引く
+// 消す行の代わりに操作を続ける先。下、上、子なら親の順に選び、どれもなければ箱の見出しにする
+export const neighborOf = (board: Board, id: string): { draft: string } | { box: BoxId } | null => {
+  for (const box of boxIds) {
+    const items = board[box];
+    const index = items.findIndex((d) => d.id === id);
+    if (index !== -1) {
+      const next = items[index + 1] ?? items[index - 1];
+      return next === undefined ? { box } : { draft: next.id };
+    }
+    for (const d of items) {
+      const i = d.children.findIndex((c) => c.id === id);
+      if (i !== -1) {
+        return { draft: (d.children[i + 1] ?? d.children[i - 1] ?? d).id };
+      }
+    }
+  }
+  return null;
+};
+
 export const cardOf = (board: Board, id: string) => {
   for (const box of boxIds) {
     const card = board[box].find((d) => d.id === id || d.children.some((c) => c.id === id));

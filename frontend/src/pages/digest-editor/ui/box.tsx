@@ -15,7 +15,7 @@ export const Box = ({ id, count, children }: { id: BoxId; count: number; childre
       data-drop-target={isDropTarget ? "" : undefined}
       defaultExpanded
     >
-      <h2 className={styles.heading}>
+      <h2 className={styles.heading} data-box={id}>
         <Button className={styles.toggle} slot="trigger">
           <span className={styles.name}>{id}</span>
           <span className={styles.count}>{count} 件</span>

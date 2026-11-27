@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "react-aria-components";
 import { newChildArticle } from "#/shared/api";
@@ -51,7 +52,14 @@ export const UrlAddForm = ({
     let loaded: Loaded;
     try {
       loaded = await load(link).finally(() => {
-        setAdding((n) => n - 1);
+        // 取得中は欄もボタンも disabled でフォーカスが body に落ちるので、disabled を外し終えてから戻す
+        flushSync(() => {
+          setAdding((n) => n - 1);
+        });
+        // 待つ間にほかの欄やカードへ移っていたら奪わない
+        if (document.activeElement === document.body) {
+          urlInput.current?.focus();
+        }
       });
     } catch (error) {
       toast.error(failureMessage(error, "追加"));
@@ -59,7 +67,6 @@ export const UrlAddForm = ({
     }
     const settled = add(link, loaded);
     setUrl("");
-    urlInput.current?.focus();
     try {
       await settled;
     } catch (error) {
