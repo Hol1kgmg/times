@@ -6,7 +6,8 @@
     "**/*.css"
   ],
   "imports": {
-    "#/*": "./src/*"
+    "#/*": "./src/*",
+    "#storybook/*": "./.storybook/*"
   },
   "scripts": {
     "dev": "vite dev --port 3000",

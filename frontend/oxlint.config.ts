@@ -47,6 +47,11 @@ export default defineConfig({
   },
   overrides: [
     {
+      files: ["src/**/*.stories.tsx"],
+      jsPlugins: ["./.storybook/lint-plugin.js"],
+      rules: { "storybook-local/no-parse-literal": "error" },
+    },
+    {
       // Playwright のテスト。vitest プリセットの *.spec.ts マッチから外す。
       // override 内で plugins を宣言しないと vitest/* の rules 指定が無視される
       files: ["e2e/**/*.ts"],

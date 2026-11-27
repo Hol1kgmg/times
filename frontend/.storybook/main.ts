@@ -28,6 +28,7 @@ const config: StorybookConfig = {
       alias: [
         { find: /^@tanstack\/react-start$/u, replacement: mock("react-start.ts") },
         { find: /^#\/shared\/api$/u, replacement: mock("shared-api.ts") },
+        { find: /^#\/shared\/auth$/u, replacement: mock("shared-auth.ts") },
       ],
     },
   }),
