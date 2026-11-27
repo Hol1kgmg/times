@@ -1,5 +1,5 @@
 lockfile_version: '1'
-apm_version: 0.35.0
+apm_version: 0.34.0
 dependencies:
 - repo_url: _local/project
   name: project-local
@@ -45,7 +45,6 @@ dependencies:
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:f52e61951b9353bd24f0cfe5acb65c1bb512beab5ed8be8b641d01d37b115e58
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -63,7 +62,6 @@ dependencies:
     .agents/skills/template-sync-review/SKILL.md: sha256:deda8f9dfa60bd112fd51e50192cf049ab10f95bd0871adcd3bf2681a747c47a
   source: local
   local_path: ./packages/template
-  content_hash: sha256:20bb8c95e9bc282a0def2bc61dfed53870a416f48de995938f2d3f8562e2f403
 - repo_url: addyosmani/web-quality-skills
   name: accessibility
   host: github.com
@@ -735,7 +733,7 @@ dependencies:
 - repo_url: vercel/ai
   name: adr-skill
   host: github.com
-  resolved_commit: d55f3cfc456d1b7bc7db3a4b70fbf602ddc8647d
+  resolved_commit: 55d9909f1c40590f79f8773ec2dd1c2120433c84
   resolved_ref: main
   version: unknown
   virtual_path: skills/adr-skill
