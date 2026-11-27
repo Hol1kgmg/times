@@ -1,15 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  createMemoryHistory,
-  createRootRoute,
-  createRouter,
-  RouterProvider,
-} from "@tanstack/react-router";
 import { fn } from "storybook/test";
 import type { articleSearchHit } from "#/shared/api";
 import { ARTICLE_SEARCH_LIMIT, articleSearchResult } from "#/shared/api";
 import type { z } from "zod";
 import { fixture } from "#storybook/fixture";
+import { withRouter } from "#storybook/with-router";
 import { ArticleSearchView } from "./article-search-page";
 
 const hit = (
@@ -34,17 +29,7 @@ const hit = (
 const meta = {
   component: ArticleSearchView,
   args: { q: "記事", result: undefined, onSearch: fn().mockResolvedValue(undefined) },
-  // モーダルの編集へのリンクは RouterLink なので、行き先を持たない Router だけ載せる
-  decorators: [
-    (Story) => (
-      <RouterProvider
-        router={createRouter({
-          routeTree: createRootRoute({ component: Story }),
-          history: createMemoryHistory(),
-        })}
-      />
-    ),
-  ],
+  decorators: [withRouter],
 } satisfies Meta<typeof ArticleSearchView>;
 export default meta;
 
