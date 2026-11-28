@@ -8,6 +8,12 @@
   display: flex;
   flex: 1;
   min-width: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.urlField:has(.urlInput[aria-invalid="true"]) {
+  border-color: var(--color-danger);
 }
 
 .urlInput {
@@ -60,8 +66,9 @@
 
 .message {
   composes: t-body from global;
+  min-height: 1lh;
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

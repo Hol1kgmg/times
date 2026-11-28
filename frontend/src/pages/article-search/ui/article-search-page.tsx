@@ -15,6 +15,7 @@ import { ModalDialog } from "#/shared/ui/modal";
 import { RouterLink } from "#/shared/ui/router-link";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import styles from "./article-search-page.module.css";
+import { resultText } from "#/shared/lib/result-text";
 
 const route = getRouteApi("/_shell/_admin/admin/articles/search");
 
@@ -209,23 +210,22 @@ export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
           検索
         </Button>
       </form>
-      {result !== undefined &&
-        (result.articles.length === 0 ? (
-          <p className={styles.empty}>見つからなかったです</p>
-        ) : (
-          <ul className={styles.list}>
-            {result.articles.map((hit) => (
-              <li key={hit.id} className={styles.item}>
-                <HitRow
-                  hit={hit}
-                  onOpenHistory={() => {
-                    setOpened(hit);
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        ))}
+      {/* 出し入れで一覧の位置が動かないよう、常に置いて場所を取っておく */}
+      <output className={styles.count}>{resultText(result?.articles)}</output>
+      {result !== undefined && result.articles.length > 0 && (
+        <ul className={styles.list}>
+          {result.articles.map((hit) => (
+            <li key={hit.id} className={styles.item}>
+              <HitRow
+                hit={hit}
+                onOpenHistory={() => {
+                  setOpened(hit);
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
       {result !== undefined && result.articles.length >= ARTICLE_SEARCH_LIMIT && (
         <p className={styles.empty}>
           新しい {ARTICLE_SEARCH_LIMIT} 件だけ出してます。言葉を足すと古い記事まで届きます

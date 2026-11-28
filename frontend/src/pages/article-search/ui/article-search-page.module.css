@@ -49,6 +49,12 @@
   color: var(--color-text-muted);
 }
 
+.count {
+  composes: t-body from global;
+  min-height: 1lh;
+  color: var(--color-text-muted);
+}
+
 /* アイコンと日付の列を一覧全体でそろえ、HOT や再掲載のない行でも位置を変えない */
 .list {
   display: grid;

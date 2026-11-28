@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "react-aria-components";
@@ -35,6 +35,7 @@ export const UrlAddForm = ({
   const [url, setUrl] = useState("");
   const [addError, setAddError] = useState<string>();
   const urlInput = useRef<HTMLInputElement>(null);
+  const errorId = useId();
 
   const onAdd = async (input: string) => {
     if (!newChildArticle.shape.url.safeParse(input).success) {
@@ -114,6 +115,8 @@ export const UrlAddForm = ({
         <div className={styles.urlField}>
           <input
             ref={urlInput}
+            aria-describedby={errorId}
+            aria-invalid={addError !== undefined}
             aria-label="記事の URL"
             className={styles.urlInput}
             disabled={adding}
@@ -145,7 +148,10 @@ export const UrlAddForm = ({
           {adding ? "取得中" : "追加"}
         </Button>
       </form>
-      {addError !== undefined && <p className={styles.message}>{addError}</p>}
+      {/* 出し入れで下のボタンが動かないよう、文がないときも場所を取っておく */}
+      <p aria-live="polite" className={styles.message} id={errorId}>
+        {addError}
+      </p>
     </>
   );
 };

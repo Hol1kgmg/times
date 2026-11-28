@@ -115,6 +115,7 @@ const EditDialog = ({
 }) => {
   const headingId = useId();
   const titleId = useId();
+  const duplicateId = useId();
   // 欄の文字と「この欄に翻訳を入れたか」は、待つ間に手で直されたかを 1 回の更新で見比べるため組で持つ
   const [field, setField] = useState({ title: link.title, translated: false });
   const { title } = field;
@@ -220,6 +221,8 @@ const EditDialog = ({
           <label className={styles.field}>
             <span className={styles.label}>URL</span>
             <input
+              aria-describedby={duplicateId}
+              aria-invalid={duplicate}
               className={styles.input}
               maxLength={2000}
               pattern="https?://.+"
@@ -229,10 +232,14 @@ const EditDialog = ({
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
+                setDuplicate(false);
               }}
             />
           </label>
-          {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
+          {/* 出し入れで下のボタンが動かないよう、文がないときも場所を取っておく */}
+          <p aria-live="polite" className={styles.note} id={duplicateId}>
+            {duplicate && "その URL はもう入ってます"}
+          </p>
           <div className={styles.formActions}>
             <Button
               className={styles.button}
