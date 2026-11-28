@@ -11,7 +11,7 @@ const settle = async (element: Element, onClose: () => void) => {
 };
 
 // close 直後に React が dialog を外すと、.modal のフェードアウトが途中で消える
-export const afterFadeOut =
+const afterFadeOut =
   (onClose: () => void) =>
   ({ currentTarget }: SyntheticEvent<HTMLDialogElement>) => {
     void settle(currentTarget, onClose);

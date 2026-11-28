@@ -115,23 +115,19 @@ const parseBody = async (request: Request) => {
   }
 };
 
+const gaEnv = z.object({ GA_MEASUREMENT_ID: z.string().min(1), GA_API_SECRET: z.string().min(1) });
+
 export const handleOpen = async (request: Request): Promise<Response> => {
   const data = await parseBody(request);
   if (data === null) {
     return new Response(null, { status: 400 });
   }
-  const measurementId = process.env.GA_MEASUREMENT_ID;
-  const apiSecret = process.env.GA_API_SECRET;
+  const ga = gaEnv.safeParse(process.env);
   const userAgent = request.headers.get("user-agent") ?? "";
-  if (
-    measurementId === undefined ||
-    measurementId === "" ||
-    apiSecret === undefined ||
-    apiSecret === "" ||
-    BOT.test(userAgent)
-  ) {
+  if (!ga.success || BOT.test(userAgent)) {
     return new Response(null, { status: 204 });
   }
+  const { GA_MEASUREMENT_ID: measurementId, GA_API_SECRET: apiSecret } = ga.data;
   const ip = request.headers.get("cf-connecting-ip");
   const payload = {
     client_id: data.clientId,

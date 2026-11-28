@@ -54,9 +54,11 @@
   --color-shadow-soft: rgb(0 0 0 / 0.2);
   --shadow-raised: 0 4px 6px var(--color-shadow);
   --shadow-menu: 0 2px 4px var(--color-shadow);
+  --shadow-favicon: 0 1px 2px var(--color-shadow-soft);
   --shadow-floating: 0 1px 2px var(--color-shadow), 0 1px 8px var(--color-shadow-soft);
   --backdrop-floating: blur(12px);
   --color-surface-floating: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  --radius-favicon: 2px;
   --radius-card: 6px;
   --radius-control: 8px;
   --radius-panel: 12px;
@@ -75,6 +77,7 @@
   --z-transition-panel: 2;
   --z-transition-text: 3;
   --header-offset: 0px;
+  --mobile-bar-height: 40px;
   /* Chrome は書体指定・サイズ・太さが同じ文字をまとめて隠すので、Klee One を待つ指定は動的な文字にだけ付ける (adr/frontend/0005) */
   /* 代替を cursive にしないのは、Klee One との字形差が大きくチラつくため */
   --font-fixed: "Klee One Fixed", "Hiragino Sans", "Noto Sans JP", sans-serif;
@@ -83,7 +86,8 @@
 
 @media (--narrow) {
   :root {
-    --header-offset: 72px;
+    /* ヘッダーの上の余白 + 上下の padding + バー + 本文との間 */
+    --header-offset: calc(var(--space-1) * 4 + var(--mobile-bar-height));
   }
 }
 

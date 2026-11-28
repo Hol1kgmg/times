@@ -29,6 +29,7 @@ import {
   setListed,
   settleCategory,
   stripTracking,
+  successorOf,
   toggleHot,
   toIds,
   toNewDigest,
@@ -40,7 +41,7 @@ import {
   updateDraft,
 } from "./board";
 import { digest, repostCandidate } from "#/shared/api";
-import type { Board, BoxId, Draft, Link } from "./board";
+import type { Board, Draft, Link } from "./board";
 
 const link = (id: string, title = `title ${id}`): Link => ({
   id,
@@ -106,12 +107,6 @@ describe("振り分ける", () => {
   it("puts an article at the end of a box when dropped on the box itself", () => {
     const b = board({ [UNSORTED]: [draft("a")], その他: [draft("b"), draft("c")] });
     expect(moveToBoxEnd(b, "a", "その他").その他.map((d) => d.id)).toStrictEqual(["b", "c", "a"]);
-  });
-
-  it("reuses the array of a box whose content did not change", () => {
-    const b = board({ [UNSORTED]: [draft("a")], その他: [draft("b")], IT系: [draft("c")] });
-    const ids: Record<BoxId, string[]> = { ...toIds(b), [UNSORTED]: [], その他: ["b", "a"] };
-    expect(fromIds(b, ids).IT系).toBe(b.IT系);
   });
 });
 
@@ -213,6 +208,25 @@ describe("関連記事", () => {
       ["b", true],
       ["z", false],
     ]);
+  });
+});
+
+describe("消した行の代わりに操作を続ける先", () => {
+  it("moves to the row that takes the removed place, the previous one at the end, and the parent after its last child", () => {
+    const b = board({
+      その他: [draft("a"), draft("b", { children: [link("c1"), link("c2"), link("c3")] })],
+    });
+    expect(successorOf(b, remove(b, "a"), "a")).toStrictEqual({ draft: "b" });
+    expect(successorOf(b, remove(b, "b"), "b")).toStrictEqual({ draft: "a" });
+    expect(successorOf(b, remove(b, "c2"), "c2")).toStrictEqual({ draft: "c3" });
+    expect(successorOf(b, remove(b, "c3"), "c3")).toStrictEqual({ draft: "c2" });
+    const only = board({ その他: [draft("p", { children: [link("c")] })] });
+    expect(successorOf(only, remove(only, "c"), "c")).toStrictEqual({ draft: "p" });
+  });
+
+  it("moves to the box heading when its only article is removed", () => {
+    const b = board({ その他: [draft("a")] });
+    expect(successorOf(b, remove(b, "a"), "a")).toStrictEqual({ box: "その他" });
   });
 });
 

@@ -78,4 +78,8 @@
   .expand {
     transition: none;
   }
+
+  .expand[data-pressed] {
+    transform: none;
+  }
 }

@@ -13,6 +13,7 @@ import {
 } from "react-aria-components";
 import { loadAnyLinkPreview, translateTitle } from "#/shared/api";
 import type { Category } from "#/shared/api";
+import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
@@ -115,6 +116,7 @@ const EditDialog = ({
 }) => {
   const headingId = useId();
   const titleId = useId();
+  const duplicateId = useId();
   // 欄の文字と「この欄に翻訳を入れたか」は、待つ間に手で直されたかを 1 回の更新で見比べるため組で持つ
   const [field, setField] = useState({ title: link.title, translated: false });
   const { title } = field;
@@ -220,6 +222,8 @@ const EditDialog = ({
           <label className={styles.field}>
             <span className={styles.label}>URL</span>
             <input
+              aria-describedby={duplicateId}
+              aria-invalid={duplicate}
               className={styles.input}
               maxLength={2000}
               pattern="https?://.+"
@@ -229,10 +233,14 @@ const EditDialog = ({
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
+                setDuplicate(false);
               }}
             />
           </label>
-          {duplicate && <p className={styles.note}>その URL はもう入ってます</p>}
+          {/* 出し入れで下のボタンが動かないよう、文がないときも場所を取っておく */}
+          <p aria-live="polite" className={styles.note} id={duplicateId}>
+            {duplicate && "その URL はもう入ってます"}
+          </p>
           <div className={styles.formActions}>
             <Button
               className={styles.button}
@@ -422,6 +430,7 @@ export const DraftCard = ({
 }) => {
   const reasonId = useId();
   const [showVisibilityReason, setShowVisibilityReason] = useState(false);
+  const visibilityHovered = useHovered();
   const { ref, handleRef, isDragging } = useSortable({
     id: draft.id,
     index,
@@ -515,7 +524,7 @@ export const DraftCard = ({
       <LinkRow
         action={
           (draft.hidden === true || draft.unpublished === true) && (
-            <span className={styles.visibilityAction}>
+            <span className={styles.visibilityAction} {...visibilityHovered}>
               <Button
                 className={styles.button}
                 isDisabled={draft.repost !== undefined || draft.unpublished === true}
@@ -575,7 +584,7 @@ export const DraftCard = ({
       {draft.children.length > 0 && (
         <ul className={styles.children}>
           {draft.children.map((child, i) => (
-            <li key={child.id}>
+            <li key={child.id} data-draft-id={child.id}>
               <LinkRow
                 hidden={child.hidden === true}
                 hot={!draft.hot && child.hot}

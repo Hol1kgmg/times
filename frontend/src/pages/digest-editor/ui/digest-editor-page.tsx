@@ -14,7 +14,7 @@ import {
   blockers,
   canLink,
   canMakeChild,
-  cardOf,
+  boxOf,
   convertToReposts,
   draftCount,
   editLink,
@@ -31,6 +31,7 @@ import {
   restoreHidden,
   revert,
   setListed,
+  successorOf,
   toggleHot,
   toNewDigest,
   toPreview,
@@ -41,6 +42,7 @@ import {
 } from "../model/board";
 import type { Blocker, Board, BoxId, Rejected } from "../model/board";
 import { useArticleTools } from "../model/article-tools";
+import { rowRejectionOf } from "../model/row-rejection";
 import { AiSortingStatus } from "./ai-sorting-status";
 import { BoardDragDrop } from "./board-drag-drop";
 import { Box } from "./box";
@@ -64,15 +66,23 @@ const noop = () => {
 };
 const subscribeNever = () => noop;
 
-// 移った先が画面の外の枠だと、カードが消えたように見える
-const focusCard = (id: string) => {
+// メニューを開いたボタンが組み替えで消えると、RAC の Menu はフォーカスを戻す先がなく body に落ちる
+const focusOn = (to: { draft: string } | { box: BoxId } | null, scroll = false) => {
   // メニューが閉じてフォーカスを戻し終えてから移す
   requestAnimationFrame(() => {
-    const menu = document.querySelector<HTMLElement>(
-      `[data-draft-id="${CSS.escape(id)}"] > div [data-card-menu]`,
-    );
-    menu?.focus();
-    menu?.scrollIntoView({ block: "center" });
+    const el =
+      to === null
+        ? null
+        : document.querySelector<HTMLElement>(
+            "draft" in to
+              ? `[data-draft-id="${CSS.escape(to.draft)}"] > div [data-card-menu]`
+              : `[data-box="${CSS.escape(to.box)}"] button`,
+          );
+    el?.focus();
+    // 移った先が画面の外の枠だと、カードが消えたように見える
+    if (scroll) {
+      el?.scrollIntoView({ block: "center" });
+    }
   });
 };
 
@@ -196,11 +206,10 @@ const DigestForm = <S extends DigestStatus>({
   });
 
   const follow = (next: Board, id: string) => {
-    const to = cardOf(next, id);
-    if (to !== null && cardOf(board, id)?.box !== to.box) {
-      focusCard(to.id);
-    }
+    focusOn({ draft: id }, boxOf(next, id) !== boxOf(board, id));
   };
+  // 選んだ後もピッカーはフェードアウトの間開いていて、閉じきる前に移しても中へ引き戻される
+  const afterPick = useRef<() => void>(undefined);
 
   const apply = (next: Board | Rejected): Rejected | null => {
     if (typeof next === "string") {
@@ -226,15 +235,20 @@ const DigestForm = <S extends DigestStatus>({
       const message = `関連記事 ${childCount} 件も消えます。削除しますか？`;
       // oxlint-disable-next-line eslint/no-alert -- 上の useBlocker と同じ理由
       if (childCount === 0 || window.confirm(message)) {
-        setBoard(remove(board, id));
+        const next = remove(board, id);
+        setBoard(next);
+        focusOn(successorOf(board, next, id));
       }
     },
     canMakeChild: (id) => canMakeChild(board, id),
     makeChild: (id) => {
       setBoard(makeChild(board, id));
+      focusOn({ draft: id });
     },
     unmakeChild: (parentId, childId) => {
-      apply(unmakeChild(board, parentId, childId));
+      if (apply(unmakeChild(board, parentId, childId)) === null) {
+        focusOn({ draft: childId });
+      }
     },
     moveChild: (parentId, childId, step) => {
       setBoard(moveChild(board, parentId, childId, step));
@@ -245,7 +259,11 @@ const DigestForm = <S extends DigestStatus>({
     canLink: (id) => entryDate !== "" && canLink(board, id),
     startLink: setLinking,
     unlink: (id) => {
-      apply(unlinkParent(board, id));
+      const next = unlinkParent(board, id);
+      if (typeof next !== "string") {
+        setBoard(next);
+        focusOn(successorOf(board, next, id));
+      }
     },
     setListed: (id, listed) => {
       const next = pinReposts(setListed(board, id, listed));
@@ -267,18 +285,7 @@ const DigestForm = <S extends DigestStatus>({
       // 日付で断られたときは URL を確かめる前に止まっているので、前の行の印を残す
       if ("duplicateUrls" in rejected) {
         const repostable = rejected.reason === "url-already-registered" ? rejected.repostable : [];
-        const repostableUrls = new Set(repostable.map((r) => r.url));
-        setRowRejection({
-          registered: new Set(
-            rejected.reason === "url-already-registered"
-              ? rejected.duplicateUrls.filter((u) => !repostableUrls.has(u))
-              : [],
-          ),
-          converted: repostableUrls,
-          unavailable: new Set(
-            rejected.reason === "repost-unavailable" ? rejected.duplicateUrls : [],
-          ),
-        });
+        setRowRejection(rowRejectionOf(rejected));
         // 自動では保存し直さず、切り替えた行を見てから保存してもらう
         setBoard((b) => convertToReposts(b, repostable));
         toast.error(
@@ -370,13 +377,18 @@ const DigestForm = <S extends DigestStatus>({
           heading="掲載済みの記事に紐付ける"
           onClose={() => {
             setLinking(undefined);
+            afterPick.current?.();
+            afterPick.current = undefined;
           }}
           onPick={(c) => {
             const parentId = crypto.randomUUID();
             const link = (b: Board) => linkToParent(b, linking, c, parentId);
             // 開いている間にエージェントが変えたボードを、開いたときのボードで上書きしない
             setBoard(link);
-            follow(pinReposts(link(board)), linking);
+            const next = pinReposts(link(board));
+            afterPick.current = () => {
+              follow(next, linking);
+            };
           }}
         />
       )}

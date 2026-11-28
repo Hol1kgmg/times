@@ -20,7 +20,7 @@ export const category = z.enum([
   "その他",
 ]) satisfies z.ZodType<Schemas["Category"]>;
 
-export const digestStatus = z.enum(["draft", "published", "private"]) satisfies z.ZodType<
+const digestStatus = z.enum(["draft", "published", "private"]) satisfies z.ZodType<
   Schemas["DigestStatus"]
 >;
 
@@ -58,7 +58,7 @@ export const visibleArticle = articleBase.extend({
 });
 
 // 公開ページで表示しない記事の場所。中身は backend が返さない
-export const concealedArticle = articleBase.extend({ concealed: z.literal(true) });
+const concealedArticle = articleBase.extend({ concealed: z.literal(true) });
 
 export const article = z.union([concealedArticle, visibleArticle]) satisfies z.ZodType<
   Schemas["Article"]
@@ -85,7 +85,7 @@ export const digestList = z.object({
   digests: digestSummary.array(),
 }) satisfies z.ZodType<Schemas["DigestList"]>;
 
-export const domainCount = z.object({
+const domainCount = z.object({
   host: z.string().min(1),
   count: z.number().int().min(1),
 }) satisfies z.ZodType<Schemas["DomainCount"]>;
@@ -137,12 +137,12 @@ export const newChildArticle = z.object({
   hot: z.boolean().default(false),
 }) satisfies z.ZodType<Schemas["NewChildArticle"]>;
 
-export const repostChildArticle = z.object({
+const repostChildArticle = z.object({
   repostOf: articleUrl,
   hot: z.boolean().default(false),
 }) satisfies z.ZodType<Schemas["RepostChildArticle"]>;
 
-export const childEntry = z.union([newChildArticle, repostChildArticle]) satisfies z.ZodType<
+const childEntry = z.union([newChildArticle, repostChildArticle]) satisfies z.ZodType<
   Schemas["ChildEntry"]
 >;
 
@@ -152,14 +152,14 @@ export const newArticle = newChildArticle.extend({
   children: childEntry.array().max(20),
 }) satisfies z.ZodType<Schemas["NewArticle"]>;
 
-export const repostArticle = z.object({
+const repostArticle = z.object({
   repostOf: articleUrl,
   category,
   listed: z.boolean().default(false),
   children: childEntry.array().max(20),
 }) satisfies z.ZodType<Schemas["RepostArticle"]>;
 
-export const digestEntry = z.union([newArticle, repostArticle]) satisfies z.ZodType<
+const digestEntry = z.union([newArticle, repostArticle]) satisfies z.ZodType<
   Schemas["DigestEntry"]
 >;
 

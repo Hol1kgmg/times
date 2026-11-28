@@ -15,7 +15,7 @@ const route = getRouteApi("/");
 // tabler の rss (MIT)
 const rssIcon = "M5 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M4 4a16 16 0 0 1 16 16M4 11a9 9 0 0 1 9 9";
 
-// トップはシェルの外の入り口ページ (adr/frontend/0003)
+// トップは入り口ページ (adr/frontend/0003)
 export const HomePage = () => {
   const digest = route.useLoaderData();
   useNavigateTool();

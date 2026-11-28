@@ -78,6 +78,8 @@ interface ViewProps {
 const slide = { next: styles.slideNext, prev: styles.slidePrev, default: "none" };
 
 const weekdaysAt = "[data-weekdays]";
+// Calendar が Tab の止まり先にしたセル
+const dayCellAt = '[role="grid"] [tabindex="0"]';
 const cardAt = (m: Temporal.PlainYearMonth) => `[data-month="${m.toString()}"]`;
 
 const toCalendarDate = (date: Temporal.PlainDate) => parseDate(date.toString());
@@ -213,11 +215,12 @@ export const DatePickerDialog = ({
     value === "" ? today : Temporal.PlainDate.from(value),
   );
   const ym = focused.toPlainYearMonth();
+  // showModal は先頭のボタン (年へ戻る) にフォーカスし、年と月の切り替えでは押したボタンが DOM から外れるので、行き先へ移す
+  const [landing, setLanding] = useState({ at: dayCellAt });
   // useModal の showModal より後に動くよう、effect はその後に宣言する
   useEffect(() => {
-    // showModal は先頭のボタン (年へ戻る) にフォーカスするので、Calendar が Tab の止まり先にしたセルへ移す
-    dialogRef.current?.querySelector<HTMLElement>('[role="grid"] [tabindex="0"]')?.focus();
-  }, [dialogRef]);
+    dialogRef.current?.querySelector<HTMLElement>(landing.at)?.focus();
+  }, [dialogRef, landing]);
 
   const [morph, setMorph] = useState(false);
 
@@ -246,7 +249,7 @@ export const DatePickerDialog = ({
   };
 
   // React の <ViewTransition> は transition の中の更新でだけ動く
-  const go = (v: View, to: Temporal.PlainDate) => {
+  const go = (v: View, to: Temporal.PlainDate, land = false) => {
     const toYm = to.toPlainYearMonth();
     // 別の年の月へは数字の行き先が年表示の DOM にないので、送りとして滑らせる
     const switching = v !== view && to.year === ym.year;
@@ -267,6 +270,9 @@ export const DatePickerDialog = ({
       }
       setView(v);
       setFocused(to);
+      if (land || v !== view) {
+        setLanding({ at: v === "month" ? dayCellAt : `${cardAt(toYm)} h3 button` });
+      }
     });
   };
   const step = view === "year" ? { years: 1 } : { months: 1 };
@@ -302,7 +308,8 @@ export const DatePickerDialog = ({
             disabled={view === "month" && ym.equals(today.toPlainYearMonth())}
             type="button"
             onClick={() => {
-              go("month", today);
+              // 月表示では押すと今日のボタン自身が押せなくなり、フォーカスを失う
+              go("month", today, true);
             }}
           >
             今日

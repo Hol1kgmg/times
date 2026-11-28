@@ -2,11 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminToken } from "#/shared/auth/index.server";
 import { extractTerms } from "./title-terms.server";
-import {
-  hasKanaOrKanji,
-  hasWordsToTranslate,
-  translateWithTerms,
-} from "./title-translation.server";
+import { hasKanaOrKanji, hasWordsToTranslate } from "./title-html";
+import { translateWithTerms } from "./title-translation.server";
 
 const input = z.object({ title: z.string().trim().min(1).max(500) });
 

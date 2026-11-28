@@ -15,6 +15,7 @@ import { ModalDialog } from "#/shared/ui/modal";
 import { RouterLink } from "#/shared/ui/router-link";
 import { useLinkPreview } from "#/shared/ui/use-link-preview";
 import styles from "./article-search-page.module.css";
+import { resultText } from "#/shared/lib/result-text";
 
 const route = getRouteApi("/_shell/_admin/admin/articles/search");
 
@@ -170,6 +171,13 @@ interface ViewProps {
 // Storybook は Router を載せないので、route の hook を使わない形で描く
 export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
   const [opened, setOpened] = useState<Hit>();
+  const [text, setText] = useState(q ?? "");
+  // 戻る・進むなどで q が変わったら欄を合わせる。key で作り直すと検索するたびに欄のフォーカスが外れる
+  const [shownQ, setShownQ] = useState(q);
+  if (q !== shownQ) {
+    setShownQ(q);
+    setText(q ?? "");
+  }
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>記事を検索</h1>
@@ -185,42 +193,42 @@ export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
         }}
       >
         <input
-          key={q}
           aria-label="タイトルか URL"
           className={styles.input}
-          defaultValue={q}
           maxLength={100}
           name="q"
           pattern=".*\S.*"
           required
           title="空白だけでは探せないです"
           type="search"
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+          }}
         />
         <Button className={styles.submit} type="submit">
           検索
         </Button>
       </form>
-      {result !== undefined &&
-        (result.articles.length === 0 ? (
-          <p className={styles.empty}>見つからなかったです</p>
-        ) : (
-          <ul className={styles.list}>
-            {result.articles.map((hit) => (
-              <li key={hit.id} className={styles.item}>
-                <HitRow
-                  hit={hit}
-                  onOpenHistory={() => {
-                    setOpened(hit);
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        ))}
-      {result !== undefined && result.articles.length >= ARTICLE_SEARCH_LIMIT && (
-        <p className={styles.empty}>
-          新しい {ARTICLE_SEARCH_LIMIT} 件だけ出してます。言葉を足すと古い記事まで届きます
-        </p>
+      {/* 出し入れで一覧の位置が動かないよう、常に置いて場所を取っておく */}
+      <output className={styles.count}>
+        {result !== undefined && result.articles.length >= ARTICLE_SEARCH_LIMIT
+          ? `新しい ${ARTICLE_SEARCH_LIMIT} 件だけ出してます。言葉を足すと古い記事まで届きます`
+          : resultText(result?.articles)}
+      </output>
+      {result !== undefined && result.articles.length > 0 && (
+        <ul className={styles.list}>
+          {result.articles.map((hit) => (
+            <li key={hit.id} className={styles.item}>
+              <HitRow
+                hit={hit}
+                onOpenHistory={() => {
+                  setOpened(hit);
+                }}
+              />
+            </li>
+          ))}
+        </ul>
       )}
       {opened !== undefined && (
         <HitDialog

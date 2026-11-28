@@ -10,6 +10,8 @@ import { repostAddBlock } from "../model/board";
 import { failureMessage } from "./failure-message";
 import type { Board, LinkBlock, RepostCandidate } from "../model/board";
 import styles from "./repost-picker.module.css";
+import { resultText } from "#/shared/lib/result-text";
+import { toast } from "#/shared/ui/toast";
 
 const blockText = {
   "not-before": "この日より前に公開されてないので選べません",
@@ -66,18 +68,16 @@ export const RepostPicker = ({
   const headingId = useId();
   const list = useServerFn(listRepostCandidates);
   const [candidates, setCandidates] = useState<RepostCandidate[]>();
-  const [error, setError] = useState<string>();
   const [searching, setSearching] = useState(false);
 
   const onSearch = async (q: string) => {
     setSearching(true);
-    setError(undefined);
     try {
       const result = await list({ data: { q } });
       setCandidates(result.articles);
     } catch (error_) {
       setCandidates(undefined);
-      setError(failureMessage(error_, "検索"));
+      toast.error(failureMessage(error_, "検索"));
     }
     setSearching(false);
   };
@@ -119,8 +119,8 @@ export const RepostPicker = ({
               {searching ? "検索中" : "検索"}
             </Button>
           </form>
-          {error !== undefined && <p className={styles.message}>{error}</p>}
-          {candidates?.length === 0 && <p className={styles.message}>見つからなかったです</p>}
+          {/* 出し入れで候補の位置が動かないよう、常に置いて場所を取っておく */}
+          <output className={styles.message}>{resultText(candidates)}</output>
           {candidates !== undefined && candidates.length > 0 && (
             // disabledKeys は矢印キーでも飛ばされるので使わず、選べない行は押しても何もしない (adr/frontend/0008)
             // 項目は候補ごとに覚えられて作り直されないので、選べるかの判定を今のボードで引き直させる

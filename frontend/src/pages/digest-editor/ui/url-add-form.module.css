@@ -8,6 +8,16 @@
   display: flex;
   flex: 1;
   min-width: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.urlField:has(.urlInput:focus-visible) {
+  border-color: var(--color-accent);
+}
+
+.urlField:has(.urlInput[aria-invalid="true"]) {
+  border-color: var(--color-danger);
 }
 
 .urlInput {
@@ -60,12 +70,17 @@
 
 .message {
   composes: t-body from global;
+  min-height: 1lh;
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .fieldButton {
     transition: none;
+  }
+
+  .fieldButton[data-pressed] {
+    transform: none;
   }
 }

@@ -7,8 +7,8 @@
   display: none;
   flex-direction: column;
   padding: var(--space-1);
-  /* 9999px からの補間は変化のほとんどが見えない範囲で起きるので、バーの高さの半分にする */
-  border-radius: 28px;
+  /* 9999px からの補間は変化のほとんどが見えない範囲で起きるので、ヘッダーの高さの半分にする */
+  border-radius: calc(var(--mobile-bar-height) / 2 + var(--space-1));
   background-color: var(--color-surface-floating);
   backdrop-filter: var(--backdrop-floating);
   box-shadow: var(--shadow-floating);
@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 40px;
+  height: var(--mobile-bar-height);
   padding: 0;
   border: 0;
   border-radius: 9999px;
@@ -63,6 +63,8 @@
 .header[data-open="true"] .menu {
   grid-template-rows: 1fr;
   visibility: visible;
+  /* 開く側も visibility を補間すると、開いた直後はまだ hidden で中のリンクにフォーカスできない */
+  transition: grid-template-rows 0.2s;
 }
 
 .menuInner {

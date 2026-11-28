@@ -21,7 +21,7 @@ describe(requireAdminToken, () => {
     cookies.clear();
   });
 
-  it("throws notFound(SESSION_EXPIRED) without the cookie", () => {
+  it("treats a request without the session cookie as an expired login", () => {
     let err: unknown;
     try {
       requireAdminToken();

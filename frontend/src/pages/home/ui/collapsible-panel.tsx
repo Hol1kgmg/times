@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "react-aria-components";
 import { Chevron } from "#/shared/ui/chevron";
 import styles from "./collapsible-panel.module.css";
@@ -8,10 +9,12 @@ import styles from "./collapsible-panel.module.css";
 export const CollapsiblePanel = ({ children }: { children: ReactNode }) => {
   const [expanded, setExpanded] = useState(false);
   const fadeRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   // null は未計測 (SSR とハイドレーション直後)
   const [overflowing, setOverflowing] = useState<boolean | null>(null);
   // 枠の高さは画面で、中身の高さはフォントの到着で変わるので両方を見る
   const observeOverflow = useCallback((el: HTMLDivElement) => {
+    bodyRef.current = el;
     const ro = new ResizeObserver(() => {
       setOverflowing(el.scrollHeight > el.clientHeight);
     });
@@ -26,6 +29,8 @@ export const CollapsiblePanel = ({ children }: { children: ReactNode }) => {
   const expand = () => {
     setExpanded(true);
   };
+  const underFade = (el: Element) =>
+    el.getBoundingClientRect().bottom > (fadeRef.current?.getBoundingClientRect().top ?? Infinity);
   return (
     <div className={styles.panel} data-collapsed={expanded ? undefined : ""}>
       <div
@@ -33,8 +38,7 @@ export const CollapsiblePanel = ({ children }: { children: ReactNode }) => {
         className={styles.body}
         // Tab で隠れた・フェードにかかった記事に入ったら、読めないリンクを操作させないよう展開する
         onFocus={(e) => {
-          const fadeTop = fadeRef.current?.getBoundingClientRect().top ?? Infinity;
-          if (e.target.getBoundingClientRect().bottom > fadeTop) {
+          if (underFade(e.target)) {
             expand();
           }
         }}
@@ -50,7 +54,20 @@ export const CollapsiblePanel = ({ children }: { children: ReactNode }) => {
       )}
       {!expanded && overflowing === true && (
         <div className={styles.more}>
-          <Button className={styles.expand} onPress={expand}>
+          <Button
+            className={styles.expand}
+            onPress={(e) => {
+              // 押したボタンが消えてフォーカスを失うので、隠れていた最初の要素へ移す。位置は展開で変わるので先に測る
+              const hidden = [
+                ...(bodyRef.current?.querySelectorAll<HTMLElement>("a[href], button") ?? []),
+              ].find(underFade);
+              flushSync(expand);
+              // マウスとタッチで記事にフォーカスすると、押していない記事のカードが開く
+              if (e.pointerType === "keyboard" || e.pointerType === "virtual") {
+                hidden?.focus();
+              }
+            }}
+          >
             すべて表示
             <Chevron size={14} />
           </Button>
