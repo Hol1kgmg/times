@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fromHtml, hasKanaOrKanji, hasWordsToTranslate, toHtml } from "./title-translation.server";
+import { fromHtml, hasKanaOrKanji, hasWordsToTranslate, toHtml } from "./title-html";
 
 const keep = (term: string) => `<span translate="no" class="notranslate">${term}</span>`;
 

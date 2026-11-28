@@ -15,11 +15,11 @@ import { youTubeId } from "#/shared/lib/parse-link-preview";
 
 export const UNSORTED = "未分類";
 export type BoxId = typeof UNSORTED | Category;
-export const boxIds: readonly BoxId[] = [UNSORTED, ...category.options];
+const boxIds: readonly BoxId[] = [UNSORTED, ...category.options];
 
 // 上限は openapi.yaml の NewDigest.articles (maxItems 100) と NewArticle.children (maxItems 20)
 export const MAX_DRAFTS = 100;
-export const MAX_CHILDREN = 20;
+const MAX_CHILDREN = 20;
 
 export interface Link {
   id: string;
@@ -35,6 +35,7 @@ export interface Link {
   repostChild?: true;
   // 元の掲載の Digest が公開済みでなく、公開ページに出ない
   unpublished?: true;
+  // 子がほかの日にいて外せないので、外す代わりに隠した行
   hidden?: true;
 }
 
@@ -49,7 +50,6 @@ export interface Draft extends Link {
   children: Link[];
   // category は子がない間に戻す元の記事のカテゴリ。listed は親もその日に載せるか (specs/018 Revision 4)
   repost?: { category: Category; firstPublishedOn?: string; listed: boolean };
-  // 子がほかの日にいて外せないので、外す代わりに隠した行
 }
 
 export type Board = Record<BoxId, Draft[]>;
@@ -82,7 +82,7 @@ export const isGhost = (d: Draft) => d.repost?.listed === false && d.children.le
 export const draftCount = (board: Board) => drafts(board).filter((d) => !isGhost(d)).length;
 export const hasDrafts = (board: Board) => draftCount(board) > 0;
 
-export const findDuplicate = (board: Board, url: string, exceptId?: string) =>
+const findDuplicate = (board: Board, url: string, exceptId?: string) =>
   links(board).some((l) => l.url === url && l.id !== exceptId);
 
 const mapDrafts = (board: Board, f: (d: Draft) => Draft): Board => byBox((b) => board[b].map(f));
@@ -529,7 +529,7 @@ export const moveToBoxEnd = (board: Board, id: string, box: BoxId): Board => {
   ]);
 };
 
-export interface DraftUpdate {
+interface DraftUpdate {
   title?: string;
   category?: Category;
   hot?: boolean;
@@ -556,22 +556,17 @@ export const updateDraft = (
 export const toIds = (board: Board): Record<BoxId, string[]> =>
   byBox((b) => board[b].map((d) => d.id));
 
-// 中身の変わらない箱は配列の参照を使い回し、箱の memo を効かせる
 export const fromIds = (board: Board, ids: Record<BoxId, string[]>): Board => {
   const byId = new Map(boxIds.flatMap((box) => board[box].map((d) => [d.id, { d, box }] as const)));
-  return byBox((b) => {
-    const next = ids[b];
-    if (next.length === board[b].length && next.every((id, i) => board[b][i]?.id === id)) {
-      return board[b];
-    }
-    return next.map((id) => {
+  return byBox((b) =>
+    ids[b].map((id) => {
       const found = byId.get(id);
       if (found === undefined) {
         throw new Error(`board: unknown draft id "${id}"`);
       }
       return found.box === b || !found.d.suggested ? found.d : { ...found.d, suggested: false };
-    });
-  });
+    }),
+  );
 };
 
 export const blockers = (board: Board): Blocker[] => {

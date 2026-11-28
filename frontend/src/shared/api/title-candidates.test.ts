@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { candidates, pickTerms } from "./title-terms.server";
-import type { Candidate } from "./title-terms.server";
+import { candidates, pickTerms } from "./title-candidates";
+import type { Candidate } from "./title-candidates";
 
 const yesFor = (cands: Candidate[], yes: Record<string, number>) =>
   cands.map((c) => yes[c.text] ?? 0);

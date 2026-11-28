@@ -42,6 +42,7 @@ import {
 } from "../model/board";
 import type { Blocker, Board, BoxId, Rejected } from "../model/board";
 import { useArticleTools } from "../model/article-tools";
+import { rowRejectionOf } from "../model/row-rejection";
 import { AiSortingStatus } from "./ai-sorting-status";
 import { BoardDragDrop } from "./board-drag-drop";
 import { Box } from "./box";
@@ -283,24 +284,13 @@ const DigestForm = <S extends DigestStatus>({
       }
       // 日付で断られたときは URL を確かめる前に止まっているので、前の行の印を残す
       if ("duplicateUrls" in rejected) {
-        const repostable = rejected.reason === "url-already-registered" ? rejected.repostable : [];
-        const repostableUrls = new Set(repostable.map((r) => r.url));
-        setRowRejection({
-          registered: new Set(
-            rejected.reason === "url-already-registered"
-              ? rejected.duplicateUrls.filter((u) => !repostableUrls.has(u))
-              : [],
-          ),
-          converted: repostableUrls,
-          unavailable: new Set(
-            rejected.reason === "repost-unavailable" ? rejected.duplicateUrls : [],
-          ),
-        });
-        // 自動では保存し直さず、切り替えた行を見てから保存してもらう
-        setBoard((b) => convertToReposts(b, repostable));
-        toast.error(
-          rejectionText(rejected.reason, repostable.length < rejected.duplicateUrls.length),
-        );
+        const rows = rowRejectionOf(rejected);
+        setRowRejection(rows);
+        if (rejected.reason === "url-already-registered") {
+          // 自動では保存し直さず、切り替えた行を見てから保存してもらう
+          setBoard((b) => convertToReposts(b, rejected.repostable));
+        }
+        toast.error(rejectionText(rejected.reason, rows.registered.size > 0));
       }
       if (rejected.reason === "parent-has-children") {
         // 自動では保存し直さず、戻した行を見てから保存してもらう

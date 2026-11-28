@@ -9,8 +9,8 @@ import { adminToken } from "./admin-token";
 import { SESSION_EXPIRED } from "./errors";
 
 // Cookie は backend の不透明トークンと OAuth の state を運ぶだけ (specs/003 data-model.md)
-export const ADMIN_COOKIE = "times_admin";
-export const LOGIN_COOKIE = "times_login";
+const ADMIN_COOKIE = "times_admin";
+const LOGIN_COOKIE = "times_login";
 const attrs = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as const;
 // 実効期限は backend の expires_at
 const ADMIN_MAX_AGE = 30 * 24 * 60 * 60;

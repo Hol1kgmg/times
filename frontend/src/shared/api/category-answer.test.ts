@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryFromAnswer } from "./category-suggestion.server";
+import { categoryFromAnswer } from "./category-answer";
 
 const answer = (choice: string, p: number) => ({
   type: "choice" as const,
