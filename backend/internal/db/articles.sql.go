@@ -123,10 +123,10 @@ const searchArticles = `-- name: SearchArticles :many
 SELECT a.id, a.url, a.title, a.category, p.url AS parent_url, p.title AS parent_title,
   -- 公開の掲載だけを JOIN するので、下書き・非公開にしか載っていない記事は出ない (specs/018 FR-005)
   array_agg(d.entry_date ORDER BY d.entry_date)::date[] AS published_on,
-  -- 日付の変更で再掲載になった掲載は HOT を持ったままなので、公開ページ (toDigest) と同じく除く
-  coalesce(array_agg(d.entry_date ORDER BY d.entry_date) FILTER (WHERE da.is_hot AND NOT EXISTS (
+  -- 日付の変更で再掲載になった親の掲載は HOT を持ったままなので、公開ページ (toDigest) と同じく除く。子は再掲載でも自分の HOT を持てる
+  coalesce(array_agg(d.entry_date ORDER BY d.entry_date) FILTER (WHERE da.is_hot AND (a.parent_id IS NOT NULL OR NOT EXISTS (
     SELECT 1 FROM digest_articles o JOIN digests e ON e.id = o.digest_id
-    WHERE o.article_id = a.id AND e.entry_date < d.entry_date)), '{}')::date[] AS hot_on
+    WHERE o.article_id = a.id AND e.entry_date < d.entry_date))), '{}')::date[] AS hot_on
 FROM articles a
 JOIN digest_articles da ON da.article_id = a.id
 JOIN digests d ON d.id = da.digest_id AND d.status = 'published'
