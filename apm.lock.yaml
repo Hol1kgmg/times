@@ -41,11 +41,11 @@ dependencies:
     .agents/skills/speckit-tasks/SKILL.md: sha256:acfcac20cdf9af065fff3497fb7a2eebe75acbb6bba02abbac7631e0a2d33346
     .agents/skills/speckit-taskstoissues/SKILL.md: sha256:76a6ec1fcc2d4f2f4ae4d1a70e59eca034fd9a3f97c5454094b023ed3da65151
     .claude/rules/frontend-ui-design.md: sha256:2e3a09f6ee0074b7f47e120471982e7ef76206385b821c7ed1d648c1cc38f063
-    .claude/rules/quality.md: sha256:f252f243e97ed8ac0e955c1cdde00d9709812cc0d68ec781f22a5d6be3a3128b
+    .claude/rules/quality.md: sha256:180f185b3ad8297fa7d0bc45752380a0c3df5f0db19af1880b5a9dd39a01e29c
     .claude/rules/typescript-app.md: sha256:170bee6c6e1ccdbf68104d6be76825c891aec05c98190a563992c9632abc9ff8
   source: local
   local_path: ./packages/project
-  content_hash: sha256:f52e61951b9353bd24f0cfe5acb65c1bb512beab5ed8be8b641d01d37b115e58
+  content_hash: sha256:b227317c83ed95e342a868cc9177343016ec096a26e09aa3f4edf657f69bfa20
 - repo_url: _local/template
   name: template
   version: 0.0.0
@@ -2921,7 +2921,7 @@ deployments:
   owners:
   - ./packages/project
   active_owner: ./packages/project
-  content_hash: sha256:f252f243e97ed8ac0e955c1cdde00d9709812cc0d68ec781f22a5d6be3a3128b
+  content_hash: sha256:180f185b3ad8297fa7d0bc45752380a0c3df5f0db19af1880b5a9dd39a01e29c
 - kind: project-relative
   target: claude
   value: .claude/rules/typescript-app.md

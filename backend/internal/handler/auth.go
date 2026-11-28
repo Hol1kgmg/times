@@ -13,7 +13,7 @@ import (
 
 const sessionTTL = 30 * 24 * time.Hour // 延長しない (specs/003 FR-007)
 
-// ponytail: interface は handler テスト用。増えたら sqlc の Querier を使う
+// ログインの順序 (断ったら何も保存しない) を確かめるためだけの差し替え口。ほかの handler には広げない (quality.md)
 type authQueries interface {
 	UpsertUser(ctx context.Context, arg db.UpsertUserParams) (db.User, error)
 	CreateSession(ctx context.Context, arg db.CreateSessionParams) (db.Session, error)
