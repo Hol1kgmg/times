@@ -202,17 +202,8 @@ export const settleCategory = (board: Board, id: string, suggested: Category | n
   };
 };
 
-// 親が HOT の子は保存時に HOT にそろい、読み直すと子自身の HOT が消えるので、編集中も先に外す (specs/018 FR-016)
-const settleChildHot = (d: Draft): Draft =>
-  d.hot && d.children.some((c) => c.hot)
-    ? { ...d, children: d.children.map((c) => ({ ...c, hot: false })) }
-    : d;
-
 export const toggleHot = (board: Board, id: string): Board =>
-  mapDrafts(
-    mapLink(board, id, (l) => ({ ...l, hot: !l.hot })),
-    (d) => (d.id === id ? settleChildHot(d) : d),
-  );
+  mapLink(board, id, (l) => ({ ...l, hot: !l.hot }));
 
 const repostTag = (d: Draft) => {
   if (d.repost === undefined) {
@@ -339,20 +330,17 @@ export const makeChild = (board: Board, id: string): Board => {
   if (draft === undefined || parent === undefined) {
     return board;
   }
-  items[at.index - 1] = { ...parent, children: [...parent.children, asChild(draft, parent.hot)] };
+  items[at.index - 1] = { ...parent, children: [...parent.children, asChild(draft)] };
   return replaceBox(board, at.box, items);
 };
 
-const asChild = (
-  { id, url, title, initial, translated, hot, category: saved }: Draft,
-  parentHot: boolean,
-): Link => ({
+const asChild = ({ id, url, title, initial, translated, hot, category: saved }: Draft): Link => ({
   id,
   url,
   title,
   initial,
   translated,
-  hot: hot && !parentHot,
+  hot,
   ...(saved !== undefined && { category: saved }),
 });
 
@@ -392,7 +380,7 @@ export const linkToParent = (
   if (at === null || draft === undefined || !canLink(board, childId)) {
     return board;
   }
-  const child = asChild(draft, false);
+  const child = asChild(draft);
   const without = replaceBox(board, at.box, board[at.box].toSpliced(at.index, 1));
   const existing = drafts(without).find((d) => d.url === candidate.url && d.repost !== undefined);
   if (existing === undefined) {
@@ -548,9 +536,7 @@ export const updateDraft = (
       : mapDrafts(moveToBoxEnd(titled, id, box), (d) =>
           d.id === id ? { ...d, suggested: true } : d,
         );
-  return hot === undefined
-    ? moved
-    : mapDrafts(moved, (d) => (d.id === id ? settleChildHot({ ...d, hot }) : d));
+  return hot === undefined ? moved : mapDrafts(moved, (d) => (d.id === id ? { ...d, hot } : d));
 };
 
 export const toIds = (board: Board): Record<BoxId, string[]> =>
@@ -606,9 +592,8 @@ export const fromDigest = (digest: Digest): Board => {
       suggested: false,
       category: a.originalCategory ?? a.category,
       ...(a.repost && a.originalStatus !== "published" && { unpublished: true }),
-      // 親が HOT の子は保存時に HOT にそろうので、子自身の HOT ではない
       children: a.children.map((c) => ({
-        ...savedLink({ ...c, hot: c.hot && !a.hot }),
+        ...savedLink(c),
         category: c.category,
         ...(c.repost && { repostChild: true as const }),
         ...(c.repost && c.originalStatus !== "published" && { unpublished: true as const }),

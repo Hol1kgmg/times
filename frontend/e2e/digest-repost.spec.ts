@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { boardOf, fillDate, loggedInState } from "./admin";
 
-// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。digest-edit.spec.ts (1900 年から) とぶつからないよう 1700 年から数え、1 回の実行で 10 日使うので 1900 年に届かない幅で回す
+// 同じ DB を使い回し、1 日 1 Digest なので実行ごとに別の日付を使う。digest-edit.spec.ts (1900 年から) とぶつからないよう 1700 年から数え、1 回の実行で 13 日使うので 1900 年に届かない幅で回す
 const dayFrom = (n: number) =>
   new Date(Date.UTC(1700, 0, 1) + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -12,7 +12,7 @@ test("公開済みの記事を親、新しい記事を子にして別の日に�
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 7000) * 10;
+  const base = (Math.floor(run / 1000) % 5600) * 13;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -66,7 +66,7 @@ test("公開済みの記事を親、新しい記事を子にして別の日に�
 // 親と子を公開した日のあと、子だけを別の日に入れ、断られて切り替わった再掲載のまま公開する
 const repostChildElsewhere = async (page: Page, offset: number) => {
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 7000) * 10 + offset;
+  const base = (Math.floor(run / 1000) % 5600) * 13 + offset;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
@@ -167,7 +167,7 @@ test("公開した記事を別の日の登録画面でタイトルから探し�
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 7000) * 10 + 6;
+  const base = (Math.floor(run / 1000) % 5600) * 13 + 6;
   const first = dayFrom(base);
   const repost = dayFrom(base + 1);
   const { dragFirstUnsortedTo, collect } = boardOf(page);
@@ -215,7 +215,7 @@ test("公開した記事を別の日に新しい記事の親として紐付け�
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
   const run = Date.now();
-  const base = (Math.floor(run / 1000) % 7000) * 10 + 8;
+  const base = (Math.floor(run / 1000) % 5600) * 13 + 8;
   const first = dayFrom(base);
   const linked = dayFrom(base + 1);
   const { dragFirstUnsortedTo, menuOf, collect } = boardOf(page);
@@ -264,5 +264,89 @@ test("公開した記事を別の日に新しい記事の親として紐付け�
   // 親を載せていないので、載せる操作が出る
   await row.getByRole("button", { name: "メニュー" }).first().click();
   await expect(page.getByRole("menuitem", { name: "親も掲載する" })).toBeVisible();
+  await context.close();
+});
+
+test("HOT の親を載せた日より後の日に、その親を再掲載して HOT の子を付け、その日付を前へ動かすと、元の日の親の HOT は公開ページと記事の検索の両方で消え、子の HOT は残る", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ storageState: await loggedInState(browser) });
+  const page = await context.newPage();
+  const run = Date.now();
+  const base = (Math.floor(run / 1000) % 5600) * 13 + 10;
+  const earlier = dayFrom(base);
+  const original = dayFrom(base + 1);
+  const later = dayFrom(base + 2);
+  const { dragFirstUnsortedTo, menuOf, collect: collectUrl } = boardOf(page);
+  const collect = async (title: string) => {
+    await collectUrl(`https://e2e.example/repost/${run}/${encodeURIComponent(title)}`, title);
+  };
+  const publish = page.getByRole("button", { name: "公開して登録" });
+  const parent = `HOT だった記事 ${run}`;
+  const child = `HOT の続報 ${run}`;
+  const dialog = page.getByRole("dialog");
+  const hot = dialog.getByRole("img", { name: "HOT" });
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, original);
+  await collect(parent);
+  await dragFirstUnsortedTo("セキュリティ");
+  await menuOf(parent, "ホットにする");
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await publish.click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  await page.goto("/admin/digests/new");
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, later);
+  await collect(parent);
+  await collect(child);
+  await dragFirstUnsortedTo("セキュリティ");
+  await dragFirstUnsortedTo("セキュリティ");
+  await menuOf(child, "上の記事の関連記事にする");
+  await menuOf(child, "ホットにする");
+  await page.getByRole("button", { name: "登録方法を選ぶ" }).click();
+  await page.getByRole("menuitemradio", { name: "公開して登録" }).click();
+  await publish.click();
+  await expect(page.getByRole("listitem").filter({ hasText: parent }).first()).toContainText(
+    "再掲載にしました",
+  );
+  await publish.click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  await page.goto(`/admin/digests/${later}/edit`);
+  await page.waitForLoadState("networkidle");
+  await fillDate(page, earlier);
+  await page.getByRole("button", { name: "公開のまま保存" }).click();
+  await page.waitForURL((url) => url.pathname === "/admin/digests");
+
+  await page.goto(`/admin/digests/${original}/edit`);
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "プレビュー" }).click();
+  await expect(dialog.getByRole("link")).toHaveText([parent]);
+  await expect(hot).toHaveCount(0);
+
+  await page.goto(`/admin/digests/${earlier}/edit`);
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "プレビュー" }).click();
+  // 親の行は子の行を中に含むので、HOT の印は 1 つだけで子のいちばん内側の行にあることを見る
+  await expect(hot).toHaveCount(1);
+  await expect(
+    dialog
+      .getByRole("listitem")
+      .filter({ hasText: child })
+      .last()
+      .getByRole("img", { name: "HOT" }),
+  ).toHaveCount(1);
+
+  await page.goto("/admin/articles/search");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel("タイトルか URL").fill(parent);
+  await page.getByRole("button", { name: "検索" }).click();
+  const row = page.getByRole("listitem").filter({ hasText: parent });
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText("HOT 0 回");
   await context.close();
 });
