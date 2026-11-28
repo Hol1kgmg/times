@@ -62,9 +62,14 @@ func (s *Server) GetLatestDigest(ctx context.Context, _ api.GetLatestDigestReque
 	return api.GetLatestDigest200JSONResponse(out), nil
 }
 
+// openapi.yaml の limit の default は oapi-codegen が埋めないので、同じ値をここで持つ (一致はテストで見る)
+const (
+	publishedDigestsLimit = 7
+	domainLimit           = 20
+)
+
 func (s *Server) ListPublishedDigests(ctx context.Context, req api.ListPublishedDigestsRequestObject) (api.ListPublishedDigestsResponseObject, error) {
-	// openapi.yaml の default は oapi-codegen が埋めないので、同じ値をここで使う
-	lim := 7
+	lim := publishedDigestsLimit
 	if req.Params.Limit != nil {
 		lim = *req.Params.Limit
 	}
@@ -76,7 +81,7 @@ func (s *Server) ListPublishedDigests(ctx context.Context, req api.ListPublished
 	if err != nil {
 		return nil, err
 	}
-	// ponytail: Digest ごとに記事を引く (最大 1 + 31×2 クエリ)。遅くなったら ANY でまとめて引いて振り分ける
+	// ponytail: Digest ごとに記事を引く (最大 1 + 31 クエリ)。遅くなったら ANY でまとめて引いて振り分ける。#137 で公開したら見直す
 	digests := make([]api.Digest, 0, len(rows))
 	for _, d := range rows {
 		out, err := s.withArticles(ctx, d, true)
@@ -185,8 +190,7 @@ func encodedQuery(q string) string {
 }
 
 func (s *Server) articleDomains(ctx context.Context, q *string, limit *int, publishedOnly bool) ([]api.DomainCount, error) {
-	// openapi.yaml の default は oapi-codegen が埋めないので、同じ値をここで使う
-	lim := 20
+	lim := domainLimit
 	if limit != nil {
 		lim = *limit
 	}

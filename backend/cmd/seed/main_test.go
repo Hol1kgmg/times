@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// 「N日目」で日を、字下げのない行でカテゴリを、字下げで子記事を、🔥 でホットトピックを分ける。タイトルの [] はそのまま残す
 func TestParse(t *testing.T) {
 	src := `１日目
 IT系
@@ -42,6 +43,7 @@ UI系
 	}
 }
 
+// 日付より前のカテゴリ・カテゴリのない記事・親のない子記事は、黙って捨てずに失敗にする
 func TestParseErrors(t *testing.T) {
 	for _, src := range []string{
 		"",

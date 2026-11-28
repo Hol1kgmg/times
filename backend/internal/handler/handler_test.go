@@ -33,6 +33,10 @@ func TestConstraintViolation(t *testing.T) {
 	if err := constraintViolation(parent); !errors.As(err, &e) || e.Status != 400 {
 		t.Errorf("parent: got %v", err)
 	}
+	check := &pgconn.PgError{Code: pgerrcode.CheckViolation, ConstraintName: "articles_url_scheme_check"}
+	if err := constraintViolation(check); !errors.As(err, &e) || e.Status != 400 {
+		t.Errorf("check: got %v", err)
+	}
 	other := &pgconn.PgError{Code: pgerrcode.ConnectionFailure}
 	if err := constraintViolation(other); errors.As(err, &e) || err != other {
 		t.Errorf("other: got %v", err)
@@ -385,5 +389,30 @@ func TestEncodedQueryMatchesStoredPercentEncoding(t *testing.T) {
 	}
 	if got := encodedQuery("%zz"); got != "%zz" {
 		t.Errorf("unparsable: got %q", got)
+	}
+}
+
+// limit を省いたときの件数は openapi.yaml の default と同じにする。oapi-codegen は default を埋めない
+func TestLimitDefaultsMatchSpec(t *testing.T) {
+	spec, err := api.GetSwagger()
+	if err != nil {
+		t.Fatal(err)
+	}
+	op := spec.Paths.Find("/digests/published")
+	domain := spec.Components.Parameters["DomainLimit"]
+	if op == nil || op.Get == nil || op.Get.Parameters.GetByInAndName("query", "limit") == nil || domain == nil {
+		t.Fatal("limit parameters moved in openapi.yaml; update this test")
+	}
+	published := op.Get.Parameters.GetByInAndName("query", "limit")
+	for name, tt := range map[string]struct {
+		spec any
+		code int
+	}{
+		"published digests": {published.Schema.Value.Default, publishedDigestsLimit},
+		"domains":           {domain.Value.Schema.Value.Default, domainLimit},
+	} {
+		if fmt.Sprint(tt.spec) != fmt.Sprint(tt.code) {
+			t.Errorf("%s: openapi.yaml default %v, handler %d", name, tt.spec, tt.code)
+		}
 	}
 }

@@ -83,6 +83,7 @@ func wantStatus(t *testing.T, err error, status int) {
 	}
 }
 
+// GitHub ログインが未設定なら 403 で、users に触らない
 func TestCreateSessionNotConfigured(t *testing.T) {
 	s, q := newAuthServer(t)
 	s.authConfigured = false
@@ -93,12 +94,14 @@ func TestCreateSessionNotConfigured(t *testing.T) {
 	}
 }
 
+// GitHub との通信の失敗は 502
 func TestCreateSessionUpstreamFailed(t *testing.T) {
 	s, _ := newAuthServer(t)
 	_, err := createSession(s, "garbage")
 	wantStatus(t, err, http.StatusBadGateway)
 }
 
+// 管理者でないアカウントは 403 で、users にも sessions にも何も保存しない (specs/003 FR-005)
 func TestCreateSessionForbidden(t *testing.T) {
 	s, q := newAuthServer(t)
 	_, err := createSession(s, "other")
@@ -130,6 +133,7 @@ func TestCreateSessionOK(t *testing.T) {
 	}
 }
 
+// Principal があれば session を返して消せる。なければどちらも 401
 func TestCurrentSession(t *testing.T) {
 	s, q := newAuthServer(t)
 	p := auth.Principal{UserID: 1, Login: "octocat", ExpiresAt: time.Now(), TokenHash: []byte("h")}

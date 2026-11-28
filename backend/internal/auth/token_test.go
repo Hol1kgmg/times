@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// session のトークンは 32 バイトの乱数を base64url にした 43 文字で、毎回違う
 func TestNewToken(t *testing.T) {
 	a, err := NewToken()
 	if err != nil {
@@ -16,6 +17,7 @@ func TestNewToken(t *testing.T) {
 	}
 }
 
+// DB に置くのはトークンの sha256 (32 バイト) で、同じトークンからは同じ値になる
 func TestHash(t *testing.T) {
 	h := Hash("abc")
 	if len(h) != 32 || !bytes.Equal(h, Hash("abc")) || bytes.Equal(h, Hash("abd")) {
