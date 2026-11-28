@@ -73,10 +73,11 @@ Cloud Build → リポジトリ で GitHub の `Hol1kgmg/times` を接続する 
 
 | 項目 | 値 | 確かめる場所 |
 |---|---|---|
-| Cloud Run の最大インスタンス数 | (未記入) | Cloud Run → `times-api` → 新しいリビジョンの編集とデプロイ → スケーリング |
-| Cloud SQL の `max_connections` | (未記入) | Cloud SQL → `times-db` → 概要 (マシンタイプ) とフラグ |
+| Cloud Run の最大インスタンス数 | 3 (1 vCPU、256 MiB) | Cloud Run → `times-api` → 新しいリビジョンの編集とデプロイ → スケーリング |
+| Cloud SQL の `max_connections` | 25 (フラグなし。1 vCPU・628.74 MB のマシンの既定値) | Cloud SQL → `times-db` → 概要 (マシンタイプ) とフラグ |
+| 使う接続数の上限 | 3 × 4 + 1 = 13 (使えるのは 25 − 3 = 22) | |
 
-最大インスタンス数かマシンタイプを変えたら、この表を直す。
+最大インスタンス数かマシンタイプを変えたら、この表を直す。この構成で最大インスタンス数を上げられるのは 5 (4 × 5 + 1 = 21) まで。実際の接続数は Cloud SQL → `times-db` → 概要 のグラフ (PostgreSQL の接続数) で見る。
 
 ## 3. マイグレーション (変更があるときだけ、API より先に)
 
