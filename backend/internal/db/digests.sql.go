@@ -364,7 +364,7 @@ func (q *Queries) ListPublishedDigests(ctx context.Context, arg ListPublishedDig
 }
 
 const listRegisteredArticles = `-- name: ListRegisteredArticles :many
-SELECT a.id, a.url, a.title, a.category,
+SELECT a.id, a.url, a.title, a.category, a.hidden,
   EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = cur.id) AS placed,
   EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id
     WHERE c.parent_id = a.id AND da.digest_id = cur.id) AS has_placed_child,
@@ -397,6 +397,7 @@ type ListRegisteredArticlesRow struct {
 	Url              string
 	Title            string
 	Category         string
+	Hidden           bool
 	Placed           bool
 	HasPlacedChild   bool
 	HasEarlier       bool
@@ -419,6 +420,7 @@ func (q *Queries) ListRegisteredArticles(ctx context.Context, arg ListRegistered
 			&i.Url,
 			&i.Title,
 			&i.Category,
+			&i.Hidden,
 			&i.Placed,
 			&i.HasPlacedChild,
 			&i.HasEarlier,

@@ -32,6 +32,7 @@ func fakeGitHub(t *testing.T, tokenBody string, userStatus int) Client {
 	return Client{HTTP: srv.Client(), BaseURL: srv.URL, APIURL: srv.URL, ClientID: "id", ClientSecret: "secret"}
 }
 
+// code を access token に替え、/user の id と login を返す
 func TestExchange(t *testing.T) {
 	u, err := fakeGitHub(t, `{"access_token":"tok"}`, 200).Exchange(context.Background(), "code", "https://app/cb")
 	if err != nil || u != (User{ID: 42, Login: "octocat"}) {
@@ -39,6 +40,7 @@ func TestExchange(t *testing.T) {
 	}
 }
 
+// GitHub の error 応答・非 2xx・JSON でない応答は 502 にする
 func TestExchangeUpstreamFailed(t *testing.T) {
 	for name, c := range map[string]Client{
 		"token error": fakeGitHub(t, `{"error":"bad_verification_code"}`, 200),

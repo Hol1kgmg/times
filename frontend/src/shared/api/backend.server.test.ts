@@ -33,6 +33,12 @@ describe(backendFetch, () => {
     expect(Result.unwrapError(result)).toBeInstanceOf(BackendProblemError);
   });
 
+  it("does not treat a rejected backend token as an expired session", async () => {
+    stubFetch(problem(401, "/problems/invalid-backend-token"));
+    const result = await backendFetch("/auth/sessions/current", {}, { token });
+    expect(Result.unwrapError(result)).toBeInstanceOf(BackendProblemError);
+  });
+
   it("keeps the validated problem so callers can read extension members", async () => {
     stubFetch(
       problem(400, "/problems/url-already-registered", { duplicateUrls: ["https://a.example"] }),

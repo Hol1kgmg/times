@@ -60,10 +60,24 @@ Cloud Build → リポジトリ で GitHub の `Hol1kgmg/times` を接続する 
 
 `GIN_MODE=release` だけは `times-api` の環境変数に直接置いている。
 
+`BACKEND_TOKEN` が空だと `times-api` は起動しない (Cloud Run が付ける `K_SERVICE` で判別する)。到達制限なしで公開しないため。
+
 - **値を変える**: Secret Manager → 対象の秘密 → 新しいバージョン。続けて Cloud Run → `times-api` → 新しいリビジョンの編集とデプロイ → 何も変えずにデプロイ (起動済みのインスタンスは古い値を持ったままなので、リビジョンを作り直す)
 - **変数を足す・外す**: Cloud Run → `times-api` → 新しいリビジョンの編集とデプロイ → 変数とシークレット
 
 `DATABASE_URL` の値は Cloud SQL コネクタの Unix socket (`/cloudsql/<Cloud SQL 接続名>`) を指す接続文字列。
+
+### 接続数の上限
+
+`times-api` の 1 インスタンスは pgxpool で最大 `max(4, NumCPU)` 本の接続を持つ (`DATABASE_URL` に `pool_max_conns` を付けていないため)。Cloud Run の最大インスタンス数 × この本数に `times-migrate` の 1 本を足した数が、Cloud SQL の `max_connections` から予約分 (`superuser_reserved_connections`、既定 3) を引いた数を超えないようにする。超えると、スケールアウトしたときに新しい接続が `too many clients` で断られて 500 になる。
+
+| 項目 | 値 | 確かめる場所 |
+|---|---|---|
+| Cloud Run の最大インスタンス数 | 3 (1 vCPU、256 MiB) | Cloud Run → `times-api` → 新しいリビジョンの編集とデプロイ → スケーリング |
+| Cloud SQL の `max_connections` | 25 (フラグなし。1 vCPU・628.74 MB のマシンの既定値) | Cloud SQL → `times-db` → 概要 (マシンタイプ) とフラグ |
+| 使う接続数の上限 | 3 × 4 + 1 = 13 (使えるのは 25 − 3 = 22) | |
+
+最大インスタンス数かマシンタイプを変えたら、この表を直す。この構成で最大インスタンス数を上げられるのは 5 (4 × 5 + 1 = 21) まで。実際の接続数は Cloud SQL → `times-db` → 概要 のグラフ (PostgreSQL の接続数) で見る。
 
 ## 3. マイグレーション (変更があるときだけ、API より先に)
 
@@ -117,7 +131,7 @@ gcloud builds list --project="$GCP_PROJECT" --region="$GCP_REGION" --limit=5
 # API のログ
 gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="times-api"' \
     --project="$GCP_PROJECT" --limit=50 \
-    --format="value(timestamp,jsonPayload.level,jsonPayload.msg,jsonPayload.method,jsonPayload.path,jsonPayload.status,jsonPayload.duration_ms,jsonPayload.err,textPayload)"
+    --format="value(timestamp,severity,jsonPayload.message,jsonPayload.method,jsonPayload.path,jsonPayload.status,jsonPayload.duration_ms,jsonPayload.err,textPayload)"
 
 # マイグレーションのログ
 gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="times-migrate"' \

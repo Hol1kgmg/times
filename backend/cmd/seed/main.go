@@ -20,7 +20,6 @@ import (
 	"github.com/Hol1kgmg/times/backend/internal/api"
 	"github.com/Hol1kgmg/times/backend/internal/db"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -91,16 +90,12 @@ func run() error {
 	for _, dy := range days {
 		date := today.AddDate(0, 0, dy.n-last-1)
 		// 同じ日付を入れ直せるように消してから入れる。残った記事は upsert で使い回す
-		rows, err := tx.Query(ctx, "DELETE FROM digest_articles WHERE digest_id IN (SELECT id FROM digests WHERE entry_date = $1 AND created_by = $2) RETURNING article_id", date, seeder.ID)
-		if err != nil {
-			return err
-		}
-		ids, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+		ids, err := q.SeedDeleteDigestArticles(ctx, db.SeedDeleteDigestArticlesParams{EntryDate: date, CreatedBy: seeder.ID})
 		if err != nil {
 			return err
 		}
 		removed = append(removed, ids...)
-		if _, err := tx.Exec(ctx, "DELETE FROM digests WHERE entry_date = $1 AND created_by = $2", date, seeder.ID); err != nil {
+		if err := q.SeedDeleteDigest(ctx, db.SeedDeleteDigestParams{EntryDate: date, CreatedBy: seeder.ID}); err != nil {
 			return err
 		}
 		dg, err := q.CreateDigest(ctx, db.CreateDigestParams{EntryDate: date, CreatedBy: seeder.ID, Status: string(api.DigestStatusPublished)})

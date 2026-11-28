@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,7 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// stub は Digest の取得だけ差し替えて、handler が返した error の変換経路を確認する
+// stub は DB を触る操作を差し替えて、配線と handler が返した error の変換経路を確認する
 type stub struct {
 	*handler.Server
 	err error
@@ -74,6 +76,7 @@ func TestRouter(t *testing.T) {
 		wantType           api.ProblemType
 	}{
 		{"GET", "/health", "", http.StatusOK, ""},
+		{"GET", "/no-such-path", "", http.StatusNotFound, api.ProblemsnotFound},
 		{"POST", "/auth/sessions", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/auth/sessions", `{"code":"` + strings.Repeat("a", maxBodyBytes) + `","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound}, // /digests/{entryDate} より静的な経路が先
@@ -136,7 +139,7 @@ func TestUnexpectedError(t *testing.T) {
 	}
 }
 
-// token を渡すと X-Backend-Token が一致しない要求は 401 になる。/health も例外にしない
+// token を渡すと X-Backend-Token が一致しない要求は session 切れと別の type の 401 になる。/health も例外にしない
 func TestBackendToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r, _ := newRouter(newStub(nil), "s3cret", noLookup(t))
@@ -148,8 +151,42 @@ func TestBackendToken(t *testing.T) {
 		if w.Code != want {
 			t.Errorf("token %q: got %d, want %d (%s)", header, w.Code, want, w.Body)
 		}
-		if want == 401 && problem(t, w).Type != api.Problemsunauthorized {
+		if want == 401 && problem(t, w).Type != api.ProblemsinvalidBackendToken {
 			t.Errorf("token %q: type %s", header, w.Body)
+		}
+	}
+}
+
+// Cloud Run では BACKEND_TOKEN が空なら起動しない。手元 (K_SERVICE なし) は空でも起動する
+func TestRequireBackendToken(t *testing.T) {
+	for _, tt := range []struct {
+		token, service string
+		wantErr        bool
+	}{
+		{"", "times-api", true},
+		{"", "", false},
+		{"s3cret", "times-api", false},
+	} {
+		if err := requireBackendToken(tt.token, tt.service); (err != nil) != tt.wantErr {
+			t.Errorf("token %q service %q: got %v, want error %v", tt.token, tt.service, err, tt.wantErr)
+		}
+	}
+}
+
+// Cloud Logging が重大度を読めるよう、slog の level を LogSeverity の名前の severity にする。利用者の attr の level は触らない
+func TestCloudLoggingAttr(t *testing.T) {
+	for _, tt := range []struct {
+		in   slog.Attr
+		want string
+	}{
+		{slog.Any(slog.LevelKey, slog.LevelWarn), `severity="WARNING"`},
+		{slog.Any(slog.LevelKey, slog.LevelError+4), `severity="ERROR"`},
+		{slog.Any(slog.LevelKey, slog.LevelDebug), `severity="DEBUG"`},
+		{slog.String(slog.MessageKey, "m"), `message="m"`},
+		{slog.String(slog.LevelKey, "high"), `level="high"`},
+	} {
+		if a := cloudLoggingAttr(nil, tt.in); fmt.Sprintf("%s=%q", a.Key, a.Value.String()) != tt.want {
+			t.Errorf("%v: got %v, want %s", tt.in, a, tt.want)
 		}
 	}
 }
@@ -162,6 +199,9 @@ func TestBearerAuth(t *testing.T) {
 	var calls int
 	lookup := func(_ context.Context, hash []byte) (db.GetSessionByTokenHashRow, error) {
 		calls++
+		if string(hash) == string(auth.Hash("db-down")) {
+			return db.GetSessionByTokenHashRow{}, errors.New("connection refused")
+		}
 		if string(hash) != string(auth.Hash("valid")) {
 			return db.GetSessionByTokenHashRow{}, pgx.ErrNoRows
 		}
@@ -178,6 +218,7 @@ func TestBearerAuth(t *testing.T) {
 		{"GET", "/auth/sessions/current", "Basic x", 401, false},
 		{"GET", "/auth/sessions/current", "Bearer garbage", 401, true},
 		{"GET", "/auth/sessions/current", "Bearer valid", 200, true},
+		{"GET", "/auth/sessions/current", "Bearer db-down", 500, true}, // 照合の DB 失敗は 401 にしない
 		{"DELETE", "/auth/sessions/current", "", 401, false},
 		{"DELETE", "/auth/sessions/current", "Bearer valid", 204, true},
 		{"POST", "/digests", "Bearer valid", 400, true},                  // 認証後に body 検証 (空 body)
@@ -201,6 +242,9 @@ func TestBearerAuth(t *testing.T) {
 		if tt.want == 401 && problem(t, w).Type != api.Problemsunauthorized {
 			t.Errorf("%s %s %q: %s", tt.method, tt.path, tt.authz, w.Body)
 		}
+		if tt.want == 500 && (problem(t, w).Type != api.AboutBlank || strings.Contains(w.Body.String(), "connection refused")) {
+			t.Errorf("%s %s %q: %s", tt.method, tt.path, tt.authz, w.Body)
+		}
 		if tt.want == 200 && tt.path != "/health" {
 			var s api.Session
 			if err := json.Unmarshal(w.Body.Bytes(), &s); err != nil || s.User.Id != 1 || s.User.Login != "octocat" || !s.ExpiresAt.Equal(expires) {
@@ -210,75 +254,36 @@ func TestBearerAuth(t *testing.T) {
 	}
 }
 
-// url は http(s) だけ受ける。href にそのまま出るので javascript: 等は spec の pattern で 400
-func TestCreateDigestRejectsNonHTTPURL(t *testing.T) {
+// ログイン中でも、spec のスキーマに合わない body は 400 validation-failed
+func TestDigestBodyRejectedBySchema(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
 		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
 	}
 	r, _ := newRouter(newStub(nil), "", lookup)
-	body := `{"entryDate":"2026-10-17","articles":[{"category":"その他","title":"t","url":"javascript:alert(1)"}]}`
-	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer valid")
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
-		t.Errorf("got %d: %s", w.Code, w.Body)
+	tests := []struct {
+		name, method, path, body string
+	}{
+		// href にそのまま出るので javascript: 等は pattern で断る
+		{"url is not http(s)", "POST", "/digests", `{"entryDate":"2026-10-17","articles":[{"category":"その他","title":"t","url":"javascript:alert(1)"}]}`},
+		// 新規 (url・title) か再掲載 (repostOf) のどちらか一方の形 (specs/018 contracts)
+		{"article in both shapes", "POST", "/digests", `{"entryDate":"2026-10-17","articles":[{"category":"その他","title":"t","url":"https://example.com","repostOf":"https://example.com"}]}`},
+		// 再掲載の親も載せるかは真偽値だけ (specs/018 Revision 4)
+		{"listed is not boolean", "POST", "/digests", `{"entryDate":"2026-10-17","articles":[{"category":"その他","repostOf":"https://example.com","listed":"yes"}]}`},
+		// 下書きへ戻せない (specs/006 SC-004)
+		{"update to draft", "PUT", "/digests/2026-10-17", `{"entryDate":"2026-10-17","status":"draft","articles":[{"category":"その他","title":"t","url":"https://example.com"}]}`},
 	}
-}
-
-// 記事は新規 (url・title) か再掲載 (repostOf) のどちらか一方の形でなければならない (specs/018 contracts)
-func TestCreateDigestRejectsArticleInBothShapes(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
-		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
-	}
-	r, _ := newRouter(newStub(nil), "", lookup)
-	body := `{"entryDate":"2026-10-17","articles":[{"category":"その他","title":"t","url":"https://example.com","repostOf":"https://example.com"}]}`
-	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer valid")
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
-		t.Errorf("got %d: %s", w.Code, w.Body)
-	}
-}
-
-// 再掲載の親も載せるかは真偽値だけ受ける (specs/018 Revision 4)
-func TestCreateDigestRejectsNonBooleanListed(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
-		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
-	}
-	r, _ := newRouter(newStub(nil), "", lookup)
-	body := `{"entryDate":"2026-10-17","articles":[{"category":"その他","repostOf":"https://example.com","listed":"yes"}]}`
-	req := httptest.NewRequest("POST", "/digests", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer valid")
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
-		t.Errorf("got %d: %s", w.Code, w.Body)
-	}
-}
-
-// 下書きへ戻せないことは、更新の status が draft を受けないことで守る (specs/006 SC-004)
-func TestUpdateDigestRejectsDraft(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	lookup := func(context.Context, []byte) (db.GetSessionByTokenHashRow, error) {
-		return db.GetSessionByTokenHashRow{UserID: 1, Login: "octocat", ExpiresAt: time.Now().Add(time.Hour)}, nil
-	}
-	r, _ := newRouter(newStub(nil), "", lookup)
-	body := `{"entryDate":"2026-10-17","status":"draft","articles":[{"category":"その他","title":"t","url":"https://example.com"}]}`
-	req := httptest.NewRequest("PUT", "/digests/2026-10-17", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer valid")
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
-		t.Errorf("got %d: %s", w.Code, w.Body)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+			req.Header.Set("Authorization", "Bearer valid")
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			if w.Code != http.StatusBadRequest || problem(t, w).Type != api.ProblemsvalidationFailed {
+				t.Errorf("got %d: %s", w.Code, w.Body)
+			}
+		})
 	}
 }
 

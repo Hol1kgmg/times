@@ -45,7 +45,8 @@ jobs:
           restore-keys: go-${{ runner.os }}-
       - run: nix develop .#backend --command just ${{ matrix.task }}
       - if: matrix.task == 'be-gen-go'
-        run: git diff --exit-code -- backend
+        # git diff は追跡していない生成物 (新しいクエリの *.sql.go) を見ないので status で見る
+        run: test -z "$(git status --porcelain -- backend/internal/api backend/internal/db)" || { git status --porcelain -- backend/internal/api backend/internal/db; git diff -- backend; exit 1; }
 
   # docs/schema (just db-doc) がマイグレーションと一致するか
   db-doc:

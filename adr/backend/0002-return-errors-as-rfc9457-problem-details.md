@@ -44,7 +44,8 @@ strict-server には想定内の失敗を型付きレスポンス（`CreateItem4
 - `title`: `type` に対して固定の短い文言。status の reason phrase と同じでよい
 - `status`: HTTP status code と同値
 - `detail`: この発生に固有の説明。省略可。**500 では出さない**（内部情報を漏らさないため）
-- `instance` と拡張メンバは使わない
+- `instance` は使わない
+- 拡張メンバーは、画面が断られた行に印を付けたり切り替えたりするのに要るときだけ使う。今あるのは `duplicateUrls` (url-already-registered・repost-unavailable)、`repostable` (url-already-registered)、`hideable` (parent-has-children)。足すときは `apperr.Error` のフィールド、`writeProblem` の写し、`openapi.yaml` の `Problem` の 3 か所を直す (2026-11-28 追記)
 
 ### 2. handler は想定内の失敗も Go の `error` で返す
 
@@ -66,6 +67,7 @@ func Conflict(detail string) error   // 409, /problems/conflict
 
 - handler は `return nil, apperr.NotFound("item " + id + " does not exist")` のように返す
 - DB 由来のエラー（`pgx.ErrNoRows` 等）は **handler が** `apperr` に変換する。配線層は DB を知らない
+  - 例外: Bearer トークンの照合 (`authenticateBearer`) は handler より前の配線層で行うので、`cmd/server` が `pgx.ErrNoRows` を見て 401 にする ([0007](0007-issue-and-verify-sessions-in-backend.md))。照合の失敗は文脈によらず 401 で、上の Alternatives の「行が無いが 404 とは限らない」問題が起きない (2026-11-28 追記)
 - `apperr.Error` でない `error` は想定外として扱い、500 にする
 
 ### 3. 変換は `newRouter` の `writeProblem` 1関数で行う
@@ -141,6 +143,8 @@ oapi-codegen が用意するエラーフックは5つあり、全てを `writePr
 - **配線層で `pgx.ErrNoRows` を 404 に変換する**: handler が短くなるが、「行が無い」が常に 404 とは限らない（`UPDATE ... RETURNING` で 0 行なら 404 だが、`INSERT ... ON CONFLICT DO NOTHING RETURNING` で 0 行なら 409）。変換は文脈を知る handler で行う
 
 ## More Information
+
+- 2026-11-28: 実装に合わせて、拡張メンバーを使うこと (Decision 1) と、認証の照合だけ配線層が `pgx.ErrNoRows` を見ること (Decision 2) を追記した (#232)
 
 - 関連: [HTTP framework に Gin を採用し、oapi-codegen strict-server の下に隠す](0001-adopt-gin-behind-oapi-codegen-strict-server.md)
 - RFC 9457 Problem Details for HTTP APIs: https://www.rfc-editor.org/rfc/rfc9457
