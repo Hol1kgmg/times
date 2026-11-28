@@ -43,9 +43,9 @@ test("登録画面の WebMCP の add_articles で URL を入れ、update_article
 }) => {
   const context = await browser.newContext({ storageState: await loggedInState(browser) });
   const page = await context.newPage();
-  // 同じ DB を使い回すので、実行ごとに URL と日付を変えて重複 (400) を避ける。日付はほかの spec と帯を分け、digest-edit.spec.ts の 1900 年より前に収める
+  // 同じ DB を使い回すので、実行ごとに URL と日付を変えて重複 (400) を避ける。日付はほかの spec と帯を分け、article-search.spec.ts の 1600 年より前に収める
   const run = Date.now();
-  const date = new Date(Date.UTC(1800, 0, 1) + (Math.floor(run / 1000) % 36_000) * 86_400_000)
+  const date = new Date(Date.UTC(1500, 0, 1) + (Math.floor(run / 1000) % 36_000) * 86_400_000)
     .toISOString()
     .slice(0, 10);
   await page.goto("/admin/digests/new");

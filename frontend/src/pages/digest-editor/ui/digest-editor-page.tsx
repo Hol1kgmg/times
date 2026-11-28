@@ -284,13 +284,13 @@ const DigestForm = <S extends DigestStatus>({
       }
       // 日付で断られたときは URL を確かめる前に止まっているので、前の行の印を残す
       if ("duplicateUrls" in rejected) {
-        const rows = rowRejectionOf(rejected);
-        setRowRejection(rows);
-        if (rejected.reason === "url-already-registered") {
-          // 自動では保存し直さず、切り替えた行を見てから保存してもらう
-          setBoard((b) => convertToReposts(b, rejected.repostable));
-        }
-        toast.error(rejectionText(rejected.reason, rows.registered.size > 0));
+        const repostable = rejected.reason === "url-already-registered" ? rejected.repostable : [];
+        setRowRejection(rowRejectionOf(rejected));
+        // 自動では保存し直さず、切り替えた行を見てから保存してもらう
+        setBoard((b) => convertToReposts(b, repostable));
+        toast.error(
+          rejectionText(rejected.reason, repostable.length < rejected.duplicateUrls.length),
+        );
       }
       if (rejected.reason === "parent-has-children") {
         // 自動では保存し直さず、戻した行を見てから保存してもらう

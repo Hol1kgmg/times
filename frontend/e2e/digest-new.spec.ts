@@ -30,14 +30,18 @@ test("トップを開くと閲覧の記録が送られ、URL を貼って集め�
     location: new URL("/", page.url()).href,
   });
   await page.waitForLoadState("networkidle");
-  // 回し直してもぶつからず最新になるよう前回の 2 日後にし (間の日は過去の登録に使う)、空の DB は未来 (specs/010) を避けて 1 年前
+  // 回し直してもぶつからず最新になるよう前回の 2 日後にし (間の日は過去の登録に使う)、ほかの spec の帯 (2023 年まで) からは 1 年前に引き上げる
   const shown = page.getByRole("region", { name: "最新の Digest" }).locator("time");
   const latest = (await shown.count()) === 0 ? null : await shown.first().getAttribute("datetime");
-  const date = new Date(
-    latest === null ? run - 365 * 86_400_000 : Date.parse(latest) + 2 * 86_400_000,
-  )
-    .toISOString()
-    .slice(0, 10);
+  const next = Math.max(
+    run - 365 * 86_400_000,
+    latest === null ? 0 : Date.parse(latest) + 2 * 86_400_000,
+  );
+  // 未来の日付は公開できない (specs/010)。JST との時差をまたがないよう前日までにする
+  if (next > run - 86_400_000) {
+    throw new Error("times_e2e の日付を使い切りました。just be-dev-e2e で DB を作り直してください");
+  }
+  const date = new Date(next).toISOString().slice(0, 10);
   await page.getByRole("link", { name: "記事を登録" }).click();
   await page.waitForURL((url) => url.pathname === newPath);
   await fillDate(page, date);
