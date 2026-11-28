@@ -170,6 +170,13 @@ interface ViewProps {
 // Storybook は Router を載せないので、route の hook を使わない形で描く
 export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
   const [opened, setOpened] = useState<Hit>();
+  const [text, setText] = useState(q ?? "");
+  // 戻る・進むで q が変わったときだけ欄を合わせる。key で作り直すと検索するたびに欄のフォーカスが外れる
+  const [shownQ, setShownQ] = useState(q);
+  if (q !== shownQ) {
+    setShownQ(q);
+    setText(q ?? "");
+  }
   return (
     <div className={styles.page}>
       <h1 className={styles.heading}>記事を検索</h1>
@@ -185,16 +192,18 @@ export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
         }}
       >
         <input
-          key={q}
           aria-label="タイトルか URL"
           className={styles.input}
-          defaultValue={q}
           maxLength={100}
           name="q"
           pattern=".*\S.*"
           required
           title="空白だけでは探せないです"
           type="search"
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+          }}
         />
         <Button className={styles.submit} type="submit">
           検索

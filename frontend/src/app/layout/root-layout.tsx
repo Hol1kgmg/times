@@ -22,7 +22,10 @@ export const RootLayout = ({ children }: Props) => {
   // 開いている間だけ Escape を拾い、フォーカスをメニュー内へ移す
   useEffect(() => {
     if (open) {
-      navRef.current?.querySelector("a")?.focus();
+      const nav = navRef.current;
+      (
+        nav?.querySelector<HTMLElement>('a[data-status="active"]') ?? nav?.querySelector("a")
+      )?.focus();
     }
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape" && open) {

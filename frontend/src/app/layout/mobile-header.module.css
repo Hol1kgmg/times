@@ -63,6 +63,8 @@
 .header[data-open="true"] .menu {
   grid-template-rows: 1fr;
   visibility: visible;
+  /* 開く側も visibility を補間すると、開いた直後はまだ hidden で中のリンクにフォーカスできない */
+  transition: grid-template-rows 0.2s;
 }
 
 .menuInner {

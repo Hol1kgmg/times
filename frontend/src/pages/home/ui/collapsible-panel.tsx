@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "react-aria-components";
+import type { PressEvent } from "react-aria-components";
 import { Chevron } from "#/shared/ui/chevron";
 import styles from "./collapsible-panel.module.css";
 
@@ -50,7 +52,19 @@ export const CollapsiblePanel = ({ children }: { children: ReactNode }) => {
       )}
       {!expanded && overflowing === true && (
         <div className={styles.more}>
-          <Button className={styles.expand} onPress={expand}>
+          <Button
+            className={styles.expand}
+            onPress={(e: PressEvent) => {
+              const fade = fadeRef.current;
+              const fadeTop = fade?.getBoundingClientRect().top ?? Infinity;
+              const links = fade?.previousElementSibling?.querySelectorAll<HTMLElement>("a") ?? [];
+              flushSync(expand);
+              // 押したボタンが消えてフォーカスを失うので、キー操作と読み上げでは隠れていた最初の記事へ移す
+              if (e.pointerType === "keyboard" || e.pointerType === "virtual") {
+                [...links].find((a) => a.getBoundingClientRect().bottom > fadeTop)?.focus();
+              }
+            }}
+          >
             すべて表示
             <Chevron size={14} />
           </Button>
