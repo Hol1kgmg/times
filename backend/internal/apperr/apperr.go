@@ -42,6 +42,8 @@ var Types = map[string]int{
 	"/problems/unauthorized":      http.StatusUnauthorized,
 	"/problems/forbidden":         http.StatusForbidden,
 	"/problems/upstream-failed":   http.StatusBadGateway,
+	// session 切れと分ける。frontend は unauthorized で管理者 Cookie を消すので、設定のずれでログアウトさせない
+	"/problems/invalid-backend-token": http.StatusUnauthorized,
 	// 業務ルール違反だが、入力を直せば通るので 409 ではなく 400 に揃える
 	"/problems/url-already-registered": http.StatusBadRequest,
 	"/problems/digest-already-exists":  http.StatusBadRequest,
@@ -61,6 +63,9 @@ func Forbidden(detail string) error        { return newError("/problems/forbidde
 func UpstreamFailed(detail string) error   { return newError("/problems/upstream-failed", detail) }
 func DigestAlreadyExists(detail string) error {
 	return newError("/problems/digest-already-exists", detail)
+}
+func InvalidBackendToken(detail string) error {
+	return newError("/problems/invalid-backend-token", detail)
 }
 func FuturePublish(detail string) error { return newError("/problems/future-publish", detail) }
 

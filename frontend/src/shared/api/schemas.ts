@@ -181,6 +181,7 @@ export const problem = z.object({
     "/problems/validation-failed",
     "/problems/not-found",
     "/problems/unauthorized",
+    "/problems/invalid-backend-token",
     "/problems/forbidden",
     "/problems/upstream-failed",
     "/problems/url-already-registered",

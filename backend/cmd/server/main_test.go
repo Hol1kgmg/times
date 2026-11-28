@@ -74,6 +74,7 @@ func TestRouter(t *testing.T) {
 		wantType           api.ProblemType
 	}{
 		{"GET", "/health", "", http.StatusOK, ""},
+		{"GET", "/no-such-path", "", http.StatusNotFound, api.ProblemsnotFound},
 		{"POST", "/auth/sessions", `not json`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"POST", "/auth/sessions", `{"code":"` + strings.Repeat("a", maxBodyBytes) + `","redirectUri":"https://app/cb"}`, http.StatusBadRequest, api.ProblemsvalidationFailed},
 		{"GET", "/digests/latest", "", http.StatusNotFound, api.ProblemsnotFound}, // /digests/{entryDate} より静的な経路が先
@@ -136,7 +137,7 @@ func TestUnexpectedError(t *testing.T) {
 	}
 }
 
-// token を渡すと X-Backend-Token が一致しない要求は 401 になる。/health も例外にしない
+// token を渡すと X-Backend-Token が一致しない要求は session 切れと別の type の 401 になる。/health も例外にしない
 func TestBackendToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r, _ := newRouter(newStub(nil), "s3cret", noLookup(t))
@@ -148,7 +149,7 @@ func TestBackendToken(t *testing.T) {
 		if w.Code != want {
 			t.Errorf("token %q: got %d, want %d (%s)", header, w.Code, want, w.Body)
 		}
-		if want == 401 && problem(t, w).Type != api.Problemsunauthorized {
+		if want == 401 && problem(t, w).Type != api.ProblemsinvalidBackendToken {
 			t.Errorf("token %q: type %s", header, w.Body)
 		}
 	}

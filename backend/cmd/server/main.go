@@ -121,14 +121,18 @@ func newRouter(s api.StrictServerInterface, token string, lookup sessionLookup) 
 		// 呼び元は Workers のサーバー関数だけ (adr/backend/0003)。共有シークレットで他からの到達を断つ
 		r.Use(func(c *gin.Context) {
 			if subtle.ConstantTimeCompare([]byte(c.GetHeader("X-Backend-Token")), []byte(token)) != 1 {
-				writeProblem(c, apperr.Unauthorized("missing or invalid X-Backend-Token"))
+				writeProblem(c, apperr.InvalidBackendToken("missing or invalid X-Backend-Token"))
 			}
 		})
 	}
 	r.Use(ginmiddleware.OapiRequestValidatorWithOptions(spec, &ginmiddleware.Options{
-		ErrorHandler: func(c *gin.Context, message string, _ int) {
+		ErrorHandler: func(c *gin.Context, message string, status int) {
 			// gin-middleware は error を文字列に潰して渡すので、認証失敗は AuthenticationFunc の中で書き終えている
 			if c.Writer.Written() {
+				return
+			}
+			if status == http.StatusNotFound {
+				writeProblem(c, apperr.NotFound(message))
 				return
 			}
 			writeProblem(c, apperr.ValidationFailed(message))
