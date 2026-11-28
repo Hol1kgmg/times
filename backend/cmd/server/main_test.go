@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -151,6 +153,40 @@ func TestBackendToken(t *testing.T) {
 		}
 		if want == 401 && problem(t, w).Type != api.ProblemsinvalidBackendToken {
 			t.Errorf("token %q: type %s", header, w.Body)
+		}
+	}
+}
+
+// Cloud Run では BACKEND_TOKEN が空なら起動しない。手元 (K_SERVICE なし) は空でも起動する
+func TestRequireBackendToken(t *testing.T) {
+	for _, tt := range []struct {
+		token, service string
+		wantErr        bool
+	}{
+		{"", "times-api", true},
+		{"", "", false},
+		{"s3cret", "times-api", false},
+	} {
+		if err := requireBackendToken(tt.token, tt.service); (err != nil) != tt.wantErr {
+			t.Errorf("token %q service %q: got %v, want error %v", tt.token, tt.service, err, tt.wantErr)
+		}
+	}
+}
+
+// Cloud Logging が重大度を読めるよう、slog の level を LogSeverity の名前の severity にする。利用者の attr の level は触らない
+func TestCloudLoggingAttr(t *testing.T) {
+	for _, tt := range []struct {
+		in   slog.Attr
+		want string
+	}{
+		{slog.Any(slog.LevelKey, slog.LevelWarn), `severity="WARNING"`},
+		{slog.Any(slog.LevelKey, slog.LevelError+4), `severity="ERROR"`},
+		{slog.Any(slog.LevelKey, slog.LevelDebug), `severity="DEBUG"`},
+		{slog.String(slog.MessageKey, "m"), `message="m"`},
+		{slog.String(slog.LevelKey, "high"), `level="high"`},
+	} {
+		if a := cloudLoggingAttr(nil, tt.in); fmt.Sprintf("%s=%q", a.Key, a.Value.String()) != tt.want {
+			t.Errorf("%v: got %v, want %s", tt.in, a, tt.want)
 		}
 	}
 }

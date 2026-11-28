@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -31,7 +32,7 @@ import (
 const maxBodyBytes = 1 << 20 // 1 MiB。spec の maxLength は本文を全部読んでからしか効かない
 
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: cloudLoggingAttr})))
 	if err := run(); err != nil {
 		slog.Error("exit", "err", err)
 		os.Exit(1)
@@ -41,6 +42,12 @@ func main() {
 func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Secret Manager 経由だと末尾に改行が付くことがある。ヘッダー側は trim 済みで届くので揃える
+	token := strings.TrimSpace(os.Getenv("BACKEND_TOKEN"))
+	if err := requireBackendToken(token, os.Getenv("K_SERVICE")); err != nil {
+		return err
+	}
 
 	// compose.yaml の db サービスに合わせた開発用デフォルト
 	cfg, err := pgxpool.ParseConfig(cmp.Or(os.Getenv("DATABASE_URL"), "postgres://times:times@localhost:5432/times?sslmode=disable"))
@@ -67,8 +74,7 @@ func run() error {
 		slog.Warn("github login is not configured; POST /auth/sessions always 403")
 	}
 
-	// Secret Manager 経由だと末尾に改行が付くことがある。ヘッダー側は trim 済みで届くので揃える
-	r, err := newRouter(handler.New(pool, gh, adminLogin), strings.TrimSpace(os.Getenv("BACKEND_TOKEN")), db.New(pool).GetSessionByTokenHash)
+	r, err := newRouter(handler.New(pool, gh, adminLogin), token, db.New(pool).GetSessionByTokenHash)
 	if err != nil {
 		return err
 	}
@@ -91,6 +97,44 @@ func run() error {
 	return srv.Shutdown(shutdownCtx)
 }
 
+// requireBackendToken は Cloud Run (K_SERVICE がある) で BACKEND_TOKEN が空のまま、到達制限なしで起動するのを止める。
+func requireBackendToken(token, service string) error {
+	if service != "" && token == "" {
+		return errors.New("BACKEND_TOKEN is required on Cloud Run")
+	}
+	return nil
+}
+
+// cloudLoggingAttr は slog の JSON を Cloud Logging が重大度と本文として読むキーにする。
+func cloudLoggingAttr(groups []string, a slog.Attr) slog.Attr {
+	if len(groups) > 0 {
+		return a
+	}
+	switch lv, ok := a.Value.Any().(slog.Level); {
+	case a.Key == slog.LevelKey && ok:
+		return slog.String("severity", severity(lv))
+	case a.Key == slog.MessageKey:
+		a.Key = "message"
+	}
+	return a
+}
+
+// severity は Cloud Logging の LogSeverity の名前にする。slog の WARN や ERROR+4 のままでは DEFAULT 扱いになる
+func severity(lv slog.Level) string {
+	switch {
+	case lv >= slog.LevelError:
+		return "ERROR"
+	case lv >= slog.LevelWarn:
+		return "WARNING"
+	case lv >= slog.LevelInfo:
+		return "INFO"
+	}
+	return "DEBUG"
+}
+
+// errPanic は Recovery がログを書き終えた 500。writeProblem で二重に出さない
+var errPanic = errors.New("panic")
+
 // sessionLookup は Bearer トークンの sha256 から有効な session を引く。見つからなければ pgx.ErrNoRows。
 type sessionLookup func(ctx context.Context, tokenHash []byte) (db.GetSessionByTokenHashRow, error)
 
@@ -111,8 +155,12 @@ func newRouter(s api.StrictServerInterface, token string, lookup sessionLookup) 
 	r.ContextWithFallback = true
 	r.Use(
 		accessLog,
-		// panic も Problem Details にする (adr/backend/0002)。writeProblem が 500 として slog に出す
-		gin.CustomRecovery(func(c *gin.Context, v any) { writeProblem(c, fmt.Errorf("panic: %v", v)) }),
+		// panic も Problem Details にする (adr/backend/0002)。gin の stderr の複数行ではなく、スタックごと slog の 1 エントリに出す
+		gin.CustomRecoveryWithWriter(nil, func(c *gin.Context, v any) {
+			// Error Reporting は stack_trace の "panic: ..." に続く goroutine のスタックを読んでまとめる
+			slog.Error("panic", "stack_trace", fmt.Sprintf("panic: %v\n\n%s", v, debug.Stack()), "method", c.Request.Method, "path", c.Request.URL.Path)
+			writeProblem(c, errPanic)
+		}),
 		func(c *gin.Context) { c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes) },
 	)
 	if token == "" {
@@ -192,7 +240,7 @@ func accessLog(c *gin.Context) {
 }
 
 // writeProblem は error を RFC 9457 Problem Details に変換する唯一の場所。
-// *apperr.Error 以外は想定外として 500 にし、内部エラーの文言はクライアントに返さない。
+// *apperr.Error 以外は想定外として 500 にし、内部エラーの文言はクライアントに返さない。5xx はどちらも slog に出す。
 // ADR: adr/backend/0002-return-errors-as-rfc9457-problem-details.md
 func writeProblem(c *gin.Context, err error) {
 	p := api.Problem{Type: api.AboutBlank, Status: http.StatusInternalServerError}
@@ -216,7 +264,8 @@ func writeProblem(c *gin.Context, err error) {
 			}
 			p.Hideable = &h
 		}
-	} else {
+	}
+	if p.Status >= http.StatusInternalServerError && !errors.Is(err, errPanic) {
 		slog.Error("handler error", "err", err, "method", c.Request.Method, "path", c.Request.URL.Path)
 	}
 	p.Title = http.StatusText(p.Status)
