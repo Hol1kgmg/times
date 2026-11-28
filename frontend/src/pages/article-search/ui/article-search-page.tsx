@@ -171,7 +171,7 @@ interface ViewProps {
 export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
   const [opened, setOpened] = useState<Hit>();
   const [text, setText] = useState(q ?? "");
-  // 戻る・進むで q が変わったときだけ欄を合わせる。key で作り直すと検索するたびに欄のフォーカスが外れる
+  // 戻る・進むなどで q が変わったら欄を合わせる。key で作り直すと検索するたびに欄のフォーカスが外れる
   const [shownQ, setShownQ] = useState(q);
   if (q !== shownQ) {
     setShownQ(q);

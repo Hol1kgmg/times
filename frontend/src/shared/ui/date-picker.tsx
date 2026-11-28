@@ -271,7 +271,7 @@ export const DatePickerDialog = ({
       setView(v);
       setFocused(to);
       if (land || v !== view) {
-        setLanding({ at: v === "month" ? dayCellAt : `${cardAt(toYm)} button` });
+        setLanding({ at: v === "month" ? dayCellAt : `${cardAt(toYm)} h3 button` });
       }
     });
   };
