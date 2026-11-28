@@ -151,14 +151,7 @@ const Entry = ({
         <ul className={styles.children}>
           {article.children.map((c) => (
             <li key={c.url}>
-              {/* 親が HOT なら印は親の行だけで話題全体を示す (specs/018 FR-017) */}
-              <ArticleLink
-                ai={ai}
-                article={c}
-                hot={c.hot && (article.concealed === true || !article.hot)}
-                loadPreview={loadPreview}
-                open={open}
-              />
+              <ArticleLink ai={ai} article={c} hot={c.hot} loadPreview={loadPreview} open={open} />
             </li>
           ))}
         </ul>

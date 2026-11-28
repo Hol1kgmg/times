@@ -587,20 +587,15 @@ export const DraftCard = ({
             <li key={child.id} data-draft-id={child.id}>
               <LinkRow
                 hidden={child.hidden === true}
-                hot={!draft.hot && child.hot}
+                hot={child.hot}
                 link={child}
                 menu={[
-                  // 親が HOT なら子もまとめて HOT なので、子だけを切り替えさせない (specs/018 FR-016)
-                  ...(draft.hot
-                    ? []
-                    : [
-                        {
-                          label: child.hot ? "ホットを外す" : "ホットにする",
-                          onSelect: () => {
-                            actions.toggleHot(child.id);
-                          },
-                        },
-                      ]),
+                  {
+                    label: child.hot ? "ホットを外す" : "ホットにする",
+                    onSelect: () => {
+                      actions.toggleHot(child.id);
+                    },
+                  },
                   {
                     label: "上へ",
                     disabled: i === 0,

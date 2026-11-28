@@ -177,7 +177,7 @@ func TestToDigestRepost(t *testing.T) {
 		placed(db.ListArticlesByDigestRow{ID: q, Category: "セキュリティ", Title: "q", Url: "https://q.example", IsRepost: true, IsHot: true}),
 		placed(db.ListArticlesByDigestRow{ID: h, Category: "UI系", Title: "h", Url: "https://h.example", IsRepost: true, IsHot: true}),
 		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "UI系", Title: "h1", Url: "https://h.example/1", ParentID: &h, IsHot: true}),
-		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "UI系", Title: "h2", Url: "https://h.example/2", ParentID: &h, IsHot: true}),
+		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "UI系", Title: "h2", Url: "https://h.example/2", ParentID: &h}),
 	}
 	body, err := json.Marshal(toDigest(db.Digest{ID: uuid.New()}, rows, false))
 	if err != nil {
@@ -213,9 +213,9 @@ func TestToDigestRepost(t *testing.T) {
 	if got.Articles[1].Hot {
 		t.Errorf("a placement that became a repost by a date change must not show its old HOT: got %s", body)
 	}
-	// 子は保存時に親の HOT を写しているので、親の HOT を落とすと子ごとに炎が並ぶ
-	if got.Articles[2].Hot || got.Articles[2].Children[0]["hot"] != false || got.Articles[2].Children[1]["hot"] != false {
-		t.Errorf("children of a HOT parent that became a repost must not show HOT: got %s", body)
+	// 子の HOT は親と別に付けるので、親の HOT が落ちても子の HOT は残る
+	if got.Articles[2].Hot || got.Articles[2].Children[0]["hot"] != true || got.Articles[2].Children[1]["hot"] != false {
+		t.Errorf("a HOT parent that became a repost drops only its own HOT: got %s", body)
 	}
 	if _, ok := got.Articles[0].Children[0]["firstPublishedOn"]; ok {
 		t.Errorf("child should not carry firstPublishedOn: got %s", body)

@@ -197,12 +197,12 @@ describe("関連記事", () => {
     expect(canMakeChild(b, "next")).toBeFalsy();
   });
 
-  it("drops the hot flag when nested and returns right after the parent with its own flag when unnested", () => {
+  it("keeps its own hot flag when nested under a hot parent and returns right after the parent when unnested", () => {
     const b = board({ その他: [draft("a"), draft("b", { hot: true }), draft("z")] });
     const nested = makeChild(toggleHot(b, "a"), "b");
     expect(nested.その他.map((d) => d.id)).toStrictEqual(["a", "z"]);
-    expect(nested.その他[0]?.children[0]?.hot).toBeFalsy();
-    const back = ok(unmakeChild(toggleHot(nested, "b"), "a", "b"));
+    expect(nested.その他[0]?.children[0]?.hot).toBeTruthy();
+    const back = ok(unmakeChild(nested, "a", "b"));
     expect(back.その他.map((d) => [d.id, d.hot])).toStrictEqual([
       ["a", true],
       ["b", true],
@@ -311,24 +311,9 @@ describe("保存済みの Digest を開く", () => {
     });
   });
 
-  it("leaves the children unmarked when the hot flag is taken off their parent", () => {
-    const b = fromDigest(
-      digest.parse({
-        ...saved,
-        articles: [
-          article(1, {
-            hot: true,
-            children: [child(11, { hot: true })],
-          }),
-        ],
-      }),
-    );
-    expect(toggleHot(b, uuid(1)).その他[0]?.children[0]?.hot).toBeFalsy();
-  });
-
-  it("drops the children's own hot flags once their parent is marked hot", () => {
+  it("keeps the children's own hot flags while their parent's hot flag is switched", () => {
     const b = toggleHot(board({ IT系: [draft("p", { children: [link("c")] })] }), "c");
-    expect(toggleHot(toggleHot(b, "p"), "p").IT系[0]?.children[0]?.hot).toBeFalsy();
+    expect(toggleHot(b, "p").IT系[0]?.children[0]?.hot).toBeTruthy();
   });
 
   it("moves a saved repost back to the article category once its children are removed", () => {
