@@ -358,7 +358,7 @@ dependencies:
 - repo_url: google/skills
   name: cloud-run-basics
   host: github.com
-  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
+  resolved_commit: 10c799ee69bcdb10b82836403d1531bfcc3d9d24
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/cloud-run-basics
@@ -389,7 +389,7 @@ dependencies:
 - repo_url: google/skills
   name: cloud-sql-basics
   host: github.com
-  resolved_commit: 4bb21ebfa085f6307d5d62bc21765e1d3433f11d
+  resolved_commit: 10c799ee69bcdb10b82836403d1531bfcc3d9d24
   resolved_ref: main
   version: unknown
   virtual_path: skills/cloud/cloud-sql-basics
