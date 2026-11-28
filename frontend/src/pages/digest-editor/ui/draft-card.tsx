@@ -25,6 +25,7 @@ import { rethrowSessionExpired } from "../model/rethrow-session-expired";
 import { failureMessage } from "./failure-message";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
+import { useHovered } from "#/shared/lib/use-hovered";
 
 export interface CardActions {
   atLimit: boolean;
@@ -429,6 +430,7 @@ export const DraftCard = ({
 }) => {
   const reasonId = useId();
   const [showVisibilityReason, setShowVisibilityReason] = useState(false);
+  const visibilityHovered = useHovered();
   const { ref, handleRef, isDragging } = useSortable({
     id: draft.id,
     index,
@@ -522,7 +524,7 @@ export const DraftCard = ({
       <LinkRow
         action={
           (draft.hidden === true || draft.unpublished === true) && (
-            <span className={styles.visibilityAction}>
+            <span className={styles.visibilityAction} {...visibilityHovered}>
               <Button
                 className={styles.button}
                 isDisabled={draft.repost !== undefined || draft.unpublished === true}

@@ -79,4 +79,8 @@
   .fieldButton {
     transition: none;
   }
+
+  .fieldButton[data-pressed] {
+    transform: none;
+  }
 }

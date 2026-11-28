@@ -50,7 +50,7 @@
   visibility: hidden;
 }
 
-.visibilityAction:hover .visibilityReason,
+.visibilityAction[data-hovered] .visibilityReason,
 .visibilityAction:focus-within .visibilityReason,
 .visibilityReason[data-open] {
   visibility: visible;

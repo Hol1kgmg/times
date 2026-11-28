@@ -277,6 +277,12 @@
   .askAi > :first-child {
     transition: none;
   }
+
+  /* 通り過ぎただけで出さないための待ちは残し、フェードだけ止める */
+  .zone > a:not([data-dismissed])[data-hovered] + .preview,
+  .zone > a:not([data-dismissed]):focus-visible + .preview {
+    transition: visibility 0s 0.3s;
+  }
 }
 
 /* 1fr の下限は中身の幅なので、狭い画面では件数とボタンを縮めずピルを左へ寄せる */
