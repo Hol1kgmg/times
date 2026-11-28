@@ -72,10 +72,6 @@
   color: var(--color-text-muted);
 }
 
-.message[data-error] {
-  color: var(--color-danger);
-}
-
 .list {
   display: flex;
   flex-direction: column;

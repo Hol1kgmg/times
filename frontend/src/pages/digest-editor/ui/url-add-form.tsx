@@ -33,19 +33,20 @@ export const UrlAddForm = ({
 }: UrlAddFormProps) => {
   const { load, add } = useAddUrl(setBoard, setSuggesting);
   const [url, setUrl] = useState("");
-  const [addError, setAddError] = useState<string>();
+  // クリップボードを読めないのは欄の誤りではないので、欄を invalid にしない
+  const [addError, setAddError] = useState<{ text: string; invalid: boolean }>();
   const urlInput = useRef<HTMLInputElement>(null);
   const errorId = useId();
 
   const onAdd = async (input: string) => {
     if (!newChildArticle.shape.url.safeParse(input).success) {
-      setAddError("http か https の URL を入れてください");
+      setAddError({ text: "http か https の URL を入れてください", invalid: true });
       return;
     }
     const link = stripTracking(input);
     const rejected = rejectAdd(board, link);
     if (rejected !== null) {
-      setAddError(rejectedText[rejected]);
+      setAddError({ text: rejectedText[rejected], invalid: true });
       return;
     }
     setAddError(undefined);
@@ -89,7 +90,7 @@ export const UrlAddForm = ({
     try {
       text = await navigator.clipboard.readText();
     } catch {
-      setAddError("クリップボードを読めませんでした。入力欄に貼り付けてください");
+      setAddError({ text: "クリップボードを読めませんでした。欄に貼ってください", invalid: false });
       return;
     }
     // 弾かれたときに何が貼られたか見えるよう、先に入力欄へ入れる
@@ -116,7 +117,7 @@ export const UrlAddForm = ({
           <input
             ref={urlInput}
             aria-describedby={errorId}
-            aria-invalid={addError !== undefined}
+            aria-invalid={addError?.invalid === true}
             aria-label="記事の URL"
             className={styles.urlInput}
             disabled={adding}
@@ -127,6 +128,7 @@ export const UrlAddForm = ({
             value={url}
             onChange={(e) => {
               setUrl(e.target.value);
+              setAddError(undefined);
             }}
           />
           <Button
@@ -150,7 +152,7 @@ export const UrlAddForm = ({
       </form>
       {/* 出し入れで下のボタンが動かないよう、文がないときも場所を取っておく */}
       <p aria-live="polite" className={styles.message} id={errorId}>
-        {addError}
+        {addError?.text}
       </p>
     </>
   );

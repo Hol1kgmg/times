@@ -211,7 +211,11 @@ export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
         </Button>
       </form>
       {/* 出し入れで一覧の位置が動かないよう、常に置いて場所を取っておく */}
-      <output className={styles.count}>{resultText(result?.articles)}</output>
+      <output className={styles.count}>
+        {result !== undefined && result.articles.length >= ARTICLE_SEARCH_LIMIT
+          ? `新しい ${ARTICLE_SEARCH_LIMIT} 件だけ出してます。言葉を足すと古い記事まで届きます`
+          : resultText(result?.articles)}
+      </output>
       {result !== undefined && result.articles.length > 0 && (
         <ul className={styles.list}>
           {result.articles.map((hit) => (
@@ -225,11 +229,6 @@ export const ArticleSearchView = ({ q, result, onSearch }: ViewProps) => {
             </li>
           ))}
         </ul>
-      )}
-      {result !== undefined && result.articles.length >= ARTICLE_SEARCH_LIMIT && (
-        <p className={styles.empty}>
-          新しい {ARTICLE_SEARCH_LIMIT} 件だけ出してます。言葉を足すと古い記事まで届きます
-        </p>
       )}
       {opened !== undefined && (
         <HitDialog

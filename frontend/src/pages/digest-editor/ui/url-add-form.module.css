@@ -12,6 +12,10 @@
   border-radius: var(--radius-control);
 }
 
+.urlField:has(.urlInput:focus-visible) {
+  border-color: var(--color-accent);
+}
+
 .urlField:has(.urlInput[aria-invalid="true"]) {
   border-color: var(--color-danger);
 }
