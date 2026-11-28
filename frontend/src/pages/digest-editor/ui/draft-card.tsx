@@ -13,6 +13,7 @@ import {
 } from "react-aria-components";
 import { loadAnyLinkPreview, translateTitle } from "#/shared/api";
 import type { Category } from "#/shared/api";
+import { useHovered } from "#/shared/lib/use-hovered";
 import { Favicon } from "#/shared/ui/favicon";
 import { Flame } from "#/shared/ui/icons/flame";
 import { Translate } from "#/shared/ui/icons/translate";
@@ -25,7 +26,6 @@ import { rethrowSessionExpired } from "../model/rethrow-session-expired";
 import { failureMessage } from "./failure-message";
 import { LinkMeta } from "./link-meta";
 import styles from "./draft-card.module.css";
-import { useHovered } from "#/shared/lib/use-hovered";
 
 export interface CardActions {
   atLimit: boolean;

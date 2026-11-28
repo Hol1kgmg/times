@@ -24,7 +24,7 @@
 
 .group {
   composes: t-label from global;
-  padding: var(--space-2) var(--space-1) 4px;
+  padding: var(--space-2) var(--space-1) var(--space-half);
   color: var(--color-sidebar-text-muted);
 }
 
@@ -32,7 +32,7 @@
   composes: t-title from global;
   display: flex;
   gap: var(--space-1);
-  padding: 4px var(--space-1);
+  padding: var(--space-half) var(--space-1);
   border-radius: var(--radius-card);
   color: var(--color-sidebar-text-muted);
   text-decoration: none;

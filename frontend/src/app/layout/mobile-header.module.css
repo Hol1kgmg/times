@@ -7,9 +7,8 @@
   display: none;
   flex-direction: column;
   padding: var(--space-1);
-  --bar-height: 40px;
   /* 9999px からの補間は変化のほとんどが見えない範囲で起きるので、ヘッダーの高さの半分にする */
-  border-radius: calc(var(--bar-height) / 2 + var(--space-1));
+  border-radius: calc(var(--mobile-bar-height) / 2 + var(--space-1));
   background-color: var(--color-surface-floating);
   backdrop-filter: var(--backdrop-floating);
   box-shadow: var(--shadow-floating);
@@ -31,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: var(--bar-height);
+  height: var(--mobile-bar-height);
   padding: 0;
   border: 0;
   border-radius: 9999px;

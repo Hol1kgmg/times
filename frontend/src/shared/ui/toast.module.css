@@ -45,7 +45,6 @@
 }
 
 .content {
-  composes: t-body from global;
   flex: 1;
   min-width: 0;
   color: var(--color-text);
