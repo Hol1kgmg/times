@@ -167,7 +167,7 @@ func TestToDigest(t *testing.T) {
 // 呼び出した親と再掲載の投稿は、子があれば最初の子のカテゴリで出し、初掲載日は親にだけ出す (specs/018 FR-010・FR-014)
 func TestToDigestRepost(t *testing.T) {
 	first := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
-	p, q := uuid.New(), uuid.New()
+	p, q, h := uuid.New(), uuid.New(), uuid.New()
 	summoned := placed(db.ListArticlesByDigestRow{ID: p, Category: "セキュリティ", Title: "p", Url: "https://p.example", IsRepost: true, FirstPublishedOn: &first})
 	summoned.Placed = false
 	rows := []db.ListArticlesByDigestRow{
@@ -175,6 +175,9 @@ func TestToDigestRepost(t *testing.T) {
 		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "IT系", Title: "c", Url: "https://p.example/c", ParentID: &p, IsRepost: true}),
 		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "AI系", Title: "d", Url: "https://p.example/d", ParentID: &p}),
 		placed(db.ListArticlesByDigestRow{ID: q, Category: "セキュリティ", Title: "q", Url: "https://q.example", IsRepost: true, IsHot: true}),
+		placed(db.ListArticlesByDigestRow{ID: h, Category: "UI系", Title: "h", Url: "https://h.example", IsRepost: true, IsHot: true}),
+		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "UI系", Title: "h1", Url: "https://h.example/1", ParentID: &h, IsHot: true}),
+		placed(db.ListArticlesByDigestRow{ID: uuid.New(), Category: "UI系", Title: "h2", Url: "https://h.example/2", ParentID: &h, IsHot: true}),
 	}
 	body, err := json.Marshal(toDigest(db.Digest{ID: uuid.New()}, rows, false))
 	if err != nil {
@@ -209,6 +212,10 @@ func TestToDigestRepost(t *testing.T) {
 	}
 	if got.Articles[1].Hot {
 		t.Errorf("a placement that became a repost by a date change must not show its old HOT: got %s", body)
+	}
+	// 子は保存時に親の HOT を写しているので、親の HOT を落とすと子ごとに炎が並ぶ
+	if got.Articles[2].Hot || got.Articles[2].Children[0]["hot"] != false || got.Articles[2].Children[1]["hot"] != false {
+		t.Errorf("children of a HOT parent that became a repost must not show HOT: got %s", body)
 	}
 	if _, ok := got.Articles[0].Children[0]["firstPublishedOn"]; ok {
 		t.Errorf("child should not carry firstPublishedOn: got %s", body)
@@ -287,6 +294,7 @@ func TestCheckEntries(t *testing.T) {
 		"https://kept.example":           {Url: "https://kept.example", Category: "その他", Placed: true, HasEarlier: true},
 		"https://private-parent.example": {Url: "https://private-parent.example", HasPlacedChild: true},
 		"https://private-child.example":  {Url: "https://private-child.example", Placed: true, ParentUrl: &privateParent},
+		"https://hidden.example":         {Url: "https://hidden.example", Category: "その他", FirstPublishedOn: &first, Hidden: true},
 	}
 	newChild := []child{{title: "new", url: "https://new.example"}}
 	repostChild := []child{{url: "https://old.example/child", repost: true}}
@@ -298,6 +306,8 @@ func TestCheckEntries(t *testing.T) {
 		{"registered url as a child", []entry{{url: "https://new.example", children: []child{{url: "https://old.example"}}}}, "/problems/url-already-registered"},
 		{"registered parent without an earlier published placement", []entry{{url: "https://draft.example"}}, "/problems/url-already-registered"},
 		{"repost of an unknown article", []entry{{url: "https://none.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
+		// 候補に出ない隠した記事は、保存でも再掲載にできない (公開ページに子のない「非公開記事」が残るため)
+		{"repost of a hidden article", []entry{{url: "https://hidden.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
 		{"repost of an article only on drafts", []entry{{url: "https://draft.example", repost: true, category: api.CategoryOther}}, "/problems/repost-unavailable"},
 		// 子のない再掲載は記事のカテゴリで出すので、別のタブで元のカテゴリが変わっても断らない
 		{"repost without children sent in another category", []entry{{url: "https://old.example", repost: true, category: api.CategoryIT}}, ""},

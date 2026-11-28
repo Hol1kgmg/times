@@ -29,7 +29,7 @@ WHERE digests.created_by = sqlc.arg(created_by) AND digests.entry_date = sqlc.ar
 
 -- name: ListRegisteredArticles :many
 -- unique 違反は最初の 1 件しか分からないので、画面で全件に印を付けるため先にまとめて引く
-SELECT a.id, a.url, a.title, a.category,
+SELECT a.id, a.url, a.title, a.category, a.hidden,
   EXISTS (SELECT 1 FROM digest_articles da WHERE da.article_id = a.id AND da.digest_id = cur.id) AS placed,
   EXISTS (SELECT 1 FROM articles c JOIN digest_articles da ON da.article_id = c.id
     WHERE c.parent_id = a.id AND da.digest_id = cur.id) AS has_placed_child,

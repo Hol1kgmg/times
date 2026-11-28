@@ -473,10 +473,10 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 		r, ok := registered[url]
 		return !ok || r.Placed && !r.HasEarlier
 	}
-	// この Digest に載っている記事は FR-005 を確かめ直さない (specs/018 FR-009)
+	// この Digest に載っている記事は FR-005 を確かめ直さない (specs/018 FR-009)。隠した記事は候補 (specs/020・021 FR-003) と同じく再掲載にしない
 	repostAvailable := func(url string) bool {
 		r, ok := registered[url]
-		return ok && (r.Placed || r.FirstPublishedOn != nil)
+		return ok && (r.Placed || r.FirstPublishedOn != nil && !r.Hidden)
 	}
 	for _, e := range entries {
 		for _, c := range e.children {
@@ -498,7 +498,7 @@ func checkEntries(entries []entry, registered map[string]db.ListRegisteredArticl
 			unavailable = append(unavailable, e.url)
 		case !e.repost && !original(e.url):
 			duplicates = append(duplicates, e.url)
-			if r.FirstPublishedOn != nil {
+			if r.FirstPublishedOn != nil && !r.Hidden {
 				repostable = append(repostable, apperr.Repostable{URL: r.Url, Title: r.Title, Category: r.Category, FirstPublishedOn: *r.FirstPublishedOn})
 			}
 		}
@@ -599,6 +599,12 @@ func toDigest(d db.Digest, rows []db.ListArticlesByDigestRow, public bool) api.D
 		}
 		// 呼び出した親は、この Digest では子のための再掲載
 		repost := p.IsRepost || !p.Placed
+		// HOT の親の子は保存時に親の HOT を写すので、親の HOT を落とすなら子も落とす。残すと子ごとに炎が並ぶ
+		if p.IsHot && repost {
+			for i := range cs {
+				cs[i].Hot = false
+			}
+		}
 		a := api.Article{Id: p.ID, Category: api.Category(p.Category), Repost: repost, Hidden: p.Hidden, Listed: p.Placed, OriginalStatus: originalStatus(p), Children: cs}
 		if public && !visible(p) {
 			// 子のない再掲載はそれ自体を読ませる掲載なので、中身を隠しても場所は残す
